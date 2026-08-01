@@ -31,7 +31,9 @@ Novel implementation is acceptable only when the pull request explains why the b
 
 ## Issue triage
 
-GitHub Issues is the execution tracker. The configured triage labels are:
+Beads/Dolt is the sole execution tracker. The root delivery epic is `mpi-oan`, and all implementation work must be created or linked beneath it unless it is independently discovered work.
+
+Use these labels consistently:
 
 - `needs-triage`
 - `needs-info`
@@ -39,5 +41,5 @@ GitHub Issues is the execution tracker. The configured triage labels are:
 - `ready-for-human`
 - `wontfix`
 
-GitHub Discussions may be used for questions and exploratory ideas, but not as a parallel execution tracker.
+Use blocking dependencies for execution order, `discovered-from` for work found during implementation, and `bd human` for irreducible owner gates. GitHub Issues and Discussions are not execution trackers for this project.
 

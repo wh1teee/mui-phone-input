@@ -17,3 +17,5 @@ The target npm package name is `@whiteee/mui-phone-input`, subject to verified n
 
 See the [product context](./CONTEXT.md), [architecture decisions](./docs/adr), [specification](./docs/specs/0001-mui-phone-input-1.0.md), and [donor manifest](./DONORS.md).
 
+Execution is tracked exclusively in Beads/Dolt under epic `mpi-oan`. Run `bd show mpi-oan` for the complete delivery graph and `bd ready` for the current frontier.
+

@@ -115,9 +115,9 @@ The component exposes a normalized Phone Value independently from Display Value,
 - Use `tsdown` for ESM packaging and declaration generation, plus `publint`, Are The Types Wrong, packed-tarball installation, and export validation.
 - Use Changesets and SemVer, prerelease dist-tags before 1.0, and deprecation before post-1.0 public API removal.
 - Publish through GitHub Actions and npm Trusted Publishing/OIDC with provenance, staged stable releases, owner approval, dependency review, and SBOM/release manifests.
-- Configure GitHub Issues with `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, and `wontfix`. Use GitHub Discussions only for non-execution conversation.
+- Use Beads/Dolt as the sole library execution tracker, with `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, and `wontfix` labels, real blocking dependencies, and the specification epic `mpi-oan` as the delivery root. Do not duplicate execution state in GitHub Issues or Discussions.
 - Require exact Donor Decisions and retained regression tests for non-trivial behavior.
-- Plan RideOS as the first Consumer Integration and Christofle as the second after its MUI 9 upgrade. Integration tasks remain in each product's own tracker.
+- Plan RideOS as the first Consumer Integration and Christofle as the second after its MUI 9 upgrade. The library-side external gate is `mpi-nfw`; implementation tasks remain in each product's own tracker.
 - Freeze the 1.0 API only after both Consumer Integrations, API review, performance budgets, browser coverage, and manual screen-reader gates.
 
 ## Testing Decisions
