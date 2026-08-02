@@ -45,6 +45,13 @@ are broad while a shared calling code is unresolved and narrow when authority
 data identifies a smaller candidate set. No manual country or calling-code
 table is present.
 
+`mpi-oan.10` extends the same authority boundary with
+`validatePhoneNumberLength`, `PhoneNumber.isPossible`, `PhoneNumber.isValid`,
+`PhoneNumber.getType`, and `formatIncompletePhoneNumber`. Possible validation
+is the default acceptance policy; strict validity and number-type restrictions
+remain explicit. Structural metadata results never claim ownership or
+deliverability.
+
 ### `cap-input-transaction-engine`
 
 `mpi-oan.22` selected **Maskito core/React 5.3.1** as the Input Transaction

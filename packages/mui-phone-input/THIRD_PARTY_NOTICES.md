@@ -21,7 +21,8 @@ No Maskito source code is copied into this package.
 The package uses `libphonenumber-js@1.13.10` as its only phone-numbering
 authority. It provides parsing, country calling codes, geographic and
 non-geographic numbering-plan metadata, country detection, and the source data
-for Possible Countries.
+for Possible Countries, possibility, strict validity, number type, typed length
+reasons, and deterministic international formatting.
 
 libphonenumber-js is Copyright © Nikolay Kuchumov and is distributed under the
 MIT licence. Source inspected for the 1.0 authority contract:

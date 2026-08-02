@@ -13,9 +13,10 @@ The main client entrypoint exports:
 - `isPhoneValue`, `parsePhoneValue`, and `assertPhoneValue`;
 - `muiPhoneInputClasses` and `getMuiPhoneInputUtilityClass`.
 
-The server entrypoint exports the Phone Value type/helpers and the pure
-Numbering Plan resolver. It imports no React, MUI, Emotion, Maskito, DOM,
-browser globals, or Node-only built-ins.
+The server entrypoint exports the Phone Value type/helpers, pure Numbering Plan
+resolver, possible-by-default validation, and deterministic formatting. It
+imports no React, MUI, Emotion, Maskito, DOM, browser globals, or Node-only
+built-ins.
 
 ## Tracer contract
 
@@ -28,13 +29,13 @@ browser globals, or Node-only built-ins.
 - External controlled updates and form reset reconciliation do not create
   callback loops.
 - Callback details are serializable and contain value, previous value, reason,
-  validation placeholder state, and geographic/unresolved/non-geographic
+  typed validation/acceptance state, and geographic/unresolved/non-geographic
   Numbering Plan Resolution. They contain no DOM or React event object.
 
-The tracer now claims authority-backed country and numbering-plan resolution.
-It intentionally does not yet claim possibility/validity policy, number type,
-advanced formatting, selector behavior, extensions, or form adapters. Those
-remain owned by later Beads.
+The tracer now claims authority-backed country/numbering-plan resolution,
+possible/strict validity, number type, and deterministic international
+formatting. It intentionally does not yet claim advanced display modes/masks,
+selector behavior, extensions, metadata variants, or form adapters.
 
 ## Browser evidence
 
@@ -53,6 +54,8 @@ Source Browser Mode tests cover:
 - selected/detected/resolved country stability across shared calling codes;
 - non-geographic plans without fabricated country state;
 - external controlled-number reconciliation without callback loops.
+- possible-by-default validation and explicit strict/type policies;
+- blur-default error presentation and correction clearing.
 
 The same public tarball is installed outside the workspace in production
 Next.js and Vite consumers. Their built applications are started and exercised
@@ -61,6 +64,9 @@ serializable details, focus, clear, Strict Mode, and external reset.
 
 Latest and minimum React 19 / MUI 9 consumer matrices use the exact generated
 `.tgz`; no workspace-source resolution is accepted as evidence.
+
+The current combined source matrix contains 52 Browser Mode tests per engine;
+all pass in Chromium, Firefox, and WebKit. The unit suite contains 72 tests.
 
 ## Package budgets
 
@@ -73,9 +79,9 @@ externalizes declared peers.
 
 Current exact-artifact measurements are:
 
-- main closure: 8,012 bytes gzip;
-- server entry: 1,529 bytes gzip;
-- packed tarball: 20,408 bytes.
+- main closure: 9,282 bytes gzip;
+- server entry: 2,666 bytes gzip;
+- packed tarball: 27,370 bytes.
 
 CI rebuilds the artifact and requires exact byte/hash equality with the
 committed measurement.

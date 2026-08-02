@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
-describe('foundation test seam', () => {
-  it('exposes the tracer only from the client entrypoint', async () => {
-    const clientEntry = await import('../../packages/mui-phone-input/src/index');
-    const serverEntry = await import('../../packages/mui-phone-input/src/server');
+import * as clientEntry from '../../packages/mui-phone-input/src/index';
+import * as serverEntry from '../../packages/mui-phone-input/src/server';
 
+describe('foundation test seam', () => {
+  it('exposes the tracer only from the client entrypoint', () => {
     expect(Object.keys(clientEntry)).toEqual(
       expect.arrayContaining([
         'MuiPhoneInput',
@@ -15,9 +15,11 @@ describe('foundation test seam', () => {
     );
     expect(Object.keys(serverEntry).sort()).toEqual([
       'assertPhoneValue',
+      'formatPhoneValueForDisplay',
       'isPhoneValue',
       'parsePhoneValue',
       'resolveNumberingPlan',
+      'validatePhoneValue',
     ]);
     expect(serverEntry).not.toHaveProperty('MuiPhoneInput');
   });

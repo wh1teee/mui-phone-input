@@ -13,6 +13,8 @@ import {
 
 export function useInputTransactionEngineBridge(): InputTransactionEngineBridge {
   const maskitoRef = useMaskito({ options: E164_MASKITO_OPTIONS });
+  const maskitoRefRef = useRef(maskitoRef);
+  maskitoRefRef.current = maskitoRef;
 
   if (SELECTED_INPUT_TRANSACTION_ENGINE !== 'maskito') {
     throw new Error('Unsupported Input Transaction engine.');
@@ -25,12 +27,12 @@ export function useInputTransactionEngineBridge(): InputTransactionEngineBridge 
     () => ({
       attach(input) {
         inputRef.current = input;
-        maskitoRef(input);
+        maskitoRefRef.current(input);
 
         return () => {
           if (inputRef.current === input) {
             inputRef.current = null;
-            maskitoRef(null);
+            maskitoRefRef.current(null);
           }
         };
       },
@@ -56,6 +58,6 @@ export function useInputTransactionEngineBridge(): InputTransactionEngineBridge 
         contextRef.current = context;
       },
     }),
-    [maskitoRef],
+    [],
   );
 }

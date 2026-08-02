@@ -2,10 +2,10 @@
 
 A highly customizable, accessible phone input for React and Material UI, with `libphonenumber-js` as the only phone-number authority.
 
-> Status: foundations and the Input Transaction bake-off are complete. The
-> minimal production-shaped `MuiPhoneInput` tracer is implemented on the
-> delivery branch; npm publication remains blocked on the explicit owner gate
-> `mpi-g7a`.
+> Status: foundations, the Input Transaction bake-off, the production-shaped
+> `MuiPhoneInput` tracer, numbering-plan resolution, and possible-by-default
+> validation/server parity are implemented on the delivery branch. npm
+> publication remains blocked on the explicit owner gate `mpi-g7a`.
 
 ## Goals
 
@@ -25,5 +25,6 @@ Execution is tracked exclusively in Beads/Dolt under epic `mpi-oan`. Run
 `bd show mpi-oan` for the complete delivery graph and `bd ready` for the live
 frontier. Workspace foundations are recorded in `mpi-oan.1`, donor/corpus
 evidence in `mpi-oan.2`, the Maskito engine decision in `mpi-oan.22` and ADR
-0006, and the minimal tracer in `mpi-oan.3`.
+0006, the minimal tracer in `mpi-oan.3`, numbering plans in `mpi-oan.4`, and
+validation/server parity in `mpi-oan.10`.
 

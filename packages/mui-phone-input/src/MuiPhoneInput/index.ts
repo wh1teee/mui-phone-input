@@ -7,6 +7,7 @@ export {
   type PhoneInputChangeReason,
   type PhoneInputNumberingPlanState,
   type PhoneInputValidationState,
+  type PhoneValidationDisplay,
 } from './MuiPhoneInput';
 export type {
   MuiPhoneInputClasses,

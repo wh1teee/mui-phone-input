@@ -87,6 +87,43 @@ assert.deepEqual(serverModule.resolveNumberingPlan('+800'), {
   resolvedCountry: null,
   selectedCountry: null,
 });
+assert.equal(
+  serverModule.formatPhoneValueForDisplay('+375291234567'),
+  '+375 29 123 45 67',
+);
+assert.deepEqual(serverModule.validatePhoneValue('+441481123456'), {
+  accepted: true,
+  isPossible: true,
+  isValid: false,
+  mode: 'possible',
+  numberType: null,
+  reason: 'possible',
+  status: 'possible',
+  value: '+441481123456',
+});
+assert.deepEqual(
+  serverModule.validatePhoneValue('+441481123456', { validationMode: 'valid' }),
+  {
+    accepted: false,
+    isPossible: true,
+    isValid: false,
+    mode: 'valid',
+    numberType: null,
+    reason: 'strict-validity-required',
+    status: 'possible',
+    value: '+441481123456',
+  },
+);
+assert.deepEqual(serverModule.validatePhoneValue('+80012345678'), {
+  accepted: true,
+  isPossible: true,
+  isValid: true,
+  mode: 'possible',
+  numberType: 'TOLL_FREE',
+  reason: 'valid',
+  status: 'valid',
+  value: '+80012345678',
+});
 assert.match(clientBundle, /process\.env\.NODE_ENV\s*!==\s*["']production["']/u);
 assert.doesNotMatch(
   clientBundle,

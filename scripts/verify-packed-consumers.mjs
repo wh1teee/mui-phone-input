@@ -169,6 +169,9 @@ async function verifyPackedBrowser(destination, consumer) {
       details.value !== '+37529' ||
       details.previousValue !== '+3752' ||
       details.reason !== 'input' ||
+      details.validation?.accepted !== false ||
+      details.validation?.status !== 'incomplete' ||
+      details.validation?.reason !== 'too-short' ||
       details.numberingPlan?.kind !== 'geographic' ||
       details.numberingPlan?.countryCallingCode !== '375' ||
       details.numberingPlan?.detectedCountry !== 'BY' ||
@@ -183,9 +186,17 @@ async function verifyPackedBrowser(destination, consumer) {
       );
     }
 
+    if ((await input.getAttribute('aria-invalid')) === 'true') {
+      throw new Error('Packed incomplete value displayed validation before blur.');
+    }
+
     await page.getByRole('button', { name: 'Focus phone input' }).click();
     if (!(await input.evaluate((element) => element === document.activeElement))) {
       throw new Error('Packed input ref did not focus the native input.');
+    }
+    await page.getByText('Complete the phone number.').waitFor({ state: 'visible' });
+    if ((await input.getAttribute('aria-invalid')) !== 'true') {
+      throw new Error('Packed incomplete value did not expose blur validation.');
     }
 
     await input.selectText();
@@ -215,6 +226,15 @@ async function verifyPackedBrowser(destination, consumer) {
         `Packed unresolved numbering plan is invalid: ${JSON.stringify(unresolvedDetails)}`,
       );
     }
+    if (
+      unresolvedDetails.validation?.accepted !== false ||
+      unresolvedDetails.validation?.status !== 'incomplete' ||
+      unresolvedDetails.validation?.reason !== 'too-short'
+    ) {
+      throw new Error(
+        `Packed unresolved validation is invalid: ${JSON.stringify(unresolvedDetails)}`,
+      );
+    }
 
     await input.pressSequentially('2025550123');
     if ((await page.getByTestId('callback-count').textContent()) !== '17') {
@@ -227,7 +247,11 @@ async function verifyPackedBrowser(destination, consumer) {
       resolvedDetails.numberingPlan?.kind !== 'geographic' ||
       resolvedDetails.numberingPlan?.detectedCountry !== 'US' ||
       resolvedDetails.numberingPlan?.resolvedCountry !== 'US' ||
-      JSON.stringify(resolvedDetails.numberingPlan?.possibleCountries) !== '["US"]'
+      JSON.stringify(resolvedDetails.numberingPlan?.possibleCountries) !== '["US"]' ||
+      resolvedDetails.validation?.accepted !== true ||
+      resolvedDetails.validation?.status !== 'valid' ||
+      resolvedDetails.validation?.reason !== 'valid' ||
+      resolvedDetails.validation?.numberType !== 'FIXED_LINE_OR_MOBILE'
     ) {
       throw new Error(
         `Packed resolved numbering plan is invalid: ${JSON.stringify(resolvedDetails)}`,
@@ -249,7 +273,10 @@ async function verifyPackedBrowser(destination, consumer) {
       nonGeographicDetails.numberingPlan?.detectedCountry !== null ||
       nonGeographicDetails.numberingPlan?.resolvedCountry !== null ||
       nonGeographicDetails.numberingPlan?.selectedCountry !== null ||
-      JSON.stringify(nonGeographicDetails.numberingPlan?.possibleCountries) !== '[]'
+      JSON.stringify(nonGeographicDetails.numberingPlan?.possibleCountries) !== '[]' ||
+      nonGeographicDetails.validation?.accepted !== true ||
+      nonGeographicDetails.validation?.status !== 'valid' ||
+      nonGeographicDetails.validation?.numberType !== 'TOLL_FREE'
     ) {
       throw new Error(
         `Packed non-geographic numbering plan is invalid: ${JSON.stringify(nonGeographicDetails)}`,

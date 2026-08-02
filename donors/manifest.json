@@ -25,6 +25,18 @@
       "docs/research/2026-08-02-numbering-plan-authority-evidence.md"
     ]
   },
+  "validationDecision": {
+    "authority": "libphonenumber-js@1.13.10 max metadata",
+    "bead": "mpi-oan.10",
+    "defaultMode": "possible",
+    "publicApi": ["validatePhoneValue", "formatPhoneValueForDisplay"],
+    "evidence": [
+      "tests/unit/phone-validation.test.ts",
+      "tests/unit/phone-validation-entrypoints.test.ts",
+      "tests/browser/mui-phone-input.browser.test.tsx",
+      "docs/research/2026-08-02-validation-server-parity-evidence.md"
+    ]
+  },
   "donors": [
     {
       "id": "libphonenumber-js",
@@ -38,10 +50,12 @@
         "parsePhoneNumberWithError",
         "getCountries",
         "getCountryCallingCode",
+        "formatIncompletePhoneNumber",
         "PhoneNumber.getPossibleCountries",
         "PhoneNumber.isPossible",
         "PhoneNumber.isValid",
-        "PhoneNumber.getType"
+        "PhoneNumber.getType",
+        "validatePhoneNumberLength"
       ],
       "inspectedTests": [
         "source/AsYouType.test.js",
@@ -319,11 +333,13 @@
       "donors": ["libphonenumber-js"],
       "symbols": [
         "AsYouType",
+        "formatIncompletePhoneNumber",
         "parsePhoneNumberWithError",
         "PhoneNumber.getPossibleCountries",
         "PhoneNumber.isPossible",
         "PhoneNumber.isValid",
-        "PhoneNumber.getType"
+        "PhoneNumber.getType",
+        "validatePhoneNumberLength"
       ],
       "knownIssues": [
         "UI state must distinguish selected, detected, resolved, and possible countries without inventing country data."

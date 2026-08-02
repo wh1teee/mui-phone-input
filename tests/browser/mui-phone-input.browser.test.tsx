@@ -1,5 +1,5 @@
 import { createTheme, ThemeProvider } from '@mui/material/styles';
-import type { CountryCode } from 'libphonenumber-js/max';
+import type { CountryCode, PhoneNumberType } from 'libphonenumber-js/max';
 import { type ClipboardEvent, StrictMode, useRef, useState } from 'react';
 import { describe, expect, test, vi } from 'vitest';
 import { page, userEvent } from 'vitest/browser';
@@ -8,6 +8,7 @@ import { render } from 'vitest-browser-react';
 import {
   MuiPhoneInput,
   type PhoneInputChangeDetails,
+  type PhoneValidationMode,
   type PhoneValue,
 } from '../../packages/mui-phone-input/src';
 
@@ -71,6 +72,7 @@ function UncontrolledHarness() {
           setLatestValue(value);
           setCallbackCount((count) => count + 1);
         }}
+        required
         slotProps={{ htmlInput: { 'data-testid': 'uncontrolled-phone' } }}
       />
       <output data-testid="uncontrolled-value">{latestValue ?? ''}</output>
@@ -160,6 +162,47 @@ function ExternalNumberingHarness() {
       >
         Set external US number
       </button>
+    </>
+  );
+}
+
+type ValidationHarnessProps = Readonly<{
+  allowedNumberTypes?: readonly PhoneNumberType[];
+  required?: boolean;
+  validationDisplay?: 'always' | 'blur' | 'never';
+  validationMessage?: string;
+  validationMode?: PhoneValidationMode;
+}>;
+
+function ValidationHarness({
+  allowedNumberTypes,
+  required = false,
+  validationDisplay,
+  validationMessage,
+  validationMode,
+}: ValidationHarnessProps = {}) {
+  const [value, setValue] = useState<PhoneValue>();
+  const [details, setDetails] = useState<PhoneInputChangeDetails>();
+
+  return (
+    <>
+      <MuiPhoneInput
+        label="Validation phone"
+        onChange={(nextValue, nextDetails) => {
+          setValue(nextValue);
+          setDetails(nextDetails);
+        }}
+        required={required}
+        slotProps={{ htmlInput: { 'data-testid': 'validation-phone' } }}
+        value={value}
+        {...(allowedNumberTypes ? { allowedNumberTypes } : {})}
+        {...(validationDisplay ? { validationDisplay } : {})}
+        {...(validationMessage ? { validationMessage } : {})}
+        {...(validationMode ? { validationMode } : {})}
+      />
+      <output data-testid="validation-details">
+        {details ? JSON.stringify(details) : ''}
+      </output>
     </>
   );
 }
@@ -294,10 +337,14 @@ describe('MuiPhoneInput tracer', () => {
     expect(details.previousValue).toBe('+3752');
     expect(details.reason).toBe('input');
     expect(details.validation).toEqual({
-      isPossible: null,
-      isValid: null,
+      accepted: false,
+      isPossible: false,
+      isValid: false,
+      mode: 'possible',
       numberType: null,
-      reason: 'not-evaluated',
+      reason: 'too-short',
+      status: 'incomplete',
+      value: '+37529',
     });
     expect(details.numberingPlan).toEqual({
       countryCallingCode: '375',
@@ -366,6 +413,8 @@ describe('MuiPhoneInput tracer', () => {
     );
 
     await expect.element(input).toHaveValue('+1202');
+    await expect.element(input).not.toHaveAttribute('aria-invalid', 'true');
+    expect(document.body.textContent).not.toContain('Complete the phone number.');
     await expect
       .element(page.getByTestId('uncontrolled-callback-count'))
       .toHaveTextContent('1');
@@ -543,5 +592,117 @@ describe('MuiPhoneInput tracer', () => {
     await expect.element(root).toHaveStyle({ minWidth: '321px' });
     await expect.element(input).toHaveClass('MuiPhoneInput-input');
     await expect.element(input).toHaveStyle({ letterSpacing: '3px' });
+  });
+
+  test('shows incomplete validation after blur and clears it on correction', async () => {
+    render(<ValidationHarness required />);
+    const input = page.getByTestId('validation-phone');
+
+    await userEvent.type(input, '1');
+    expect(input.element().getAttribute('aria-invalid')).not.toBe('true');
+    expect(document.body.textContent).not.toContain('Complete the phone number.');
+
+    input.element().blur();
+    await expect.element(input).toHaveAttribute('aria-invalid', 'true');
+    await expect.element(page.getByText('Complete the phone number.')).toBeVisible();
+
+    await userEvent.type(input, '2025550123');
+    await expect.element(input).not.toHaveAttribute('aria-invalid', 'true');
+    expect(document.body.textContent).not.toContain('Complete the phone number.');
+
+    const details = JSON.parse(
+      page.getByTestId('validation-details').element().textContent ?? '',
+    ) as PhoneInputChangeDetails;
+    expect(details.validation).toMatchObject({
+      accepted: true,
+      isPossible: true,
+      isValid: true,
+      mode: 'possible',
+      numberType: 'FIXED_LINE_OR_MOBILE',
+      reason: 'valid',
+      status: 'valid',
+    });
+  });
+
+  test('accepts a structurally possible number by default', async () => {
+    render(<ValidationHarness validationDisplay="always" />);
+    const input = page.getByTestId('validation-phone');
+
+    await pasteText('validation-phone', '+441481123456');
+    await expect.element(input).not.toHaveAttribute('aria-invalid', 'true');
+    await expect
+      .element(page.getByTestId('validation-details'))
+      .toHaveTextContent('"status":"possible"');
+
+    const details = JSON.parse(
+      page.getByTestId('validation-details').element().textContent ?? '',
+    ) as PhoneInputChangeDetails;
+    expect(details.validation).toMatchObject({
+      accepted: true,
+      isPossible: true,
+      isValid: false,
+      mode: 'possible',
+      reason: 'possible',
+      status: 'possible',
+    });
+  });
+
+  test('makes strict validity and number-type rejection explicit', async () => {
+    const { unmount } = await render(
+      <ValidationHarness validationDisplay="always" validationMode="valid" />,
+    );
+
+    await pasteText('validation-phone', '+441481123456');
+    await expect
+      .element(page.getByTestId('validation-phone'))
+      .toHaveAttribute('aria-invalid', 'true');
+    await expect.element(page.getByText('Enter a valid phone number.')).toBeVisible();
+    let details = JSON.parse(
+      page.getByTestId('validation-details').element().textContent ?? '',
+    ) as PhoneInputChangeDetails;
+    expect(details.validation).toMatchObject({
+      accepted: false,
+      mode: 'valid',
+      reason: 'strict-validity-required',
+      status: 'possible',
+    });
+
+    await unmount();
+    render(
+      <ValidationHarness
+        allowedNumberTypes={['FIXED_LINE']}
+        validationDisplay="always"
+        validationMessage="Use a fixed-line number."
+        validationMode="possible-and-type"
+      />,
+    );
+    await pasteText('validation-phone', '+375291234567');
+    await expect
+      .element(page.getByTestId('validation-phone'))
+      .toHaveAttribute('aria-invalid', 'true');
+    await expect.element(page.getByText('Use a fixed-line number.')).toBeVisible();
+    details = JSON.parse(
+      page.getByTestId('validation-details').element().textContent ?? '',
+    ) as PhoneInputChangeDetails;
+    expect(details.validation).toMatchObject({
+      accepted: false,
+      mode: 'possible-and-type',
+      numberType: 'MOBILE',
+      reason: 'disallowed-number-type',
+      status: 'valid',
+    });
+  });
+
+  test('can suppress internal validation presentation without hiding details', async () => {
+    render(<ValidationHarness required validationDisplay="never" />);
+    const input = page.getByTestId('validation-phone');
+
+    await userEvent.type(input, '1');
+    input.element().blur();
+    await expect
+      .element(page.getByTestId('validation-details'))
+      .toHaveTextContent('"accepted":false');
+    await expect.element(input).not.toHaveAttribute('aria-invalid', 'true');
+    expect(document.body.textContent).not.toContain('Complete the phone number.');
   });
 });

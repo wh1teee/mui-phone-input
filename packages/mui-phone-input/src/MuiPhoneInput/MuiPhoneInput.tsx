@@ -8,7 +8,7 @@ import {
 } from '@mui/material/styles';
 import TextField, { type TextFieldProps } from '@mui/material/TextField';
 import { mergeSlotProps } from '@mui/material/utils';
-import type { CountryCode } from 'libphonenumber-js/max';
+import type { CountryCode, PhoneNumberType } from 'libphonenumber-js/max';
 import {
   type ClipboardEvent,
   type CompositionEvent,
@@ -16,6 +16,7 @@ import {
   type ForwardedRef,
   type ForwardRefExoticComponent,
   forwardRef,
+  type ReactNode,
   type RefAttributes,
   useCallback,
   useEffect,
@@ -26,6 +27,12 @@ import {
 import type { InputEngineContext } from '../internal/input-transaction-engine';
 import { useInputTransactionEngineBridge } from '../internal/use-input-transaction-engine';
 import { type NumberingPlanResolution, resolveNumberingPlan } from '../numbering-plan';
+import {
+  type PhoneValidationMode,
+  type PhoneValidationOptions,
+  type PhoneValidationResult,
+  validatePhoneValue,
+} from '../phone-validation';
 import { assertPhoneValue, type PhoneValue, parsePhoneValue } from '../phone-value';
 import {
   getMuiPhoneInputUtilityClass,
@@ -44,12 +51,9 @@ export type PhoneInputChangeReason =
   | 'history-undo'
   | 'history-redo';
 
-export interface PhoneInputValidationState {
-  isPossible: boolean | null;
-  isValid: boolean | null;
-  numberType: string | null;
-  reason: 'empty' | 'not-evaluated';
-}
+export type PhoneInputValidationState = PhoneValidationResult;
+
+export type PhoneValidationDisplay = 'always' | 'blur' | 'never';
 
 export type PhoneInputNumberingPlanState = NumberingPlanResolution;
 
@@ -69,6 +73,12 @@ export type MuiPhoneInputProps = Omit<
   defaultValue?: PhoneValue;
   onChange?: (value: PhoneValue, details: PhoneInputChangeDetails) => void;
   selectedCountry?: CountryCode | null;
+  allowedNumberTypes?: readonly PhoneNumberType[];
+  validationDisplay?: PhoneValidationDisplay;
+  validationMessage?:
+    | ReactNode
+    | ((validation: PhoneInputValidationState) => ReactNode);
+  validationMode?: PhoneValidationMode;
   value?: PhoneValue;
 };
 
@@ -128,13 +138,35 @@ function assignInputRef(
   }
 }
 
-function createValidationState(value: PhoneValue): PhoneInputValidationState {
-  return {
-    isPossible: null,
-    isValid: null,
-    numberType: null,
-    reason: value === undefined ? 'empty' : 'not-evaluated',
-  };
+function defaultValidationMessage(validation: PhoneInputValidationState): ReactNode {
+  switch (validation.reason) {
+    case 'required':
+      return 'Enter a phone number.';
+    case 'no-digits':
+    case 'too-short':
+      return 'Complete the phone number.';
+    case 'strict-validity-required':
+      return 'Enter a valid phone number.';
+    case 'unknown-number-type':
+    case 'disallowed-number-type':
+      return 'This phone number type is not accepted.';
+    case 'custom-rejected':
+      return 'This phone number is not accepted.';
+    default:
+      return 'Enter a structurally valid phone number.';
+  }
+}
+
+function resolveValidationMessage(
+  validationMessage:
+    | ReactNode
+    | ((validation: PhoneInputValidationState) => ReactNode)
+    | undefined,
+  validation: PhoneInputValidationState,
+): ReactNode {
+  return typeof validationMessage === 'function'
+    ? validationMessage(validation)
+    : (validationMessage ?? defaultValidationMessage(validation));
 }
 
 function resolveChangeReason(
@@ -184,15 +216,20 @@ export const MuiPhoneInput: ForwardRefExoticComponent<
   function MuiPhoneInput(inProps, forwardedRef) {
     const props = useDefaultProps({ name: 'MuiPhoneInput', props: inProps });
     const {
+      allowedNumberTypes,
       classes: classesProp,
       className,
       defaultValue,
       disabled = false,
       error = false,
+      helperText,
       onChange,
       required = false,
       selectedCountry,
       slotProps,
+      validationDisplay = 'blur',
+      validationMessage,
+      validationMode = 'possible',
       value,
       ...other
     } = props;
@@ -209,6 +246,8 @@ export const MuiPhoneInput: ForwardRefExoticComponent<
     const pendingCommitScheduledRef = useRef(false);
     const pasteTransactionRef = useRef(false);
     const pasteResetFrameRef = useRef<number | undefined>(undefined);
+    const validationBlurFrameRef = useRef<number | undefined>(undefined);
+    const [validationBlurred, setValidationBlurred] = useState(false);
     const [uncontrolledValue, setUncontrolledValue] = useState<PhoneValue>(() => {
       assertPhoneValue(defaultValue);
       return defaultValue;
@@ -223,10 +262,34 @@ export const MuiPhoneInput: ForwardRefExoticComponent<
       () => (selectedCountry == null ? {} : { selectedCountry }),
       [selectedCountry],
     );
+    const validationOptions = useMemo<PhoneValidationOptions>(
+      () => ({
+        required,
+        validationMode,
+        ...(selectedCountry == null ? {} : { selectedCountry }),
+        ...(allowedNumberTypes === undefined ? {} : { allowedNumberTypes }),
+      }),
+      [allowedNumberTypes, required, selectedCountry, validationMode],
+    );
     const currentNumberingPlan = useMemo(
       () => resolveNumberingPlan(currentValue, numberingPlanOptions),
       [currentValue, numberingPlanOptions],
     );
+    const currentValidation = useMemo(
+      () => validatePhoneValue(currentValue, validationOptions),
+      [currentValue, validationOptions],
+    );
+    const validationVisible =
+      validationDisplay === 'always' ||
+      (validationDisplay === 'blur' && validationBlurred);
+    const validationError = validationVisible && !currentValidation.accepted;
+    const resolvedError = error || validationError;
+    const resolvedHelperText =
+      helperText !== undefined
+        ? helperText
+        : validationError
+          ? resolveValidationMessage(validationMessage, currentValidation)
+          : undefined;
     const inputContext = useMemo<InputEngineContext>(
       () => ({
         ...E164_INPUT_CONTEXT,
@@ -241,7 +304,7 @@ export const MuiPhoneInput: ForwardRefExoticComponent<
       controlled: controlledRef.current,
       disabled,
       empty: currentValue === undefined,
-      error,
+      error: resolvedError,
       required,
     };
     const classes = useUtilityClasses(classesProp);
@@ -273,11 +336,11 @@ export const MuiPhoneInput: ForwardRefExoticComponent<
           numberingPlan: resolveNumberingPlan(nextValue, numberingPlanOptions),
           previousValue,
           reason,
-          validation: createValidationState(nextValue),
+          validation: validatePhoneValue(nextValue, validationOptions),
           value: nextValue,
         });
       },
-      [numberingPlanOptions, onChange],
+      [numberingPlanOptions, onChange, validationOptions],
     );
     const scheduleCommit = useCallback(
       (displayValue: string, reason: PhoneInputChangeReason) => {
@@ -408,9 +471,14 @@ export const MuiPhoneInput: ForwardRefExoticComponent<
       }
 
       const handleReset = () => {
+        if (validationBlurFrameRef.current !== undefined) {
+          window.cancelAnimationFrame(validationBlurFrameRef.current);
+          validationBlurFrameRef.current = undefined;
+        }
         queueMicrotask(() => {
           currentValueRef.current = initialDefaultValueRef.current;
           setUncontrolledValue(initialDefaultValueRef.current);
+          setValidationBlurred(false);
         });
       };
 
@@ -423,6 +491,9 @@ export const MuiPhoneInput: ForwardRefExoticComponent<
         if (pasteResetFrameRef.current !== undefined) {
           window.cancelAnimationFrame(pasteResetFrameRef.current);
         }
+        if (validationBlurFrameRef.current !== undefined) {
+          window.cancelAnimationFrame(validationBlurFrameRef.current);
+        }
       },
       [],
     );
@@ -433,6 +504,15 @@ export const MuiPhoneInput: ForwardRefExoticComponent<
           autoComplete: 'tel',
           className: classes.input,
           inputMode: 'tel',
+          onBlur: () => {
+            if (validationBlurFrameRef.current !== undefined) {
+              window.cancelAnimationFrame(validationBlurFrameRef.current);
+            }
+            validationBlurFrameRef.current = window.requestAnimationFrame(() => {
+              validationBlurFrameRef.current = undefined;
+              setValidationBlurred(true);
+            });
+          },
           onCompositionEnd: handleCompositionEnd,
           onCompositionStart: () => {
             pendingCommitScheduledRef.current = false;
@@ -457,7 +537,8 @@ export const MuiPhoneInput: ForwardRefExoticComponent<
         {...other}
         className={joinClassNames(classes.root, className)}
         disabled={disabled}
-        error={error}
+        error={resolvedError}
+        helperText={resolvedHelperText}
         inputRef={setInputRef}
         ownerState={ownerState}
         required={required}
