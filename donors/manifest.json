@@ -1,0 +1,502 @@
+{
+  "schemaVersion": 1,
+  "asOf": "2026-08-02",
+  "policy": "Capability-level donor decisions only; no copied production code is present at this baseline.",
+  "donors": [
+    {
+      "id": "libphonenumber-js",
+      "tier": 1,
+      "release": "1.13.10",
+      "revision": "9758fd594a531a86e0c388da4611e30142da73b2",
+      "source": "https://gitlab.com/catamphetamine/libphonenumber-js",
+      "license": "MIT",
+      "inspectedSymbols": [
+        "AsYouType",
+        "parsePhoneNumberWithError",
+        "getCountries",
+        "getCountryCallingCode",
+        "PhoneNumber.isPossible",
+        "PhoneNumber.isValid",
+        "PhoneNumber.getType"
+      ],
+      "inspectedTests": [
+        "source/AsYouType.test.js",
+        "source/parsePhoneNumber.test.js",
+        "source/PhoneNumber.test.js"
+      ],
+      "knownIssues": [
+        "It is a numbering authority, not an input-selection or country-selector engine.",
+        "Metadata variants intentionally provide different validation precision."
+      ]
+    },
+    {
+      "id": "maskito",
+      "tier": 1,
+      "release": "5.3.1",
+      "revision": "d8904823d05dbb3f9d038057634dbf98d89219e7",
+      "source": "https://github.com/taiga-family/maskito",
+      "license": "Apache-2.0",
+      "inspectedSymbols": [
+        "Maskito",
+        "maskito",
+        "maskitoTransform",
+        "maskitoPhoneOptionsGenerator"
+      ],
+      "inspectedTests": [
+        "projects/core/src/lib/mask.spec.ts",
+        "projects/phone/src/lib/maskito-phone-options-generator.spec.ts"
+      ],
+      "knownIssues": [
+        "The phone plugin must not become the package numbering authority.",
+        "IME, Android predictive input, controlled reconciliation, and browser parity still require local proof."
+      ]
+    },
+    {
+      "id": "react-phone-number-input",
+      "tier": 1,
+      "release": "3.4.17",
+      "revision": "0408b492e99ab81c0b667cb77b24b71b0f4d8c3b",
+      "source": "https://gitlab.com/catamphetamine/react-phone-number-input",
+      "license": "MIT",
+      "inspectedSymbols": [
+        "InputBasic",
+        "InputSmart",
+        "usePhoneDigits",
+        "input-format/parse",
+        "input-format/format"
+      ],
+      "inspectedTests": [
+        "source/InputBasic.test.js",
+        "source/InputSmart.test.js",
+        "input-format/parse.test.js"
+      ],
+      "knownIssues": [
+        "The mature caret behavior is coupled to donor-specific component and formatting assumptions.",
+        "Any internal adaptation must preserve attribution and be selected only after the shared browser bake-off."
+      ]
+    },
+    {
+      "id": "intl-tel-input",
+      "tier": 1,
+      "release": "29.1.2",
+      "revision": "a8ee885a28c940e1d7a2d6ca1f0f092aea0d8534",
+      "source": "https://github.com/jackocnr/intl-tel-input",
+      "license": "MIT",
+      "inspectedSymbols": [
+        "Iti",
+        "handleInputEvent",
+        "setNumber",
+        "getNumber",
+        "strictMode"
+      ],
+      "inspectedTests": [
+        "tests/unit/spec/tests/core",
+        "tests/unit/spec/tests/methods",
+        "tests/e2e"
+      ],
+      "knownIssues": [
+        "The global utils-script integration used by Christofle is not server-safe and is rejected.",
+        "Its country UI and formatting behavior are reference inputs, not authority for this package."
+      ]
+    },
+    {
+      "id": "material-ui",
+      "tier": 1,
+      "release": "9.2.0",
+      "revision": "cb77df2fdf6b070cd3958af0ffba11e11454bf98",
+      "source": "https://github.com/mui/material-ui",
+      "license": "MIT",
+      "inspectedSymbols": [
+        "useAutocomplete",
+        "Autocomplete",
+        "TextField",
+        "Popper",
+        "Dialog"
+      ],
+      "inspectedTests": [
+        "packages/mui-base/src/useAutocomplete/useAutocomplete.test.js",
+        "packages/mui-material/src/Autocomplete/Autocomplete.test.js"
+      ],
+      "knownIssues": [
+        "The package must preserve MUI theme augmentation, utility-class, slot, and ownerState conventions rather than wrap them behind opaque props.",
+        "Portal and mobile-dialog behavior require explicit accessibility calibration."
+      ]
+    },
+    {
+      "id": "wai-aria-apg",
+      "tier": 1,
+      "release": "main@2026-08-02",
+      "revision": "7e4034b262bc0d25332e330d8a582aaf34113829",
+      "source": "https://github.com/w3c/aria-practices",
+      "license": "W3C Software and Document License",
+      "inspectedSymbols": [
+        "combobox pattern",
+        "listbox pattern",
+        "dialog modal pattern"
+      ],
+      "inspectedTests": [
+        "test/tests/combobox_autocomplete_both.js",
+        "test/tests/listbox_grouped.js",
+        "test/tests/dialog_modal.js"
+      ],
+      "knownIssues": [
+        "APG examples are normative interaction references, not drop-in production components.",
+        "VoiceOver portal behavior and mobile full-screen presentation require product-specific proof."
+      ]
+    },
+    {
+      "id": "react-international-phone",
+      "tier": 2,
+      "release": "4.8.0",
+      "revision": "d5789f3512753d84fa271e275f33b138e151fd66",
+      "source": "https://github.com/ybrusentsov/react-international-phone",
+      "license": "MIT",
+      "inspectedSymbols": [
+        "PhoneInput",
+        "usePhoneInput",
+        "CountrySelector",
+        "buildCountryData"
+      ],
+      "inspectedTests": [
+        "src/components/PhoneInput/PhoneInput.test.tsx",
+        "src/hooks/usePhoneInput.test.ts"
+      ],
+      "knownIssues": [
+        "Country data and phone semantics cannot be imported as an alternative authority.",
+        "Useful composition and mask ideas must be revalidated against MUI and libphonenumber-js contracts."
+      ]
+    },
+    {
+      "id": "mui-tel-input",
+      "tier": 2,
+      "release": "11.0.0",
+      "revision": "91f1df79c6147cd51329e8174a229c431d945b78",
+      "source": "https://github.com/viclafouch/mui-tel-input",
+      "license": "MIT",
+      "inspectedSymbols": ["MuiTelInput", "matchIsValidTel", "MuiTelInputCountry"],
+      "inspectedTests": ["src/MuiTelInput.test.tsx", "src/shared/helpers.test.ts"],
+      "knownIssues": [
+        "Its public callback and validation semantics are not adopted wholesale.",
+        "The component is a MUI ergonomics reference, not the selected input engine."
+      ]
+    },
+    {
+      "id": "react-phone-input-2",
+      "tier": 2,
+      "release": "2.15.1",
+      "revision": "b93d7b90c1c36444f55423a1bf7eca6de6a7f1b9",
+      "source": "https://github.com/bl00mber/react-phone-input-2",
+      "license": "MIT",
+      "inspectedSymbols": [
+        "PhoneInput",
+        "CountryData",
+        "guessSelectedCountry",
+        "handleInput"
+      ],
+      "inspectedTests": [
+        "test/ReactPhoneInput.test.js",
+        "test/guessSelectedCountry.test.js"
+      ],
+      "knownIssues": [
+        "Bundled country tables and hand-maintained masks conflict with the single-authority rule.",
+        "Legacy DOM behavior is not suitable as the package core."
+      ]
+    },
+    {
+      "id": "react-phone-input-material-ui",
+      "tier": 2,
+      "release": "3.0.0",
+      "revision": "dc8e0155b01fe810d526cbc00a48cc23aedf91b4",
+      "source": "https://github.com/harish-everest/react-phone-input-mui",
+      "license": "MIT",
+      "inspectedSymbols": ["PhoneInput", "materialComponent", "inputProps"],
+      "inspectedTests": ["src/index.test.js", "example/src/App.js"],
+      "knownIssues": [
+        "The adapter pattern is shallow and does not expose a modern MUI theme/slot contract.",
+        "It inherits react-phone-input-2 authority and behavior constraints."
+      ]
+    },
+    {
+      "id": "imask",
+      "tier": 2,
+      "release": "7.6.1",
+      "revision": "a02a14b642f70b335e24789e8a187857473a21a5",
+      "source": "https://github.com/uNmAnNeR/imaskjs",
+      "license": "MIT",
+      "inspectedSymbols": ["InputMask", "MaskedPattern", "MaskedDynamic", "createMask"],
+      "inspectedTests": [
+        "packages/imask/test/input.js",
+        "packages/imask/test/masked/pattern.js"
+      ],
+      "knownIssues": [
+        "Generic mask engines do not provide phone numbering authority or country resolution.",
+        "Display-mask mapping ideas are useful only after canonical-value invariants are protected."
+      ]
+    },
+    {
+      "id": "country-flag-icons",
+      "tier": 2,
+      "release": "1.6.20",
+      "revision": "3b8ea50f08ab9d5e79c90325ff76606a4258a719",
+      "source": "https://gitlab.com/catamphetamine/country-flag-icons",
+      "license": "MIT",
+      "inspectedSymbols": ["flags/3x2", "flags/1x1", "unicode"],
+      "inspectedTests": ["test/flags.test.js", "test/countries.test.js"],
+      "knownIssues": [
+        "Flags are decorative/identification assets and must never imply a country for non-geographic numbers.",
+        "External asset loading is rejected by default for privacy and reliability."
+      ]
+    },
+    {
+      "id": "typesnippet-mui-phone-input",
+      "tier": 2,
+      "release": "0.1.6",
+      "revision": "ddba5c7ff9e3931a828fe247159f96ac25b68cd6",
+      "source": "https://github.com/typesnippet/mui-phone-input",
+      "license": "MIT",
+      "inspectedSymbols": ["MuiPhoneInput", "MuiPhoneInputProps", "matchIsValidTel"],
+      "inspectedTests": ["src/MuiPhoneInput.test.tsx", "src/index.test.ts"],
+      "knownIssues": [
+        "The package is useful for public naming and ergonomics comparison but does not satisfy the required engine, server, selector, or numbering-plan model.",
+        "No code is copied from this donor."
+      ]
+    },
+    {
+      "id": "christofle",
+      "tier": 2,
+      "release": "internal-checkout@2026-08-02",
+      "revision": "e3d8561b0117a629e1cd6025148ef4370e8cd87e",
+      "source": "/home/kostya/work/oni/christofle/pwa",
+      "license": "Internal commercial code; pattern inspection only",
+      "inspectedSymbols": [
+        "PhoneField",
+        "PHONE_FIELD_NOT_ALLOWED_CHARS",
+        "PhoneFieldCountry",
+        "COUNTRIES",
+        "getPhoneCountry",
+        "getPhoneExampleData"
+      ],
+      "inspectedTests": [
+        "No dedicated phone-input test suite found at the inspected checkout",
+        "Replacement scenarios are captured in tests/corpus/christofle.ts"
+      ],
+      "knownIssues": [
+        "Account PhoneField injects /utils.min.js and directly mutates value and selection.",
+        "Checkout PhoneFieldCountry uses a separate manual COUNTRIES table and duplicated phone semantics.",
+        "The inspected checkout had unrelated dirty files; no Christofle file was modified."
+      ]
+    }
+  ],
+  "capabilities": [
+    {
+      "id": "cap-numbering-authority",
+      "name": "Parsing, numbering plans, possibility, validity, and number type",
+      "tier": 1,
+      "donors": ["libphonenumber-js"],
+      "symbols": [
+        "AsYouType",
+        "parsePhoneNumberWithError",
+        "PhoneNumber.isPossible",
+        "PhoneNumber.isValid",
+        "PhoneNumber.getType"
+      ],
+      "knownIssues": [
+        "UI state must distinguish selected, detected, resolved, and possible countries without inventing country data."
+      ],
+      "decision": "adapt",
+      "reason": "Use the public library API as the sole phone authority and build package state around its outputs.",
+      "localRegressionCoverage": [
+        "number.shared-code.plus1",
+        "number.shared-code.plus7",
+        "number.shared-code.plus44",
+        "number.non-geographic"
+      ],
+      "licenseAction": "Retain libphonenumber-js in runtime dependencies and include MIT attribution in third-party notices."
+    },
+    {
+      "id": "cap-input-transaction-engine",
+      "name": "DOM input transaction, selection, composition, and controlled reconciliation",
+      "tier": 1,
+      "donors": ["maskito", "react-phone-number-input"],
+      "symbols": [
+        "Maskito",
+        "maskitoTransform",
+        "InputSmart",
+        "InputBasic",
+        "input-format/parse",
+        "input-format/format"
+      ],
+      "knownIssues": [
+        "Neither candidate is accepted until the same real-browser corpus passes in Chromium, Firefox, and WebKit."
+      ],
+      "decision": "adapt",
+      "reason": "Run two production-shaped candidates behind one adapter contract, then select by evidence in mpi-oan.22.",
+      "localRegressionCoverage": [
+        "input.insert.middle",
+        "input.delete.backspace-separator",
+        "input.range.replace",
+        "input.ime.composition",
+        "input.android.predictive",
+        "input.controlled.external-update",
+        "input.callback.single"
+      ],
+      "licenseAction": "Maskito candidate may depend on Apache-2.0 packages; donor adaptation must preserve MIT attribution and source notes if react-phone-number-input behavior is ported."
+    },
+    {
+      "id": "cap-country-selector",
+      "name": "Searchable accessible country selector",
+      "tier": 1,
+      "donors": [
+        "material-ui",
+        "wai-aria-apg",
+        "intl-tel-input",
+        "react-international-phone"
+      ],
+      "symbols": [
+        "useAutocomplete",
+        "Autocomplete",
+        "combobox pattern",
+        "CountrySelector"
+      ],
+      "knownIssues": [
+        "Desktop portal, mobile dialog, no-portal VoiceOver mode, and preferred-country ordering need separate proof."
+      ],
+      "decision": "pattern-only",
+      "reason": "Compose MUI primitives with APG keyboard semantics while deriving country data from libphonenumber-js and package locales.",
+      "localRegressionCoverage": [
+        "selector.search.localized",
+        "selector.search.calling-code",
+        "selector.keyboard",
+        "selector.mobile-dialog",
+        "selector.no-portal-voiceover"
+      ],
+      "licenseAction": "No APG example code or donor country tables are copied; cite APG and donor revisions in design documentation."
+    },
+    {
+      "id": "cap-mui-contract",
+      "name": "MUI theme augmentation, slots, utility classes, ownerState, and composable primitives",
+      "tier": 1,
+      "donors": ["material-ui", "mui-tel-input", "typesnippet-mui-phone-input"],
+      "symbols": ["TextField", "useAutocomplete", "MuiTelInput", "MuiPhoneInput"],
+      "knownIssues": [
+        "Opaque wrappers and overlapping boolean props would prevent theme-level composition."
+      ],
+      "decision": "pattern-only",
+      "reason": "Follow MUI component conventions directly and use other phone inputs only to compare ergonomic naming.",
+      "localRegressionCoverage": [
+        "input.mui-text-field",
+        "input.ref-forwarding",
+        "christofle.checkout.unified-field"
+      ],
+      "licenseAction": "Use public APIs and naming analysis only; no donor component source copied."
+    },
+    {
+      "id": "cap-display-masks",
+      "name": "As-you-type formatting and declarative/advanced display masks",
+      "tier": 2,
+      "donors": ["libphonenumber-js", "imask", "react-international-phone"],
+      "symbols": ["AsYouType", "MaskedPattern", "MaskedDynamic", "usePhoneInput"],
+      "knownIssues": [
+        "A display mask must never become a validation rule or mutate the canonical PhoneValue."
+      ],
+      "decision": "pattern-only",
+      "reason": "Use libphonenumber-js formatting as baseline and borrow only positional-mapping concepts for custom strategies.",
+      "localRegressionCoverage": [
+        "input.context.mask-change",
+        "input.context.locale-change",
+        "input.fixed-calling-code"
+      ],
+      "licenseAction": "Document conceptual references; copy no IMask or react-international-phone implementation."
+    },
+    {
+      "id": "cap-flags",
+      "name": "Local and opt-in external flag rendering",
+      "tier": 2,
+      "donors": ["country-flag-icons", "intl-tel-input"],
+      "symbols": ["flags/3x2", "unicode", "Iti"],
+      "knownIssues": [
+        "Non-geographic numbers must not receive a false flag and external assets must remain opt-in."
+      ],
+      "decision": "adapt",
+      "reason": "Provide local flag entrypoints or user-supplied renderers while preserving privacy defaults.",
+      "localRegressionCoverage": [
+        "number.non-geographic",
+        "selector.preferred-countries"
+      ],
+      "licenseAction": "If local SVG assets are included, preserve country-flag-icons MIT attribution and asset provenance."
+    },
+    {
+      "id": "cap-legacy-country-tables",
+      "name": "Manual country/calling-code tables",
+      "tier": 2,
+      "donors": ["react-phone-input-2", "christofle"],
+      "symbols": [
+        "CountryData",
+        "guessSelectedCountry",
+        "COUNTRIES",
+        "getPhoneCountry"
+      ],
+      "knownIssues": [
+        "Manual tables drift, duplicate numbering semantics, and cause premature shared-code country selection."
+      ],
+      "decision": "reject",
+      "reason": "All country/calling-code and numbering-plan data must come from libphonenumber-js metadata.",
+      "localRegressionCoverage": [
+        "number.shared-code.plus1",
+        "number.shared-code.plus7",
+        "number.shared-code.plus44",
+        "christofle.legacy-authority-removal"
+      ],
+      "licenseAction": "No table data or implementation copied."
+    },
+    {
+      "id": "cap-legacy-dom-mutation",
+      "name": "Direct input value/caret mutation and global utilities scripts",
+      "tier": 2,
+      "donors": ["christofle", "intl-tel-input", "react-phone-input-material-ui"],
+      "symbols": [
+        "PhoneField",
+        "setSelectionRange",
+        "window.intlTelInputUtils",
+        "PhoneInput"
+      ],
+      "knownIssues": [
+        "Direct mutation bypasses React controlled state, makes IME/autofill brittle, and is not server-safe."
+      ],
+      "decision": "reject",
+      "reason": "Replace with the selected Input Transaction engine and neutral server APIs.",
+      "localRegressionCoverage": [
+        "input.autofill.full-replacement",
+        "input.ime.composition",
+        "input.ssr-hydration",
+        "christofle.account.address-country"
+      ],
+      "licenseAction": "No legacy implementation copied."
+    },
+    {
+      "id": "cap-christofle-parity",
+      "name": "Christofle account and checkout UX parity",
+      "tier": 2,
+      "donors": ["christofle"],
+      "symbols": [
+        "PhoneField",
+        "PhoneFieldCountry",
+        "getPhoneExampleData",
+        "DROPDOWN_ARROW_ICON_PROPS"
+      ],
+      "knownIssues": [
+        "Two independent families must converge without losing address-country synchronization, placeholder examples, modal behavior, or unified-field polish."
+      ],
+      "decision": "pattern-only",
+      "reason": "Retain product-facing behavior through MUI theme/slots while deleting duplicated phone authority during the gated Christofle integration phase.",
+      "localRegressionCoverage": [
+        "christofle.account.address-country",
+        "christofle.account.example-placeholder",
+        "christofle.checkout.unified-field",
+        "christofle.checkout.modal-portal",
+        "christofle.legacy-authority-removal"
+      ],
+      "licenseAction": "Internal code is inspected only; implementation remains independently authored in the public package."
+    }
+  ]
+}

@@ -11,8 +11,8 @@
   "scripts": {
     "build": "pnpm --filter @whiteee/mui-phone-input build",
     "check": "biome check .",
-    "ci:forward": "pnpm verify:workspace && pnpm typecheck && pnpm test:unit && pnpm build",
-    "ci:pr": "pnpm format:check && pnpm lint && pnpm verify:workspace && pnpm typecheck && pnpm test:unit && pnpm test:browser && pnpm verify:package && pnpm verify:consumers",
+    "ci:forward": "pnpm verify:workspace && pnpm verify:donors && pnpm typecheck && pnpm test:unit && pnpm build",
+    "ci:pr": "pnpm format:check && pnpm lint && pnpm verify:workspace && pnpm verify:donors && pnpm typecheck && pnpm test:unit && pnpm test:browser && pnpm verify:package && pnpm verify:consumers",
     "format": "biome format --write .",
     "format:check": "biome format .",
     "lint": "biome lint .",
@@ -21,6 +21,7 @@
     "test:unit": "vitest run --config vitest.config.ts",
     "typecheck": "pnpm --filter @whiteee/mui-phone-input typecheck && tsc --noEmit -p tsconfig.tests.json",
     "verify:consumers": "node scripts/verify-packed-consumers.mjs",
+    "verify:donors": "node scripts/verify-donor-provenance.mjs",
     "verify:npm-identity": "node scripts/check-npm-identity.mjs",
     "verify:npm-identity:gate": "node scripts/check-npm-identity.mjs --allow-human-gate",
     "verify:package": "node scripts/verify-package.mjs",

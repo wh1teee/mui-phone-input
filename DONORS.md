@@ -1,41 +1,100 @@
-# Donor Manifest
+# Donor baseline and capability ledger
 
-Every non-trivial capability must be evaluated against mature donors before implementation. A completed entry records exact provenance, known issues, tests retained locally, and one decision: `copy`, `adapt`, `pattern-only`, or `reject`.
+As of **2026-08-02**, this repository contains no copied donor production code.
+The executable source of truth is [`donors/manifest.json`](donors/manifest.json);
+`pnpm verify:donors` checks exact revisions, licences, inspected symbols/tests,
+capability decisions, and links to the local regression corpus.
 
-## Research snapshot: 2026-08-02
+## Pinned donors
 
-Donors are reviewed per capability rather than receiving one repository-wide verdict. Tier 1 donors define architecture, standards, or regression behavior; Tier 2 donors contribute API, UX, and product patterns.
-
-| Tier | Donor | Inspected revision | Candidate capabilities | Initial direction |
+| Tier | Donor | Release / revision | Licence | Use |
 | --- | --- | --- | --- | --- |
-| 1 | `catamphetamine/libphonenumber-js` | pin before implementation | parsing, E.164, numbering-plan resolution, possibility, validity, number types, metadata generation | Direct runtime dependency and sole authority |
-| 1 | `taiga-family/maskito` | pin in `mpi-oan.2` | beforeinput/input processing, caret and selection, paste, autofill, composition, React integration, phone addon | Input-engine bake-off candidate A; dependency preferred over copied general-purpose core if it passes |
-| 1 | `catamphetamine/react-phone-number-input` | `dc64bded53adfbb23a31cede42168bea861a96f3` (`3.4.17`) | phone draft state, smart caret, country switching, input normalization, public composition seams | Input-engine bake-off candidate B; adapt behavior/tests only after comparison |
-| 1 | `jackocnr/intl-tel-input` | pin in `mpi-oan.2` | country search, keyboard navigation, validation errors, examples, RTL, alternative numerals, mature browser regression corpus | Behavior and regression donor; reject global runtime ownership |
-| 1 | Material UI 9 and WAI-ARIA APG | version/spec revisions pinned in `mpi-oan.2` | MUI composition, slots, portal behavior, browser floor, combobox/listbox accessibility | Standards and platform authority |
-| 2 | `viclafouch/mui-tel-input` | `91f1df79c614` (`11.0.0`) | MUI field composition, typed change details, theme integration, country menu accessibility | Pattern-only and selectively adapt tests/API ideas |
-| 2 | `harish50/react-phone-input-mui` | `d391709a83d55436a27041f70b0dea26e2ed9991` (`4.0.0` source) | masks, area codes, country filters, search, localization, MUI consumer expectations | Pattern-only; reject legacy class and telephone authority |
-| 2 | `bl00mber/react-phone-input-2` | `39f787cf92b2ebb712b98cd8b62a3a7b38b5fde7` (`2.15.1`) | mature UX options, edge-case and issue catalogue | Pattern-only; mine tests/issues, reject stale internal phone data |
-| 2 | `typesnippet/mui-phone-input` | `c44742e8e548` (`0.1.6`) | multi-MUI presentation ideas and mask API | Pattern-only or reject after capability-level review |
-| 2 | `goveo/react-international-phone` | pin in `mpi-oan.2` | modern headless hook, caret scenarios, dependency-light API | Pattern-only and regression donor |
-| 2 | `uNmAnNeR/imaskjs` | pin in `mpi-oan.2` | mature masking architecture, dynamic masks, selection and overwrite behavior | Pattern-only and bake-off comparison input |
-| 2 | Christofle PWA account and checkout phone fields | private consumer code inspected 2026-08-02 | unified field surface, country/address synchronization, example placeholder, modal-aware selector, visual polish | Adapt product requirements; reject global script, manual country table, direct DOM mutation |
-| 2 | `catamphetamine/country-flag-icons` | pin before implementation | local and external SVG flag sources | Build-time local source and opt-in external provider |
+| 1 | libphonenumber-js | `1.13.10` / `9758fd594a531a86e0c388da4611e30142da73b2` | MIT | Sole numbering authority |
+| 1 | Maskito | `5.3.1` / `d8904823d05dbb3f9d038057634dbf98d89219e7` | Apache-2.0 | Bake-off candidate A |
+| 1 | react-phone-number-input | `3.4.17` / `0408b492e99ab81c0b667cb77b24b71b0f4d8c3b` | MIT | Bake-off candidate B behavior |
+| 1 | intl-tel-input | `29.1.2` / `a8ee885a28c940e1d7a2d6ca1f0f092aea0d8534` | MIT | Interaction/selector reference; globals rejected |
+| 1 | Material UI | `9.2.0` / `cb77df2fdf6b070cd3958af0ffba11e11454bf98` | MIT | Public MUI contract and selector primitives |
+| 1 | WAI-ARIA APG | `main@2026-08-02` / `7e4034b262bc0d25332e330d8a582aaf34113829` | W3C | Combobox/listbox/dialog semantics |
+| 2 | react-international-phone | `4.8.0` / `d5789f3512753d84fa271e275f33b138e151fd66` | MIT | Composition/mask reference |
+| 2 | mui-tel-input | `11.0.0` / `91f1df79c6147cd51329e8174a229c431d945b78` | MIT | MUI ergonomics reference |
+| 2 | react-phone-input-2 | `2.15.1` / `b93d7b90c1c36444f55423a1bf7eca6de6a7f1b9` | MIT | Legacy behavior; tables rejected |
+| 2 | react-phone-input-material-ui | `3.0.0` / `dc8e0155b01fe810d526cbc00a48cc23aedf91b4` | MIT | Shallow adapter reference only |
+| 2 | IMask | `7.6.1` / `a02a14b642f70b335e24789e8a187857473a21a5` | MIT | Positional mask concepts |
+| 2 | country-flag-icons | `1.6.20` / `3b8ea50f08ab9d5e79c90325ff76606a4258a719` | MIT | Local flag option |
+| 2 | typesnippet/mui-phone-input | `0.1.6` / `ddba5c7ff9e3931a828fe247159f96ac25b68cd6` | MIT | Naming/ergonomics comparison |
+| 2 | Christofle | internal / `e3d8561b0117a629e1cd6025148ef4370e8cd87e` | internal | Migration scenarios only |
 
-`mpi-oan.2` must pin every revision and add exact symbols, tests, issues, licenses, and capability-level decisions before replacement implementation starts.
+The Christofle checkout was read-only and contained unrelated dirty files. The
+phone surfaces inspected at that revision were the account `PhoneField` family
+(`window.intlTelInputUtils`, `/utils.min.js`, direct `value` and
+`setSelectionRange` mutation) and the checkout `PhoneFieldCountry` family
+(`COUNTRIES`, `getPhoneCountry`, duplicated selector/validation semantics).
 
-## Capability entry template
+## Capability decisions
 
-```text
-Capability:
-Tier:
-Donors inspected:
-Exact commits and symbols:
-Known issues:
-Donor tests retained or adapted:
-Decision: copy | adapt | pattern-only | reject
-Reason:
-Local regression coverage:
-License and attribution action:
-```
+### `cap-numbering-authority`
 
+Adapt only the public `libphonenumber-js` API. Parsing, calling codes,
+geographic/non-geographic plans, possibility, validity, and number type may not
+come from donor tables or masks.
+
+### `cap-input-transaction-engine`
+
+Adapt two isolated candidates—Maskito and an internal TypeScript adaptation of
+`react-phone-number-input`/`input-format` behavior—behind the same browser
+adapter. Selection remains blocked on `mpi-oan.22`.
+
+### `cap-country-selector`
+
+Use MUI `useAutocomplete`/Popper/Dialog primitives and WAI-ARIA APG semantics.
+intl-tel-input and react-international-phone are pattern references only; their
+country data is not authority.
+
+### `cap-mui-contract`
+
+Follow MUI theme augmentation, utility classes, `ownerState`, slots, and
+`slotProps` directly. mui-tel-input and typesnippet are naming comparisons, not
+source donors.
+
+### `cap-display-masks`
+
+Use `AsYouType` as the baseline. IMask and react-international-phone contribute
+positional-mapping concepts only. A display mask never validates or mutates
+Phone Value.
+
+### `cap-flags`
+
+Local flags or a user-supplied renderer are permitted. External loading is
+opt-in. A non-geographic plan receives no country or flag.
+
+### `cap-legacy-country-tables`
+
+Reject react-phone-input-2 and Christofle manual country/calling-code tables.
+
+### `cap-legacy-dom-mutation`
+
+Reject direct input value/caret mutation and global phone utility scripts.
+
+### `cap-christofle-parity`
+
+Preserve address-country synchronization, example placeholders, unified-field
+appearance, and modal behavior through the package API/theme/slots while
+removing both legacy authority families during the gated Christofle phase.
+
+## Regression corpus
+
+- `tests/corpus/input-transactions.ts` covers editing, selection, paste,
+  autofill, predictive input, IME, Unicode digits, controlled updates,
+  locale/mask/country changes, fixed calling code, undo/redo, Strict Mode, MUI,
+  SSR/hydration, refs, RHF reset, shared calling codes, and non-geographic plans.
+- `tests/corpus/country-selector.ts` covers localized/ISO/calling-code search,
+  preferred countries, keyboard semantics, mobile Dialog, and iOS no-portal
+  VoiceOver mode.
+- `tests/corpus/christofle.ts` captures the exact account and checkout parity
+  obligations and legacy-authority removal.
+- `tests/model/input-transaction-model.ts` defines the model commands and the
+  ten required invariants. `tests/bakeoff/adapter-contract.ts` is the shared
+  seam for both `mpi-oan.22` candidates.
+
+Any future copied or adapted code must add exact source symbols, retained tests,
+licence/attribution action, and local regression IDs before CI can pass.
