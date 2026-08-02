@@ -103,6 +103,33 @@ function ManualErrorHarness() {
   );
 }
 
+function CountryActionHarness() {
+  const [changeDetails, setChangeDetails] = useState('');
+  const [countryDetails, setCountryDetails] = useState('');
+  const phone = usePhoneInput({
+    defaultCountry: 'CA',
+    onChange: (_value, details) => setChangeDetails(JSON.stringify(details)),
+    onCountryChange: (_country, details) => setCountryDetails(JSON.stringify(details)),
+  });
+
+  return (
+    <>
+      <div {...phone.getRootProps({ 'data-testid': 'country-action-root' })}>
+        <input {...phone.getInputProps({ 'data-testid': 'country-action-input' })} />
+      </div>
+      <output data-testid="country-action-state">{JSON.stringify(phone.state)}</output>
+      <output data-testid="country-action-change">{changeDetails}</output>
+      <output data-testid="country-action-country-change">{countryDetails}</output>
+      <button onClick={() => phone.actions.selectCountry('BY')} type="button">
+        Select Belarus
+      </button>
+      <button onClick={phone.actions.reset} type="button">
+        Reset country action
+      </button>
+    </>
+  );
+}
+
 describe('usePhoneInput and composable primitives', () => {
   test('exposes one headless state model with actions and prop getters', async () => {
     render(<HeadlessHarness />);
@@ -185,5 +212,37 @@ describe('usePhoneInput and composable primitives', () => {
     await expect.element(input).toHaveAttribute('aria-invalid', 'true');
     await expect.element(input).not.toHaveAttribute('aria-describedby');
     await expect.element(input).not.toHaveAttribute('aria-errormessage');
+  });
+
+  test('commits country selection through the shared transaction state', async () => {
+    render(<CountryActionHarness />);
+    const input = page.getByTestId('country-action-input');
+    const root = page.getByTestId('country-action-root');
+
+    await expect.element(input).toHaveValue('');
+    await expect.element(root).toHaveAttribute('data-phone-input-country', 'CA');
+    await userEvent.click(page.getByRole('button', { name: 'Select Belarus' }));
+
+    await expect.element(input).toHaveValue('+375');
+    await expect.element(root).toHaveAttribute('data-phone-input-country', 'BY');
+    expect(
+      JSON.parse(page.getByTestId('country-action-change').element().textContent ?? ''),
+    ).toMatchObject({
+      reason: 'country-selection',
+      value: '+375',
+    });
+    expect(
+      JSON.parse(
+        page.getByTestId('country-action-country-change').element().textContent ?? '',
+      ),
+    ).toEqual({
+      country: 'BY',
+      previousCountry: 'CA',
+      value: '+375',
+    });
+
+    await userEvent.click(page.getByRole('button', { name: 'Reset country action' }));
+    await expect.element(input).toHaveValue('');
+    await expect.element(root).toHaveAttribute('data-phone-input-country', 'CA');
   });
 });

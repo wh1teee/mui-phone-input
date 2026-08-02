@@ -468,6 +468,7 @@ describe('MuiPhoneInput tracer', () => {
     const input = page.getByTestId('controlled-phone');
 
     await userEvent.type(input, '1');
+    await expect.element(input).toHaveAttribute('data-phone-input-country', 'CA');
     let details = JSON.parse(
       page.getByTestId('controlled-details').element().textContent ?? '',
     ) as PhoneInputChangeDetails;
@@ -481,6 +482,7 @@ describe('MuiPhoneInput tracer', () => {
     });
 
     await userEvent.type(input, '2025550123');
+    await expect.element(input).toHaveAttribute('data-phone-input-country', '');
     details = JSON.parse(
       page.getByTestId('controlled-details').element().textContent ?? '',
     ) as PhoneInputChangeDetails;
@@ -499,6 +501,7 @@ describe('MuiPhoneInput tracer', () => {
     const input = page.getByTestId('controlled-phone');
 
     await userEvent.type(input, '80012345678');
+    await expect.element(input).toHaveAttribute('data-phone-input-country', '');
 
     const details = JSON.parse(
       page.getByTestId('controlled-details').element().textContent ?? '',

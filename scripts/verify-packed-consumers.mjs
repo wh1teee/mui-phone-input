@@ -290,6 +290,37 @@ async function verifyPackedBrowser(destination, consumer) {
       throw new Error('Packed external reset emitted a callback loop.');
     }
 
+    const countryTrigger = page.getByTestId('country-selector-trigger');
+    await countryTrigger.click();
+    const countrySearch = page.getByRole('combobox', { name: 'Search countries' });
+    await countrySearch.fill('BY');
+    await page.locator('[role="option"][data-country="BY"]').waitFor();
+    await countrySearch.press('Enter');
+    if (
+      (await input.inputValue()) !== '+375' ||
+      (await page.getByTestId('callback-count').textContent()) !== '30'
+    ) {
+      throw new Error('Packed MuiPhoneInput country selection is incoherent.');
+    }
+    const countryDetails = JSON.parse(
+      (await page.getByTestId('change-details').textContent()) || '{}',
+    );
+    if (
+      countryDetails.reason !== 'country-selection' ||
+      countryDetails.value !== '+375' ||
+      countryDetails.numberingPlan?.selectedCountry !== 'BY' ||
+      countryDetails.numberingPlan?.resolvedCountry !== 'BY'
+    ) {
+      throw new Error(
+        `Packed MuiPhoneInput country details are invalid: ${JSON.stringify(countryDetails)}`,
+      );
+    }
+    if (
+      !(await countryTrigger.evaluate((element) => element === document.activeElement))
+    ) {
+      throw new Error('Packed country selector did not restore focus to its trigger.');
+    }
+
     const composableRoot = page.getByTestId('composable-root');
     const composableInput = page.getByTestId('composable-input');
     await composableInput.waitFor({ state: 'visible' });
@@ -371,6 +402,33 @@ async function verifyPackedBrowser(destination, consumer) {
       (await page.getByTestId('composable-callback-count').textContent()) !== '11'
     ) {
       throw new Error('Packed composable reset action emitted a callback loop.');
+    }
+
+    const composableCountryTrigger = page.getByTestId('composable-country-trigger');
+    await composableCountryTrigger.click();
+    const composableCountrySearch = page.getByRole('combobox', {
+      name: 'Search countries',
+    });
+    await composableCountrySearch.fill('+375');
+    await page.locator('[role="option"][data-country="BY"]').waitFor();
+    await composableCountrySearch.press('Enter');
+    if (
+      (await composableInput.inputValue()) !== '+375' ||
+      (await page.getByTestId('composable-callback-count').textContent()) !== '12'
+    ) {
+      throw new Error('Packed composable country selection is incoherent.');
+    }
+    const countryState = JSON.parse(
+      (await page.getByTestId('composable-state').textContent()) || '{}',
+    );
+    if (
+      countryState.selectedCountry !== 'BY' ||
+      countryState.numberingPlan?.selectedCountry !== 'BY' ||
+      countryState.numberingPlan?.resolvedCountry !== 'BY'
+    ) {
+      throw new Error(
+        `Packed composable country state is invalid: ${JSON.stringify(countryState)}`,
+      );
     }
     if (pageErrors.length > 0) {
       throw new Error(`Packed consumer page errors: ${pageErrors.join('\n')}`);

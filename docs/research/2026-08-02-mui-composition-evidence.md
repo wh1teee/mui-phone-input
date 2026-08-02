@@ -22,13 +22,15 @@ The client entrypoint exports:
 - `PhoneInputProvider` and `usePhoneInputContext`;
 - `PhoneInputRoot`;
 - `PhoneInputInput`;
+- `PhoneInputCountrySelector`;
 - `PhoneInputValidationMessage`.
 
 The controller exposes:
 
 - serializable `state` for value, display, numbering plan, validation and
   ownership;
-- `actions.focus`, `actions.clear`, and `actions.reset`;
+- `actions.focus`, `actions.clear`, `actions.reset`, and
+  `actions.selectCountry`;
 - `getRootProps`, `getInputProps`, and `getValidationMessageProps`;
 - the native input ref boundary.
 
@@ -45,8 +47,9 @@ Prepared input props include:
 - `aria-invalid`, `aria-describedby` and `aria-errormessage` only when the
   referenced internal validation message exists;
 - stable input/helper IDs;
-- `data-phone-input-status`, `data-phone-input-plan`, and
-  `data-phone-input-accepted` for custom slots without phone-domain guessing.
+- `data-phone-input-status`, `data-phone-input-plan`,
+  `data-phone-input-country`, and `data-phone-input-accepted` for custom slots
+  without phone-domain guessing.
 
 Manual application error state never points to a missing internal message.
 Primitives provide a polite live validation message and stable utility classes.
@@ -56,7 +59,8 @@ Primitives provide a polite live validation message and stable utility classes.
 `MuiPhoneInput` supports:
 
 - `MuiPhoneInput` theme `defaultProps`, `styleOverrides`, and `variants`;
-- `root`, `input`, and `validationMessage` utility classes;
+- `root`, `input`, `validationMessage`, and stable `countrySelector*` utility
+  classes;
 - exported `MuiPhoneInputOwnerState` with ownership, disabled/read-only,
   required/error, validation status and numbering-plan kind;
 - inherited `TextField` `slots` and `slotProps` as the single visual
@@ -78,13 +82,13 @@ React 19 / MUI 9 matrices.
 
 The exact post-composition artifact remains within the established budgets:
 
-- main closure: 10,604 bytes gzip;
+- main closure: 15,200 bytes gzip;
 - server entry: 2,666 bytes gzip;
-- packed tarball: 35,705 bytes.
+- packed tarball: 55,705 bytes.
 
 ## Scope boundary
 
 This bead exposes stable composition boundaries already used by the default
-component and consumers. It does not add speculative country-selector, flag,
-extension, mask, locale, RHF or Zod primitive APIs before those built-in
-features exist.
+component and consumers. The later basic selector reuses those boundaries; it
+does not add speculative virtualization, flag, extension, mask, packaged
+locale, RHF or Zod APIs before those capabilities exist.

@@ -4,11 +4,11 @@ Modern React 19 and Material UI 9 phone input. The current prerelease tracer
 provides a canonical international candidate, controlled and uncontrolled
 ownership, authority-backed numbering-plan resolution, possible-by-default
 validation, a shared headless controller, supported composable primitives, MUI
-theme registration, stable utility classes, and deterministic event-independent
-change details.
+theme registration, a searchable responsive Country Selector, stable utility
+classes, and deterministic event-independent change details.
 
-The package is still under active 1.0 development. Country selection, advanced
-display modes/masks, extensions, locales, flags, metadata variants, and form
+The package is still under active 1.0 development. Advanced display modes and
+masks, extensions, packaged locale/flag modes, metadata variants, and form
 adapters are delivered in later gated slices.
 
 ## Install
@@ -56,6 +56,38 @@ preserved while the user edits.
 ```
 
 Do not switch between controlled and uncontrolled ownership after mount.
+
+## Country Selector
+
+The built-in selector searches localized and English country names, ISO codes,
+and calling codes. Country/calling-code authority comes from
+`libphonenumber-js`; names default to `Intl.DisplayNames`.
+
+```tsx
+<MuiPhoneInput
+  defaultCountry="BY"
+  label="Phone number"
+  slotProps={{
+    countrySelector: {
+      locale: 'be',
+      preferredCountries: ['BY', 'PL', 'LT'],
+      resultLimit: 50,
+    },
+  }}
+/>
+```
+
+Use `selectedCountry` with `onCountryChange` for controlled country ownership.
+Selecting a country commits one phone transaction with reason
+`country-selection`; compatible national digits are preserved and conflicting
+digits fall back to the selected calling code.
+
+The default `mode="auto"` uses a desktop Popper and a mobile full-screen Dialog
+with one shared search draft. Set `mode="desktop"` or `"mobile"` for an explicit
+presentation. `portalContainer` controls the portal target and `disablePortal`
+supports constrained Dialog, Drawer, BottomSheet, and iOS VoiceOver layouts.
+The standard list is bounded and non-virtualized; optional virtualization is a
+later measured capability, not a runtime dependency.
 
 ## Numbering-plan resolution
 
@@ -139,6 +171,7 @@ validation semantics.
 
 import {
   PhoneInputInput,
+  PhoneInputCountrySelector,
   PhoneInputProvider,
   PhoneInputRoot,
   PhoneInputValidationMessage,
@@ -152,6 +185,7 @@ function ComposablePhoneInput() {
     <PhoneInputProvider value={phone}>
       <PhoneInputRoot>
         <label htmlFor={phone.state.inputId}>Phone number</label>
+        <PhoneInputCountrySelector preferredCountries={['BY', 'US']} />
         <PhoneInputInput />
         <PhoneInputValidationMessage />
       </PhoneInputRoot>
@@ -187,8 +221,8 @@ The server entrypoint imports no React, MUI, Emotion, DOM, or browser globals.
 ## MUI customization
 
 The component registers `MuiPhoneInput` in the MUI theme and exposes stable
-`root`, `input`, and `validationMessage` utility classes. The exported
-`MuiPhoneInputOwnerState` supports owner-state-aware overrides.
+`root`, `input`, `validationMessage`, and `countrySelector*` utility classes.
+The exported `MuiPhoneInputOwnerState` supports owner-state-aware overrides.
 
 ```ts
 const theme = createTheme({
@@ -198,6 +232,7 @@ const theme = createTheme({
       styleOverrides: {
         root: { minWidth: 240 },
         input: { fontVariantNumeric: 'tabular-nums' },
+        countrySelectorOption: { minHeight: 44 },
         validationMessage: { fontWeight: 600 },
       },
       variants: [
@@ -215,3 +250,8 @@ const theme = createTheme({
 custom `htmlInput` slot receives the native ref, composed events, utility class,
 ARIA relationships, and prepared `data-phone-input-status`,
 `data-phone-input-plan`, and `data-phone-input-accepted` state.
+
+Replace `slots.countrySelector` for a custom selector implementation or use
+`slotProps.countrySelector` for locale, preferred countries, ordering, filtering,
+portal policy, messages, classes, and result bounds. The official slot renders
+inside `PhoneInputProvider` and uses the same controller as the phone input.

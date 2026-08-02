@@ -33,9 +33,10 @@ built-ins.
   Numbering Plan Resolution. They contain no DOM or React event object.
 
 The tracer now claims authority-backed country/numbering-plan resolution,
-possible/strict validity, number type, and deterministic international
-formatting. It intentionally does not yet claim advanced display modes/masks,
-selector behavior, extensions, metadata variants, or form adapters.
+basic responsive Country Selector behavior, possible/strict validity, number
+type, and deterministic international formatting. It intentionally does not yet
+claim advanced display modes/masks, measured selector virtualization,
+extensions, metadata variants, or form adapters.
 
 ## Browser evidence
 
@@ -65,8 +66,8 @@ serializable details, focus, clear, Strict Mode, and external reset.
 Latest and minimum React 19 / MUI 9 consumer matrices use the exact generated
 `.tgz`; no workspace-source resolution is accepted as evidence.
 
-The current combined source matrix contains 56 Browser Mode tests per engine;
-all pass in Chromium, Firefox, and WebKit. The unit suite contains 73 tests.
+The current combined source matrix contains 62 Browser Mode tests per engine;
+all pass in Chromium, Firefox, and WebKit. The unit suite contains 81 tests.
 
 ## Package budgets
 
@@ -79,9 +80,9 @@ externalizes declared peers.
 
 Current exact-artifact measurements are:
 
-- main closure: 10,604 bytes gzip;
+- main closure: 15,200 bytes gzip;
 - server entry: 2,666 bytes gzip;
-- packed tarball: 35,705 bytes.
+- packed tarball: 55,705 bytes.
 
 CI rebuilds the artifact and requires exact byte/hash equality with the
 committed measurement.

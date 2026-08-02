@@ -1,5 +1,14 @@
 'use client';
 
+export {
+  type CreatePhoneCountryOptionsParameters,
+  createPhoneCountryOptions,
+  type FilterPhoneCountryOptionsParameters,
+  filterPhoneCountryOptions,
+  type PhoneCountryNameResolver,
+  type PhoneCountryOption,
+  selectPhoneCountryValue,
+} from './country-selector';
 export * from './MuiPhoneInput';
 export {
   type GeographicNumberingPlanResolution,
@@ -9,6 +18,13 @@ export {
   resolveNumberingPlan,
   type UnresolvedNumberingPlanResolution,
 } from './numbering-plan';
+export {
+  type PhoneCountrySelectorClasses,
+  type PhoneCountrySelectorMessages,
+  type PhoneCountrySelectorMode,
+  PhoneInputCountrySelector,
+  type PhoneInputCountrySelectorProps,
+} from './PhoneInputCountrySelector';
 export {
   PhoneInputInput,
   type PhoneInputInputProps,
@@ -39,6 +55,7 @@ export {
   parsePhoneValue,
 } from './phone-value';
 export {
+  type PhoneCountryChangeDetails,
   type PhoneInputActions,
   type PhoneInputChangeDetails,
   type PhoneInputChangeReason,

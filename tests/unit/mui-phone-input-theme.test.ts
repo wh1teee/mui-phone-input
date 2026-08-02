@@ -46,18 +46,24 @@ describe('MuiPhoneInput MUI contract', () => {
     expect(muiPhoneInputClasses.validationMessage).toBe(
       'MuiPhoneInput-validationMessage',
     );
+    expect(muiPhoneInputClasses.countrySelector).toBe('MuiPhoneInput-countrySelector');
+    expect(muiPhoneInputClasses.countrySelectorOption).toBe(
+      'MuiPhoneInput-countrySelectorOption',
+    );
     expect(getMuiPhoneInputUtilityClass('root')).toBe('MuiPhoneInput-root');
   });
 
   it('exports the computed owner-state contract', () => {
     const ownerState = {
       controlled: true,
+      countryControlled: true,
       disabled: false,
       empty: false,
       error: false,
       numberingPlanKind: 'geographic',
       readOnly: false,
       required: true,
+      selectedCountry: 'BY',
       validationStatus: 'valid',
     } satisfies MuiPhoneInputOwnerState;
 

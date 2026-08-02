@@ -3,6 +3,7 @@
 import {
   MuiPhoneInput,
   type PhoneInputChangeDetails,
+  PhoneInputCountrySelector,
   PhoneInputInput,
   PhoneInputProvider,
   PhoneInputRoot,
@@ -30,7 +31,14 @@ export function PhoneInputSmoke() {
             setCallbackCount((count) => count + 1);
           }}
           ref={inputRef}
-          slotProps={{ htmlInput: { 'data-testid': 'phone-input' } }}
+          slotProps={{
+            countrySelector: {
+              'data-testid': 'country-selector-trigger',
+              mode: 'desktop',
+              preferredCountries: ['BY', 'US'],
+            },
+            htmlInput: { 'data-testid': 'phone-input' },
+          }}
           value={value}
         />
         <output data-testid="phone-value">{value ?? ''}</output>
@@ -73,6 +81,11 @@ function PackedComposablePhoneInput() {
       <section>
         <PhoneInputRoot data-testid="composable-root">
           <label htmlFor={phone.state.inputId}>Composable phone</label>
+          <PhoneInputCountrySelector
+            data-testid="composable-country-trigger"
+            mode="desktop"
+            preferredCountries={['BY', 'US']}
+          />
           <PhoneInputInput data-testid="composable-input" />
           <PhoneInputValidationMessage data-testid="composable-validation" />
         </PhoneInputRoot>

@@ -1,6 +1,10 @@
 'use client';
 
-import type { CountryCode, PhoneNumberType } from 'libphonenumber-js/max';
+import {
+  type CountryCode,
+  isSupportedCountry,
+  type PhoneNumberType,
+} from 'libphonenumber-js/max';
 import {
   type ClipboardEvent,
   type ComponentPropsWithoutRef,
@@ -18,6 +22,7 @@ import {
   useState,
 } from 'react';
 
+import { selectPhoneCountryValue } from './country-selector';
 import type { InputEngineContext } from './internal/input-transaction-engine';
 import { useInputTransactionEngineBridge } from './internal/use-input-transaction-engine';
 import { type NumberingPlanResolution, resolveNumberingPlan } from './numbering-plan';
@@ -36,6 +41,7 @@ export type PhoneInputChangeReason =
   | 'paste'
   | 'replacement'
   | 'composition'
+  | 'country-selection'
   | 'history-undo'
   | 'history-redo';
 
@@ -53,13 +59,22 @@ export interface PhoneInputChangeDetails {
   value: PhoneValue;
 }
 
+export interface PhoneCountryChangeDetails {
+  country: CountryCode;
+  previousCountry: CountryCode | null;
+  previousValue: PhoneValue;
+  value: PhoneValue;
+}
+
 export interface UsePhoneInputParameters {
   allowedNumberTypes?: readonly PhoneNumberType[];
+  defaultCountry?: CountryCode | null;
   defaultValue?: PhoneValue;
   disabled?: boolean;
   error?: boolean;
   id?: string;
   onChange?: (value: PhoneValue, details: PhoneInputChangeDetails) => void;
+  onCountryChange?: (country: CountryCode, details: PhoneCountryChangeDetails) => void;
   readOnly?: boolean;
   required?: boolean;
   selectedCountry?: CountryCode | null;
@@ -73,6 +88,7 @@ export interface UsePhoneInputParameters {
 
 export interface PhoneInputState {
   controlled: boolean;
+  countryControlled: boolean;
   disabled: boolean;
   displayValue: string;
   empty: boolean;
@@ -81,6 +97,7 @@ export interface PhoneInputState {
   numberingPlan: PhoneInputNumberingPlanState;
   readOnly: boolean;
   required: boolean;
+  selectedCountry: CountryCode | null;
   validation: PhoneInputValidationState;
   validationError: boolean;
   validationMessage: ReactNode;
@@ -93,6 +110,7 @@ export interface PhoneInputActions {
   clear(): void;
   focus(): void;
   reset(): void;
+  selectCountry(country: CountryCode): void;
 }
 
 export type PhoneInputDataAttributes = {
@@ -110,6 +128,7 @@ export type PhoneInputResolvedInputProps = PhoneInputInputExternalProps & {
   'aria-errormessage'?: string | undefined;
   'aria-invalid': boolean;
   'data-phone-input-accepted': 'false' | 'true';
+  'data-phone-input-country': CountryCode | '';
   'data-phone-input-plan': PhoneInputNumberingPlanState['kind'];
   'data-phone-input-status': PhoneInputValidationState['status'];
   disabled: boolean;
@@ -125,6 +144,7 @@ export type PhoneInputRootExternalProps = ComponentPropsWithoutRef<'div'> &
 
 export type PhoneInputResolvedRootProps = PhoneInputRootExternalProps & {
   'data-phone-input-accepted': 'false' | 'true';
+  'data-phone-input-country': CountryCode | '';
   'data-phone-input-controlled': 'false' | 'true';
   'data-phone-input-plan': PhoneInputNumberingPlanState['kind'];
   'data-phone-input-status': PhoneInputValidationState['status'];
@@ -244,17 +264,25 @@ function booleanDataValue(value: boolean): 'false' | 'true' {
   return value ? 'true' : 'false';
 }
 
+function assertCountry(country: CountryCode | null | undefined, label: string): void {
+  if (country != null && !isSupportedCountry(country)) {
+    throw new TypeError(`Unsupported ${label} country: ${country}`);
+  }
+}
+
 function usePhoneInputInternal(
   parameters: UsePhoneInputParameters = {},
   diagnosticName: 'MuiPhoneInput' | 'usePhoneInput',
 ): UsePhoneInputReturn {
   const {
     allowedNumberTypes,
+    defaultCountry,
     defaultValue,
     disabled = false,
     error = false,
     id,
     onChange,
+    onCountryChange,
     readOnly = false,
     required = false,
     selectedCountry,
@@ -268,11 +296,18 @@ function usePhoneInputInternal(
   const validationMessageId = `${inputId}-helper-text`;
   const hasValueProp = Object.hasOwn(parameters, 'value');
   const hasDefaultValueProp = Object.hasOwn(parameters, 'defaultValue');
+  const hasSelectedCountryProp = Object.hasOwn(parameters, 'selectedCountry');
+  const hasDefaultCountryProp = Object.hasOwn(parameters, 'defaultCountry');
   const isControlledNow = hasValueProp;
+  const isCountryControlledNow = hasSelectedCountryProp;
   const controlledRef = useRef(isControlledNow);
+  const countryControlledRef = useRef(isCountryControlledNow);
   const warnedAboutModeRef = useRef(false);
+  const warnedAboutCountryModeRef = useRef(false);
   const warnedAboutOwnershipConflictRef = useRef(false);
+  const warnedAboutCountryOwnershipConflictRef = useRef(false);
   const initialDefaultValueRef = useRef(defaultValue);
+  const initialDefaultCountryRef = useRef(defaultCountry ?? null);
   const inputElementRef = useRef<HTMLInputElement | null>(null);
   const engineCleanupRef = useRef<(() => void) | null>(null);
   const formCleanupRef = useRef<(() => void) | null>(null);
@@ -288,24 +323,39 @@ function usePhoneInputInternal(
     assertPhoneValue(defaultValue);
     return defaultValue;
   });
+  const [uncontrolledCountry, setUncontrolledCountry] = useState<CountryCode | null>(
+    () => {
+      assertCountry(defaultCountry, 'default');
+      return defaultCountry ?? null;
+    },
+  );
 
   assertPhoneValue(value);
+  assertCountry(selectedCountry, 'selected');
 
   const currentValue = controlledRef.current ? value : uncontrolledValue;
   const currentValueRef = useRef(currentValue);
   currentValueRef.current = currentValue;
+  const currentSelectedCountry = countryControlledRef.current
+    ? (selectedCountry ?? null)
+    : uncontrolledCountry;
+  const currentSelectedCountryRef = useRef(currentSelectedCountry);
+  currentSelectedCountryRef.current = currentSelectedCountry;
   const numberingPlanOptions = useMemo(
-    () => (selectedCountry == null ? {} : { selectedCountry }),
-    [selectedCountry],
+    () =>
+      currentSelectedCountry == null ? {} : { selectedCountry: currentSelectedCountry },
+    [currentSelectedCountry],
   );
   const validationOptions = useMemo<PhoneValidationOptions>(
     () => ({
       required,
       validationMode,
-      ...(selectedCountry == null ? {} : { selectedCountry }),
+      ...(currentSelectedCountry == null
+        ? {}
+        : { selectedCountry: currentSelectedCountry }),
       ...(allowedNumberTypes === undefined ? {} : { allowedNumberTypes }),
     }),
-    [allowedNumberTypes, required, selectedCountry, validationMode],
+    [allowedNumberTypes, currentSelectedCountry, required, validationMode],
   );
   const numberingPlan = useMemo(
     () => resolveNumberingPlan(currentValue, numberingPlanOptions),
@@ -346,6 +396,10 @@ function usePhoneInputInternal(
       currentValueRef.current = initialDefaultValueRef.current;
       setUncontrolledValue(initialDefaultValueRef.current);
     }
+    if (!countryControlledRef.current) {
+      currentSelectedCountryRef.current = initialDefaultCountryRef.current;
+      setUncontrolledCountry(initialDefaultCountryRef.current);
+    }
     setValidationBlurred(false);
   }, [cancelValidationBlurFrame]);
   const setInputRef = useCallback<RefCallback<HTMLInputElement>>(
@@ -366,7 +420,11 @@ function usePhoneInputInternal(
     [engineBridge, resetState],
   );
   const commit = useCallback(
-    (displayValue: string, reason: PhoneInputChangeReason) => {
+    (
+      displayValue: string,
+      reason: PhoneInputChangeReason,
+      country: CountryCode | null = currentSelectedCountryRef.current,
+    ) => {
       const nextValue = parsePhoneValue(displayValue);
       const previousValue = currentValueRef.current;
 
@@ -379,15 +437,24 @@ function usePhoneInputInternal(
         setUncontrolledValue(nextValue);
       }
 
+      const nextNumberingPlanOptions =
+        country == null ? {} : { selectedCountry: country };
+      const nextValidationOptions: PhoneValidationOptions = {
+        required,
+        validationMode,
+        ...(country == null ? {} : { selectedCountry: country }),
+        ...(allowedNumberTypes === undefined ? {} : { allowedNumberTypes }),
+      };
+
       onChange?.(nextValue, {
-        numberingPlan: resolveNumberingPlan(nextValue, numberingPlanOptions),
+        numberingPlan: resolveNumberingPlan(nextValue, nextNumberingPlanOptions),
         previousValue,
         reason,
-        validation: validatePhoneValue(nextValue, validationOptions),
+        validation: validatePhoneValue(nextValue, nextValidationOptions),
         value: nextValue,
       });
     },
-    [numberingPlanOptions, onChange, validationOptions],
+    [allowedNumberTypes, onChange, required, validationMode],
   );
   const scheduleCommit = useCallback(
     (displayValue: string, reason: PhoneInputChangeReason) => {
@@ -499,6 +566,19 @@ function usePhoneInputInternal(
   useEffect(() => {
     if (
       shouldWarnInDevelopment() &&
+      isCountryControlledNow !== countryControlledRef.current &&
+      !warnedAboutCountryModeRef.current
+    ) {
+      warnedAboutCountryModeRef.current = true;
+      console.error(
+        `${diagnosticName} cannot switch selectedCountry between controlled and uncontrolled ownership after mount.`,
+      );
+    }
+  }, [diagnosticName, isCountryControlledNow]);
+
+  useEffect(() => {
+    if (
+      shouldWarnInDevelopment() &&
       hasValueProp &&
       hasDefaultValueProp &&
       !warnedAboutOwnershipConflictRef.current
@@ -509,6 +589,20 @@ function usePhoneInputInternal(
       );
     }
   }, [diagnosticName, hasDefaultValueProp, hasValueProp]);
+
+  useEffect(() => {
+    if (
+      shouldWarnInDevelopment() &&
+      hasSelectedCountryProp &&
+      hasDefaultCountryProp &&
+      !warnedAboutCountryOwnershipConflictRef.current
+    ) {
+      warnedAboutCountryOwnershipConflictRef.current = true;
+      console.error(
+        `${diagnosticName} received both selectedCountry and defaultCountry; selectedCountry controls country ownership.`,
+      );
+    }
+  }, [diagnosticName, hasDefaultCountryProp, hasSelectedCountryProp]);
 
   useEffect(() => {
     const input = inputElementRef.current;
@@ -537,13 +631,38 @@ function usePhoneInputInternal(
 
   const focus = useCallback(() => inputElementRef.current?.focus(), []);
   const clear = useCallback(() => commit('', 'clear'), [commit]);
+  const selectCountry = useCallback(
+    (country: CountryCode) => {
+      assertCountry(country, 'selected');
+      const previousCountry = currentSelectedCountryRef.current;
+      const previousValue = currentValueRef.current;
+      const nextValue = selectPhoneCountryValue(previousValue, country);
+
+      if (!countryControlledRef.current) {
+        currentSelectedCountryRef.current = country;
+        setUncontrolledCountry(country);
+      }
+
+      commit(nextValue ?? '', 'country-selection', country);
+      if (country !== previousCountry) {
+        onCountryChange?.(country, {
+          country,
+          previousCountry,
+          previousValue,
+          value: nextValue,
+        });
+      }
+    },
+    [commit, onCountryChange],
+  );
   const actions = useMemo<PhoneInputActions>(
-    () => ({ clear, focus, reset: resetState }),
-    [clear, focus, resetState],
+    () => ({ clear, focus, reset: resetState, selectCountry }),
+    [clear, focus, resetState, selectCountry],
   );
   const state = useMemo<PhoneInputState>(
     () => ({
       controlled: controlledRef.current,
+      countryControlled: countryControlledRef.current,
       disabled,
       displayValue: currentValue ?? '',
       empty: currentValue === undefined,
@@ -552,6 +671,7 @@ function usePhoneInputInternal(
       numberingPlan,
       readOnly,
       required,
+      selectedCountry: numberingPlan.selectedCountry,
       validation,
       validationError,
       validationMessage: resolvedValidationMessage,
@@ -596,6 +716,7 @@ function usePhoneInputInternal(
         'aria-errormessage': validationError ? validationMessageId : undefined,
         'aria-invalid': state.error,
         'data-phone-input-accepted': booleanDataValue(validation.accepted),
+        'data-phone-input-country': numberingPlan.selectedCountry ?? '',
         'data-phone-input-plan': numberingPlan.kind,
         'data-phone-input-status': validation.status,
         autoComplete: externalProps.autoComplete ?? 'tel',
@@ -638,6 +759,7 @@ function usePhoneInputInternal(
       handlePaste,
       inputId,
       numberingPlan.kind,
+      numberingPlan.selectedCountry,
       readOnly,
       required,
       setInputRef,
@@ -652,11 +774,17 @@ function usePhoneInputInternal(
     (externalProps: PhoneInputRootExternalProps = {}): PhoneInputResolvedRootProps => ({
       ...externalProps,
       'data-phone-input-accepted': booleanDataValue(validation.accepted),
+      'data-phone-input-country': numberingPlan.selectedCountry ?? '',
       'data-phone-input-controlled': booleanDataValue(controlledRef.current),
       'data-phone-input-plan': numberingPlan.kind,
       'data-phone-input-status': validation.status,
     }),
-    [numberingPlan.kind, validation.accepted, validation.status],
+    [
+      numberingPlan.kind,
+      numberingPlan.selectedCountry,
+      validation.accepted,
+      validation.status,
+    ],
   );
   const getValidationMessageProps = useCallback(
     (

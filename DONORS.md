@@ -88,6 +88,15 @@ Use MUI `useAutocomplete`/Popper/Dialog primitives and WAI-ARIA APG semantics.
 intl-tel-input and react-international-phone are pattern references only; their
 country data is not authority.
 
+The implemented selector derives countries and calling codes from
+`libphonenumber-js`, names from `Intl.DisplayNames` or a typed resolver, and
+shares country/value transactions with `usePhoneInput`. Standard list rendering
+is bounded to 50 results by default; no virtualization dependency is admitted
+before `mpi-oan.23` measurement. `tests/unit/country-selector.test.ts` and
+`tests/browser/country-selector.browser.test.tsx` retain localized/English,
+ISO/calling-code, preferred-order, keyboard, responsive, focus, and portal
+regressions without copying donor source.
+
 ### `cap-mui-contract`
 
 Follow MUI theme augmentation, utility classes, `ownerState`, slots, and

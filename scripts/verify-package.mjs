@@ -65,16 +65,35 @@ assert.match(clientBundle, /from\s+["']libphonenumber-js\/max["']/u);
 assert.equal(typeof clientModule.MuiPhoneInput, 'function');
 assert.equal(serverModule.MuiPhoneInput, undefined);
 for (const clientExport of [
+  'PhoneInputCountrySelector',
   'PhoneInputInput',
   'PhoneInputProvider',
   'PhoneInputRoot',
   'PhoneInputValidationMessage',
+  'createPhoneCountryOptions',
+  'filterPhoneCountryOptions',
+  'selectPhoneCountryValue',
   'usePhoneInput',
   'usePhoneInputContext',
 ]) {
   assert.equal(typeof clientModule[clientExport], 'function');
   assert.equal(serverModule[clientExport], undefined);
 }
+const countryOptions = clientModule.createPhoneCountryOptions({
+  preferredCountries: ['BY', 'US', 'BY'],
+});
+assert.deepEqual(
+  countryOptions.slice(0, 2).map((option) => option.country),
+  ['BY', 'US'],
+);
+assert.equal(
+  clientModule.filterPhoneCountryOptions(countryOptions, '+375')[0]?.country,
+  'BY',
+);
+assert.equal(
+  clientModule.selectPhoneCountryValue('+12025550123', 'BY'),
+  '+3752025550123',
+);
 const sharedPlan = serverModule.resolveNumberingPlan('+1');
 assert.deepEqual(sharedPlan, {
   countryCallingCode: '1',
