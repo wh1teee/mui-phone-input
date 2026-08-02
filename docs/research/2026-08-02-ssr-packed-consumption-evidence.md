@@ -99,9 +99,9 @@ the explicit tsdown `browser` and `neutral` platform assertions.
 The package source is unchanged by this proof lane, so the exact artifact
 measurement remains:
 
-- main closure: 15,200 bytes gzip;
-- server entry: 2,666 bytes gzip;
-- packed tarball: 56,008 bytes.
+- main closure: 15,375 bytes gzip;
+- server entry: 2,915 bytes gzip;
+- packed tarball: 57,353 bytes.
 
 No package was published. npm identity, Trusted Publishing and prerelease
 authorization remain behind owner gate `mpi-g7a`.

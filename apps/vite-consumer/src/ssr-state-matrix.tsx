@@ -1,20 +1,33 @@
-import { MuiPhoneInput, type PhoneValue } from '@whiteee/mui-phone-input';
+import {
+  MuiPhoneInput,
+  type MuiPhoneInputProps,
+  type PhoneValue,
+} from '@whiteee/mui-phone-input';
 import { useEffect, useState } from 'react';
 
-const SSR_STATES = [
+type SsrState = Readonly<{
+  kind: string;
+  placeholder: string;
+  selectedCountry?: MuiPhoneInputProps['selectedCountry'];
+  value: PhoneValue;
+}>;
+
+const SSR_STATES: readonly SsrState[] = [
   { kind: 'empty', placeholder: 'Empty phone', value: undefined },
   { kind: 'geographic', placeholder: 'Geographic phone', value: '+375291234567' },
+  {
+    kind: 'territory',
+    placeholder: 'Territory phone',
+    selectedCountry: 'AX',
+    value: '+358412345678',
+  },
   { kind: 'unresolved', placeholder: 'Unresolved phone', value: '+1' },
   {
     kind: 'non-geographic',
     placeholder: 'Non-geographic phone',
     value: '+80012345678',
   },
-] as const satisfies readonly {
-  kind: string;
-  placeholder: string;
-  value: PhoneValue;
-}[];
+];
 
 export function SsrStateMatrix() {
   const [hydrated, setHydrated] = useState(false);
@@ -24,7 +37,7 @@ export function SsrStateMatrix() {
   return (
     <section data-testid="ssr-state-matrix">
       <output data-testid="hydration-marker">{hydrated ? 'hydrated' : 'server'}</output>
-      {SSR_STATES.map(({ kind, placeholder, value }) => (
+      {SSR_STATES.map(({ kind, placeholder, selectedCountry, value }) => (
         <MuiPhoneInput
           data-testid={`ssr-${kind}-root`}
           id={`ssr-${kind}`}
@@ -32,6 +45,7 @@ export function SsrStateMatrix() {
           label={`SSR ${kind}`}
           placeholder={placeholder}
           readOnly
+          {...(selectedCountry === undefined ? {} : { selectedCountry })}
           slotProps={{
             countrySelector: {
               'data-testid': `ssr-${kind}-country`,

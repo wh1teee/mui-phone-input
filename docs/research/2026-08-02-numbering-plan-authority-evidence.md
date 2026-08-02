@@ -32,6 +32,8 @@ or selected-country context does not emit a user-change callback.
 - `PhoneNumber.getPossibleCountries()` narrows resolved shared-code candidates.
 - `getCountries()` and `getCountryCallingCode()` provide the broad unresolved
   fallback directly from pinned metadata.
+- a selected-country-only view of the same max metadata distinguishes a valid
+  explicit territory from a positively conflicting parent-country detection;
 - `isSupportedCountry()` validates explicit configuration.
 
 The package contains no handwritten country/calling-code table and no
@@ -41,14 +43,19 @@ is represented as a non-geographic plan.
 ## Shared-code policy
 
 An explicit selected country remains authoritative while compatible with the
-current calling code and detected country. It is cleared only when authority
-data identifies another country or calling code.
+current calling code. A differing detected label clears it only when the full
+E.164 value is not valid in the explicitly selected country's pinned metadata.
+This preserves authority aliases without a handwritten territory table while
+still clearing positively conflicting digits.
 
 Regression evidence includes:
 
 - NANP `+1`, CA selection, and US/CA detection;
 - `+7`, KZ selection, and RU/KZ detection;
 - `+44`, GB/GG/IM/JE Possible Countries and territory detection;
+- all 245 available mobile examples with their explicit country selected,
+  including AX, BL, CC, CX, EH, IM, MF, SJ and VA where general detection
+  reports FI, GP, AU, MA, GB, NO or IT;
 - Belarus `+375` as a single-country plan;
 - non-geographic `+800` and `+870` without a fabricated country.
 
@@ -73,8 +80,9 @@ Browser tests cover:
 
 Packed Next.js and Vite consumers assert the exact tarball callback details for
 single-country Belarus, unresolved `+1` with all 25 NANP candidates, resolved
-US with `possibleCountries = ['US']`, and non-geographic `+800` without any
-country. Latest and minimum React/MUI matrices use the same browser flow.
+US with `possibleCountries = ['US']`, explicit AX over the detected FI label,
+and non-geographic `+800` without any country. Latest and minimum React/MUI
+matrices use the same browser flow.
 
 ## Scope boundary
 

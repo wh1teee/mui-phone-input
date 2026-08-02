@@ -159,6 +159,22 @@ assert.deepEqual(serverModule.resolveNumberingPlan('+12025550123'), {
   resolvedCountry: 'US',
   selectedCountry: null,
 });
+const alandPlan = {
+  countryCallingCode: '358',
+  detectedCountry: 'FI',
+  kind: 'geographic',
+  possibleCountries: ['FI'],
+  resolvedCountry: 'AX',
+  selectedCountry: 'AX',
+};
+assert.deepEqual(
+  clientModule.resolveNumberingPlan('+358412345678', { selectedCountry: 'AX' }),
+  alandPlan,
+);
+assert.deepEqual(
+  serverModule.resolveNumberingPlan('+358412345678', { selectedCountry: 'AX' }),
+  alandPlan,
+);
 assert.deepEqual(serverModule.resolveNumberingPlan('+800'), {
   countryCallingCode: '800',
   detectedCountry: null,

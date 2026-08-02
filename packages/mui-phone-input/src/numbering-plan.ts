@@ -1,3 +1,4 @@
+import { isValidPhoneNumber, type MetadataJson } from 'libphonenumber-js/core';
 import {
   AsYouType,
   type CountryCode,
@@ -5,6 +6,7 @@ import {
   getCountryCallingCode,
   isSupportedCountry,
 } from 'libphonenumber-js/max';
+import maxMetadata from 'libphonenumber-js/metadata.max.json';
 
 import { assertPhoneValue, type PhoneValue } from './phone-value';
 
@@ -46,11 +48,41 @@ export type NumberingPlanResolution =
 const EMPTY_COUNTRIES = Object.freeze([]) as readonly [];
 
 const countriesByCallingCode = new Map<string, readonly CountryCode[]>();
+const metadataBySelectedCountry = new Map<CountryCode, MetadataJson>();
 
 for (const country of getCountries()) {
   const callingCode = getCountryCallingCode(country);
   const countries = countriesByCallingCode.get(callingCode) ?? [];
   countriesByCallingCode.set(callingCode, Object.freeze([...countries, country]));
+}
+
+function metadataForSelectedCountry(country: CountryCode): MetadataJson {
+  const cached = metadataBySelectedCountry.get(country);
+  if (cached) {
+    return cached;
+  }
+
+  const callingCode = getCountryCallingCode(country);
+  const countryMetadata = maxMetadata.countries[country];
+  if (!countryMetadata) {
+    throw new TypeError(`Missing numbering metadata for selected country: ${country}`);
+  }
+
+  const metadata: MetadataJson = {
+    version: maxMetadata.version,
+    country_calling_codes: { [callingCode]: [country] },
+    countries: { [country]: countryMetadata },
+    nonGeographic: {},
+  };
+  metadataBySelectedCountry.set(country, metadata);
+  return metadata;
+}
+
+function isValidForSelectedCountry(value: PhoneValue, country: CountryCode): boolean {
+  return (
+    value !== undefined &&
+    isValidPhoneNumber(value, metadataForSelectedCountry(country))
+  );
 }
 
 function validateSelectedCountry(
@@ -85,13 +117,20 @@ function resolveCompatibleSelection(
       return null;
     }
 
-    if (detectedCountry && detectedCountry !== selectedCountry) {
+    const selectedCountryIsValid = isValidForSelectedCountry(value, selectedCountry);
+
+    if (
+      detectedCountry &&
+      detectedCountry !== selectedCountry &&
+      !selectedCountryIsValid
+    ) {
       return null;
     }
 
     if (
       narrowedPossibleCountries.length > 0 &&
-      !narrowedPossibleCountries.includes(selectedCountry)
+      !narrowedPossibleCountries.includes(selectedCountry) &&
+      !selectedCountryIsValid
     ) {
       return null;
     }

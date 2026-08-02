@@ -1,11 +1,18 @@
 import fc from 'fast-check';
-import { type CountryCode, getCountryCallingCode } from 'libphonenumber-js/max';
+import mobileExamples from 'libphonenumber-js/examples.mobile.json';
+import {
+  type CountryCode,
+  getCountries,
+  getCountryCallingCode,
+  getExampleNumber,
+} from 'libphonenumber-js/max';
 import { describe, expect, it } from 'vitest';
 
 import {
   type NumberingPlanResolution,
   resolveNumberingPlan,
 } from '../../packages/mui-phone-input/src/numbering-plan';
+import type { PhoneValue } from '../../packages/mui-phone-input/src/phone-value';
 
 function expectSerializableResolution(resolution: NumberingPlanResolution) {
   expect(JSON.parse(JSON.stringify(resolution))).toEqual(resolution);
@@ -78,6 +85,26 @@ describe('resolveNumberingPlan', () => {
       resolvedCountry: 'GB',
       selectedCountry: null,
     });
+  });
+
+  it('preserves every explicit country supported by authority mobile examples', () => {
+    const countriesWithExamples = getCountries().filter((country) =>
+      Boolean(getExampleNumber(country, mobileExamples)),
+    );
+
+    expect(countriesWithExamples).toHaveLength(245);
+
+    for (const country of countriesWithExamples) {
+      const example = getExampleNumber(country, mobileExamples);
+      expect(example).toBeDefined();
+      const value = example?.number as PhoneValue;
+
+      expect(resolveNumberingPlan(value, { selectedCountry: country })).toMatchObject({
+        kind: 'geographic',
+        resolvedCountry: country,
+        selectedCountry: country,
+      });
+    }
   });
 
   it('resolves single-country and territory plans directly from authority data', () => {

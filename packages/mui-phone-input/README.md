@@ -112,7 +112,10 @@ Shared calling codes remain unresolved until authority data or a compatible
 explicit selection resolves them. While unresolved, `possibleCountries`
 contains every authority-backed country for the calling code; once digits
 narrow the plan, the list narrows with `PhoneNumber.getPossibleCountries()`.
-Non-geographic plans expose no country.
+An explicit territory remains selected when the complete number is valid for
+that territory even if metadata reports its parent numbering country as the
+detected label. Positively conflicting shared-code digits still clear the
+selection. Non-geographic plans expose no country.
 
 ## Validation
 

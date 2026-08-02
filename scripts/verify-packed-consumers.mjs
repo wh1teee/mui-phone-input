@@ -101,6 +101,7 @@ async function stopServer(process) {
 const SSR_STATE_EXPECTATIONS = {
   empty: {
     accepted: 'true',
+    country: '',
     plan: 'unresolved',
     placeholder: 'Empty phone',
     status: 'empty',
@@ -108,6 +109,7 @@ const SSR_STATE_EXPECTATIONS = {
   },
   geographic: {
     accepted: 'true',
+    country: '',
     plan: 'geographic',
     placeholder: 'Geographic phone',
     status: 'valid',
@@ -115,6 +117,7 @@ const SSR_STATE_EXPECTATIONS = {
   },
   'non-geographic': {
     accepted: 'true',
+    country: '',
     plan: 'non-geographic',
     placeholder: 'Non-geographic phone',
     status: 'valid',
@@ -122,10 +125,19 @@ const SSR_STATE_EXPECTATIONS = {
   },
   unresolved: {
     accepted: 'false',
+    country: '',
     plan: 'unresolved',
     placeholder: 'Unresolved phone',
     status: 'incomplete',
     value: '+1',
+  },
+  territory: {
+    accepted: 'true',
+    country: 'AX',
+    plan: 'geographic',
+    placeholder: 'Territory phone',
+    status: 'valid',
+    value: '+358412345678',
   },
 };
 
@@ -151,6 +163,7 @@ async function collectSsrStateSnapshot(page) {
     assert.deepEqual(
       {
         accepted: snapshot[kind].accepted,
+        country: snapshot[kind].country,
         placeholder: snapshot[kind].placeholder,
         plan: snapshot[kind].plan,
         status: snapshot[kind].status,
@@ -227,6 +240,7 @@ async function verifyPackedBrowser(destination, consumer) {
             empty: 'unresolved',
             geographic: 'geographic',
             nonGeographic: 'non-geographic',
+            territory: 'geographic',
             unresolved: 'unresolved',
           },
         );

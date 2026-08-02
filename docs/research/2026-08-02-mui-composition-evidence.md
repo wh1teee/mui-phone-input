@@ -82,9 +82,9 @@ React 19 / MUI 9 matrices.
 
 The exact post-composition artifact remains within the established budgets:
 
-- main closure: 15,200 bytes gzip;
-- server entry: 2,666 bytes gzip;
-- packed tarball: 56,008 bytes.
+- main closure: 15,375 bytes gzip;
+- server entry: 2,915 bytes gzip;
+- packed tarball: 57,353 bytes.
 
 ## Scope boundary
 

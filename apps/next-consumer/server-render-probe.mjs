@@ -21,10 +21,11 @@ Intl.DateTimeFormat.prototype.resolvedOptions = function forbiddenLocaleDetectio
 };
 
 const states = [
-  ['empty', undefined, 'unresolved', 'empty'],
-  ['geographic', '+375291234567', 'geographic', 'valid'],
-  ['unresolved', '+1', 'unresolved', 'incomplete'],
-  ['non-geographic', '+80012345678', 'non-geographic', 'valid'],
+  ['empty', undefined, 'unresolved', 'empty', undefined],
+  ['geographic', '+375291234567', 'geographic', 'valid', undefined],
+  ['territory', '+358412345678', 'geographic', 'valid', 'AX'],
+  ['unresolved', '+1', 'unresolved', 'incomplete', undefined],
+  ['non-geographic', '+80012345678', 'non-geographic', 'valid', undefined],
 ];
 try {
   const [muiStyles, phoneInputModule, reactModule, reactDomServer] = await Promise.all([
@@ -45,7 +46,7 @@ try {
   const { createElement } = reactModule;
   const { renderToString } = reactDomServer;
   const theme = createTheme({ cssVariables: true });
-  const renderState = (kind, value) =>
+  const renderState = (kind, value, selectedCountry) =>
     renderToString(
       createElement(
         ThemeProvider,
@@ -55,6 +56,7 @@ try {
           label: `Probe ${kind}`,
           placeholder: `${kind} placeholder`,
           readOnly: true,
+          ...(selectedCountry === undefined ? {} : { selectedCountry }),
           slotProps: {
             countrySelector: {
               disablePortal: true,
@@ -74,13 +76,14 @@ try {
         createElement(
           'section',
           null,
-          ...states.map(([kind, value]) =>
+          ...states.map(([kind, value, _plan, _status, selectedCountry]) =>
             createElement(MuiPhoneInput, {
               id: `probe-${kind}`,
               key: kind,
               label: `Probe ${kind}`,
               placeholder: `${kind} placeholder`,
               readOnly: true,
+              ...(selectedCountry === undefined ? {} : { selectedCountry }),
               slotProps: {
                 countrySelector: {
                   disablePortal: true,
@@ -99,8 +102,8 @@ try {
   const second = renderMatrix();
   assert.equal(first, second, 'Two isolated server renders must be byte-identical.');
 
-  for (const [kind, value, plan, status] of states) {
-    const isolatedHtml = renderState(kind, value);
+  for (const [kind, value, plan, status, selectedCountry] of states) {
+    const isolatedHtml = renderState(kind, value, selectedCountry);
     const inputTag = isolatedHtml.match(
       new RegExp(`<input(?=[^>]*\\bid="probe-${kind}")[^>]*>`, 'u'),
     )?.[0];
@@ -117,6 +120,12 @@ try {
       inputTag.includes(`value="${value ?? ''}"`),
       `Unexpected ${kind} server-rendered value.`,
     );
+    if (selectedCountry) {
+      assert.ok(
+        inputTag.includes(`data-phone-input-country="${selectedCountry}"`),
+        `Unexpected ${kind} server-rendered country.`,
+      );
+    }
   }
 
   assert.equal(navigatorReadCount, 0, 'Server render read navigator.');
