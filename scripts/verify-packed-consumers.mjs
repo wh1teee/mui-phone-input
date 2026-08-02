@@ -447,6 +447,21 @@ async function verifyPackedBrowser(destination, consumer) {
         `Packed MuiPhoneInput country details are invalid: ${JSON.stringify(countryDetails)}`,
       );
     }
+    const countryChangeDetails = JSON.parse(
+      (await page.getByTestId('country-change-details').textContent()) || '{}',
+    );
+    if (
+      countryChangeDetails.country !== 'BY' ||
+      countryChangeDetails.previousCountry !== null ||
+      countryChangeDetails.reason !== 'user' ||
+      countryChangeDetails.numberingPlan?.selectedCountry !== 'BY' ||
+      countryChangeDetails.numberingPlan?.resolvedCountry !== 'BY' ||
+      countryChangeDetails.previousNumberingPlan?.kind !== 'unresolved'
+    ) {
+      throw new Error(
+        `Packed country-change details are invalid: ${JSON.stringify(countryChangeDetails)}`,
+      );
+    }
     await page.waitForFunction(
       () =>
         document.activeElement?.getAttribute('data-testid') ===

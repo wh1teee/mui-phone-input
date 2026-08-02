@@ -28,6 +28,7 @@ import type { PhoneValidationMode } from '../phone-validation';
 import type { PhoneValue } from '../phone-value';
 import {
   type PhoneCountryChangeDetails,
+  type PhoneCountryChangeReason,
   type PhoneInputChangeDetails,
   type PhoneInputChangeReason,
   type PhoneInputNumberingPlanState,
@@ -43,6 +44,7 @@ import {
 } from './muiPhoneInputClasses';
 
 export type {
+  PhoneCountryChangeReason,
   PhoneInputChangeDetails,
   PhoneInputChangeReason,
   PhoneInputNumberingPlanState,
@@ -75,7 +77,10 @@ export type MuiPhoneInputProps = Omit<
   defaultValue?: PhoneValue;
   disableCountrySelector?: boolean;
   onChange?: (value: PhoneValue, details: PhoneInputChangeDetails) => void;
-  onCountryChange?: (country: CountryCode, details: PhoneCountryChangeDetails) => void;
+  onCountryChange?: (
+    country: CountryCode | null,
+    details: PhoneCountryChangeDetails,
+  ) => void;
   readOnly?: boolean;
   ref?: Ref<HTMLInputElement>;
   selectedCountry?: CountryCode | null;

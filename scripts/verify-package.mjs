@@ -79,6 +79,7 @@ for (const forbiddenServerSource of [
 const packageDist = join(repositoryRoot, 'packages/mui-phone-input/dist');
 const serverBundle = await readFile(join(packageDist, 'server.js'), 'utf8');
 const clientBundle = await readFile(join(packageDist, 'index.js'), 'utf8');
+const clientTypes = await readFile(join(packageDist, 'index.d.ts'), 'utf8');
 const serverModule = await import(
   `${pathToFileURL(join(packageDist, 'server.js')).href}?verification=${Date.now()}`
 );
@@ -107,6 +108,14 @@ assert.doesNotMatch(serverBundle, /from\s+['"]node:/u);
 assert.doesNotMatch(clientBundle, /from\s+['"]node:/u);
 assert.match(serverBundle, /from\s+["']libphonenumber-js\/max["']/u);
 assert.match(clientBundle, /from\s+["']libphonenumber-js\/max["']/u);
+assert.match(
+  clientTypes,
+  /type PhoneCountryChangeReason = "default" \| "external-value" \| "input" \| "paste" \| "reset" \| "user";/u,
+);
+assert.match(
+  clientTypes,
+  /onCountryChange\?: \(country: CountryCode \| null, details: PhoneCountryChangeDetails\) => void;/u,
+);
 assert.equal(typeof clientModule.MuiPhoneInput, 'function');
 assert.equal(serverModule.MuiPhoneInput, undefined);
 for (const clientExport of [

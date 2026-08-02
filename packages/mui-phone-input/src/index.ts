@@ -56,6 +56,7 @@ export {
 } from './phone-value';
 export {
   type PhoneCountryChangeDetails,
+  type PhoneCountryChangeReason,
   type PhoneInputActions,
   type PhoneInputChangeDetails,
   type PhoneInputChangeReason,

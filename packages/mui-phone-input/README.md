@@ -77,10 +77,22 @@ and calling codes. Country/calling-code authority comes from
 />
 ```
 
-Use `selectedCountry` with `onCountryChange` for controlled country ownership.
-Selecting a country commits one phone transaction with reason
-`country-selection`; compatible national digits are preserved and conflicting
-digits fall back to the selected calling code.
+`onCountryChange` reports every public country transition. Its first argument
+is the resolved country or `null`; details include the complete previous and
+next Numbering Plan and one typed reason: `default`, `user`, `input`, `paste`,
+`external-value`, or `reset`. Selecting a country also commits one phone
+transaction with `onChange` reason `country-selection`.
+
+`input` covers committed keyboard, deletion, composition, replacement, and
+history edits. `external-value` covers controlled value/country reconciliation,
+including a distinct correction when a parent rejects an optimistic user
+selection.
+
+For controlled country ownership, treat `onCountryChange` as a transition
+stream rather than an unconditional setter. Update `selectedCountry` for
+`reason === 'user'` from `details.numberingPlan.selectedCountry`; automatic
+detected/resolved transitions remain observable without overwriting explicit
+ownership.
 
 The default `mode="auto"` uses a desktop Popper and a mobile full-screen Dialog
 with one shared search draft. Set `mode="desktop"` or `"mobile"` for an explicit

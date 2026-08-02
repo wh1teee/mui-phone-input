@@ -59,10 +59,21 @@ export interface PhoneInputChangeDetails {
   value: PhoneValue;
 }
 
+export type PhoneCountryChangeReason =
+  | 'default'
+  | 'external-value'
+  | 'input'
+  | 'paste'
+  | 'reset'
+  | 'user';
+
 export interface PhoneCountryChangeDetails {
-  country: CountryCode;
+  country: CountryCode | null;
+  numberingPlan: PhoneInputNumberingPlanState;
   previousCountry: CountryCode | null;
+  previousNumberingPlan: PhoneInputNumberingPlanState;
   previousValue: PhoneValue;
+  reason: PhoneCountryChangeReason;
   value: PhoneValue;
 }
 
@@ -74,7 +85,10 @@ export interface UsePhoneInputParameters {
   error?: boolean;
   id?: string;
   onChange?: (value: PhoneValue, details: PhoneInputChangeDetails) => void;
-  onCountryChange?: (country: CountryCode, details: PhoneCountryChangeDetails) => void;
+  onCountryChange?: (
+    country: CountryCode | null,
+    details: PhoneCountryChangeDetails,
+  ) => void;
   readOnly?: boolean;
   required?: boolean;
   selectedCountry?: CountryCode | null;
@@ -180,6 +194,17 @@ type PendingTransaction = Readonly<{
   reason: PhoneInputChangeReason;
 }>;
 
+type CountryTransitionLedger = {
+  initialized: boolean;
+  numberingPlan: PhoneInputNumberingPlanState;
+  value: PhoneValue;
+};
+
+type PendingCountryReconciliation = Readonly<{
+  numberingPlan: PhoneInputNumberingPlanState;
+  value: PhoneValue;
+}>;
+
 const E164_INPUT_CONTEXT: InputEngineContext = {
   fixedCallingCode: false,
   formatStrategyKey: 'e164',
@@ -262,6 +287,37 @@ function resolveChangeReason(
 
 function booleanDataValue(value: boolean): 'false' | 'true' {
   return value ? 'true' : 'false';
+}
+
+function countryReasonFromInputReason(
+  reason: PhoneInputChangeReason,
+): PhoneCountryChangeReason {
+  if (reason === 'country-selection') {
+    return 'user';
+  }
+  return reason === 'paste' ? 'paste' : 'input';
+}
+
+function hasCountryTransition(
+  previous: PhoneInputNumberingPlanState,
+  next: PhoneInputNumberingPlanState,
+): boolean {
+  return (
+    previous.kind !== next.kind ||
+    previous.selectedCountry !== next.selectedCountry ||
+    previous.detectedCountry !== next.detectedCountry ||
+    previous.resolvedCountry !== next.resolvedCountry
+  );
+}
+
+function resolvePlanForCountry(
+  value: PhoneValue,
+  country: CountryCode | null,
+): PhoneInputNumberingPlanState {
+  return resolveNumberingPlan(
+    value,
+    country == null ? {} : { selectedCountry: country },
+  );
 }
 
 function assertCountry(country: CountryCode | null | undefined, label: string): void {
@@ -383,6 +439,45 @@ function usePhoneInputInternal(
     [numberingPlan.resolvedCountry],
   );
   const engineBridge = useInputTransactionEngineBridge();
+  const countryTransitionLedgerRef = useRef<CountryTransitionLedger>({
+    initialized: false,
+    numberingPlan: resolveNumberingPlan(undefined),
+    value: undefined,
+  });
+  const pendingCountryReconciliationRef = useRef<PendingCountryReconciliation | null>(
+    null,
+  );
+
+  const emitCountryTransition = useCallback(
+    (
+      previousNumberingPlan: PhoneInputNumberingPlanState,
+      nextNumberingPlan: PhoneInputNumberingPlanState,
+      previousValue: PhoneValue,
+      nextValue: PhoneValue,
+      reason: PhoneCountryChangeReason,
+    ) => {
+      countryTransitionLedgerRef.current = {
+        initialized: true,
+        numberingPlan: nextNumberingPlan,
+        value: nextValue,
+      };
+
+      if (!hasCountryTransition(previousNumberingPlan, nextNumberingPlan)) {
+        return;
+      }
+
+      onCountryChange?.(nextNumberingPlan.resolvedCountry, {
+        country: nextNumberingPlan.resolvedCountry,
+        numberingPlan: nextNumberingPlan,
+        previousCountry: previousNumberingPlan.resolvedCountry,
+        previousNumberingPlan,
+        previousValue,
+        reason,
+        value: nextValue,
+      });
+    },
+    [onCountryChange],
+  );
 
   const cancelValidationBlurFrame = useCallback(() => {
     if (validationBlurFrameRef.current !== undefined) {
@@ -392,16 +487,32 @@ function usePhoneInputInternal(
   }, []);
   const resetState = useCallback(() => {
     cancelValidationBlurFrame();
+    const previousValue = currentValueRef.current;
+    const previousSelectedCountry = currentSelectedCountryRef.current;
+    const nextValue = controlledRef.current
+      ? previousValue
+      : initialDefaultValueRef.current;
+    const nextSelectedCountry = countryControlledRef.current
+      ? previousSelectedCountry
+      : initialDefaultCountryRef.current;
+
     if (!controlledRef.current) {
-      currentValueRef.current = initialDefaultValueRef.current;
-      setUncontrolledValue(initialDefaultValueRef.current);
+      currentValueRef.current = nextValue;
+      setUncontrolledValue(nextValue);
     }
     if (!countryControlledRef.current) {
-      currentSelectedCountryRef.current = initialDefaultCountryRef.current;
-      setUncontrolledCountry(initialDefaultCountryRef.current);
+      currentSelectedCountryRef.current = nextSelectedCountry;
+      setUncontrolledCountry(nextSelectedCountry);
     }
     setValidationBlurred(false);
-  }, [cancelValidationBlurFrame]);
+    emitCountryTransition(
+      resolvePlanForCountry(previousValue, previousSelectedCountry),
+      resolvePlanForCountry(nextValue, nextSelectedCountry),
+      previousValue,
+      nextValue,
+      'reset',
+    );
+  }, [cancelValidationBlurFrame, emitCountryTransition]);
   const setInputRef = useCallback<RefCallback<HTMLInputElement>>(
     (input) => {
       formCleanupRef.current?.();
@@ -423,38 +534,60 @@ function usePhoneInputInternal(
     (
       displayValue: string,
       reason: PhoneInputChangeReason,
-      country: CountryCode | null = currentSelectedCountryRef.current,
+      nextSelectedCountry: CountryCode | null = currentSelectedCountryRef.current,
+      previousSelectedCountry: CountryCode | null = currentSelectedCountryRef.current,
     ) => {
       const nextValue = parsePhoneValue(displayValue);
       const previousValue = currentValueRef.current;
-
-      if (nextValue === previousValue) {
-        return;
-      }
-
-      currentValueRef.current = nextValue;
-      if (!controlledRef.current) {
-        setUncontrolledValue(nextValue);
-      }
-
-      const nextNumberingPlanOptions =
-        country == null ? {} : { selectedCountry: country };
+      const valueChanged = nextValue !== previousValue;
+      const previousNumberingPlan = resolvePlanForCountry(
+        previousValue,
+        previousSelectedCountry,
+      );
+      const nextNumberingPlan = resolvePlanForCountry(nextValue, nextSelectedCountry);
       const nextValidationOptions: PhoneValidationOptions = {
         required,
         validationMode,
-        ...(country == null ? {} : { selectedCountry: country }),
+        ...(nextSelectedCountry == null
+          ? {}
+          : { selectedCountry: nextSelectedCountry }),
         ...(allowedNumberTypes === undefined ? {} : { allowedNumberTypes }),
       };
 
-      onChange?.(nextValue, {
-        numberingPlan: resolveNumberingPlan(nextValue, nextNumberingPlanOptions),
+      if (valueChanged) {
+        currentValueRef.current = nextValue;
+        if (!controlledRef.current) {
+          setUncontrolledValue(nextValue);
+        }
+
+        onChange?.(nextValue, {
+          numberingPlan: nextNumberingPlan,
+          previousValue,
+          reason,
+          validation: validatePhoneValue(nextValue, nextValidationOptions),
+          value: nextValue,
+        });
+      }
+
+      if (
+        (controlledRef.current || countryControlledRef.current) &&
+        hasCountryTransition(previousNumberingPlan, nextNumberingPlan)
+      ) {
+        pendingCountryReconciliationRef.current = {
+          numberingPlan: nextNumberingPlan,
+          value: nextValue,
+        };
+      }
+
+      emitCountryTransition(
+        previousNumberingPlan,
+        nextNumberingPlan,
         previousValue,
-        reason,
-        validation: validatePhoneValue(nextValue, nextValidationOptions),
-        value: nextValue,
-      });
+        nextValue,
+        countryReasonFromInputReason(reason),
+      );
     },
-    [allowedNumberTypes, onChange, required, validationMode],
+    [allowedNumberTypes, emitCountryTransition, onChange, required, validationMode],
   );
   const scheduleCommit = useCallback(
     (displayValue: string, reason: PhoneInputChangeReason) => {
@@ -605,6 +738,45 @@ function usePhoneInputInternal(
   }, [diagnosticName, hasDefaultCountryProp, hasSelectedCountryProp]);
 
   useEffect(() => {
+    const previous = countryTransitionLedgerRef.current;
+
+    if (!previous.initialized) {
+      emitCountryTransition(
+        previous.numberingPlan,
+        numberingPlan,
+        previous.value,
+        currentValue,
+        'default',
+      );
+      return;
+    }
+
+    const pendingReconciliation = pendingCountryReconciliationRef.current;
+    pendingCountryReconciliationRef.current = null;
+    const pendingValue = pendingReconciliation?.value;
+    if (
+      pendingReconciliation &&
+      pendingValue === currentValue &&
+      !hasCountryTransition(pendingReconciliation.numberingPlan, numberingPlan)
+    ) {
+      countryTransitionLedgerRef.current = {
+        initialized: true,
+        numberingPlan,
+        value: currentValue,
+      };
+      return;
+    }
+
+    emitCountryTransition(
+      previous.numberingPlan,
+      numberingPlan,
+      previous.value,
+      currentValue,
+      'external-value',
+    );
+  }, [currentValue, emitCountryTransition, numberingPlan]);
+
+  useEffect(() => {
     const input = inputElementRef.current;
     const displayValue = currentValue ?? '';
     const selection = input
@@ -643,17 +815,9 @@ function usePhoneInputInternal(
         setUncontrolledCountry(country);
       }
 
-      commit(nextValue ?? '', 'country-selection', country);
-      if (country !== previousCountry) {
-        onCountryChange?.(country, {
-          country,
-          previousCountry,
-          previousValue,
-          value: nextValue,
-        });
-      }
+      commit(nextValue ?? '', 'country-selection', country, previousCountry);
     },
-    [commit, onCountryChange],
+    [commit],
   );
   const actions = useMemo<PhoneInputActions>(
     () => ({ clear, focus, reset: resetState, selectCountry }),

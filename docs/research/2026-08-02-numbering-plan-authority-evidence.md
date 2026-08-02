@@ -22,7 +22,9 @@ Every result exposes:
 
 `MuiPhoneInput` accepts an optional `selectedCountry` context and includes the
 same resolution in every committed change detail. Changing an external value
-or selected-country context does not emit a user-change callback.
+or selected-country context does not emit a user `onChange` callback. Country
+state transitions are reported separately through typed `onCountryChange`
+details with complete previous and next Numbering Plans.
 
 ## Authority boundary
 

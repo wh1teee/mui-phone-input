@@ -4,10 +4,13 @@ import { page, userEvent } from 'vitest/browser';
 import { render } from 'vitest-browser-react';
 
 import {
+  type PhoneCountryChangeDetails,
+  type PhoneCountryChangeReason,
   PhoneInputInput,
   PhoneInputProvider,
   PhoneInputRoot,
   PhoneInputValidationMessage,
+  type PhoneValue,
   usePhoneInput,
   usePhoneInputContext,
 } from '../../packages/mui-phone-input/src';
@@ -105,11 +108,12 @@ function ManualErrorHarness() {
 
 function CountryActionHarness() {
   const [changeDetails, setChangeDetails] = useState('');
-  const [countryDetails, setCountryDetails] = useState('');
+  const [countryEvents, setCountryEvents] = useState<PhoneCountryChangeDetails[]>([]);
   const phone = usePhoneInput({
     defaultCountry: 'CA',
     onChange: (_value, details) => setChangeDetails(JSON.stringify(details)),
-    onCountryChange: (_country, details) => setCountryDetails(JSON.stringify(details)),
+    onCountryChange: (_country, details) =>
+      setCountryEvents((events) => [...events, details]),
   });
 
   return (
@@ -119,7 +123,9 @@ function CountryActionHarness() {
       </div>
       <output data-testid="country-action-state">{JSON.stringify(phone.state)}</output>
       <output data-testid="country-action-change">{changeDetails}</output>
-      <output data-testid="country-action-country-change">{countryDetails}</output>
+      <output data-testid="country-action-country-change">
+        {JSON.stringify(countryEvents)}
+      </output>
       <button onClick={() => phone.actions.selectCountry('BY')} type="button">
         Select Belarus
       </button>
@@ -127,6 +133,170 @@ function CountryActionHarness() {
         Reset country action
       </button>
     </>
+  );
+}
+
+function InputCountryTransitionHarness() {
+  const [countryEvents, setCountryEvents] = useState<PhoneCountryChangeDetails[]>([]);
+  const phone = usePhoneInput({
+    onCountryChange: (_country, details) =>
+      setCountryEvents((events) => [...events, details]),
+  });
+
+  return (
+    <>
+      <input {...phone.getInputProps({ 'data-testid': 'country-input-transition' })} />
+      <output data-testid="country-input-events">
+        {JSON.stringify(countryEvents)}
+      </output>
+    </>
+  );
+}
+
+function PasteCountryTransitionHarness() {
+  const [countryEvents, setCountryEvents] = useState<PhoneCountryChangeDetails[]>([]);
+  const phone = usePhoneInput({
+    onCountryChange: (_country, details) =>
+      setCountryEvents((events) => [...events, details]),
+  });
+
+  return (
+    <>
+      <input {...phone.getInputProps({ 'data-testid': 'country-paste-transition' })} />
+      <output data-testid="country-paste-events">
+        {JSON.stringify(countryEvents)}
+      </output>
+    </>
+  );
+}
+
+function ExternalCountryTransitionHarness() {
+  const [value, setValue] = useState<PhoneValue>();
+  const [countryEvents, setCountryEvents] = useState<PhoneCountryChangeDetails[]>([]);
+  const phone = usePhoneInput({
+    onCountryChange: (_country, details) =>
+      setCountryEvents((events) => [...events, details]),
+    value,
+  });
+
+  return (
+    <>
+      <input
+        {...phone.getInputProps({ 'data-testid': 'country-external-transition' })}
+      />
+      <output data-testid="country-external-events">
+        {JSON.stringify(countryEvents)}
+      </output>
+      <button onClick={() => setValue('+375291234567')} type="button">
+        Set Belarus externally
+      </button>
+      <button onClick={() => setValue('+80012345678')} type="button">
+        Set non-geographic externally
+      </button>
+    </>
+  );
+}
+
+function ControlledCountrySelectionHarness() {
+  const [value, setValue] = useState<PhoneValue>('+1');
+  const [selectedCountry, setSelectedCountry] =
+    useState<PhoneCountryChangeDetails['country']>('CA');
+  const [countryEvents, setCountryEvents] = useState<PhoneCountryChangeDetails[]>([]);
+  const phone = usePhoneInput({
+    onChange: (nextValue) => setValue(nextValue),
+    onCountryChange: (country, details) => {
+      setCountryEvents((events) => [...events, details]);
+      if (details.reason === 'user') {
+        setSelectedCountry(country);
+      }
+    },
+    selectedCountry,
+    value,
+  });
+
+  return (
+    <>
+      <input {...phone.getInputProps({ 'data-testid': 'controlled-country-input' })} />
+      <output data-testid="controlled-country-events">
+        {JSON.stringify(countryEvents)}
+      </output>
+      <button onClick={() => phone.actions.selectCountry('BY')} type="button">
+        Select controlled Belarus
+      </button>
+    </>
+  );
+}
+
+function RejectedControlledCountrySelectionHarness() {
+  const [value, setValue] = useState<PhoneValue>('+1');
+  const [countryEvents, setCountryEvents] = useState<PhoneCountryChangeDetails[]>([]);
+  const phone = usePhoneInput({
+    onChange: (nextValue) => setValue(nextValue),
+    onCountryChange: (_country, details) =>
+      setCountryEvents((events) => [...events, details]),
+    selectedCountry: 'CA',
+    value,
+  });
+
+  return (
+    <>
+      <input {...phone.getInputProps({ 'data-testid': 'rejected-country-input' })} />
+      <output data-testid="rejected-country-events">
+        {JSON.stringify(countryEvents)}
+      </output>
+      <button onClick={() => phone.actions.selectCountry('BY')} type="button">
+        Reject controlled Belarus
+      </button>
+    </>
+  );
+}
+
+async function pasteText(inputTestId: string, text: string) {
+  const locator = page.getByTestId(inputTestId);
+  await expect.element(locator).toBeInTheDocument();
+  const input = locator.element();
+
+  if (!(input instanceof HTMLInputElement)) {
+    throw new Error('Expected a native phone input.');
+  }
+
+  input.focus();
+  input.select();
+  const transfer = new DataTransfer();
+  transfer.setData('text/plain', text);
+  const pasteEvent = new ClipboardEvent('paste', {
+    bubbles: true,
+    cancelable: true,
+    clipboardData: transfer,
+  });
+  input.dispatchEvent(pasteEvent);
+
+  if (pasteEvent.defaultPrevented) {
+    return;
+  }
+
+  const beforeInput = new InputEvent('beforeinput', {
+    bubbles: true,
+    cancelable: true,
+    data: text,
+    inputType: 'insertFromPaste',
+  });
+  input.dispatchEvent(beforeInput);
+
+  if (!beforeInput.defaultPrevented) {
+    input.setRangeText(
+      text,
+      input.selectionStart ?? 0,
+      input.selectionEnd ?? input.value.length,
+      'end',
+    );
+  }
+  input.dispatchEvent(
+    new InputEvent('input', {
+      bubbles: true,
+      data: text,
+      inputType: 'insertFromPaste',
+    }),
   );
 }
 
@@ -221,6 +391,9 @@ describe('usePhoneInput and composable primitives', () => {
 
     await expect.element(input).toHaveValue('');
     await expect.element(root).toHaveAttribute('data-phone-input-country', 'CA');
+    await expect
+      .element(page.getByTestId('country-action-country-change'))
+      .toHaveTextContent('"reason":"default"');
     await userEvent.click(page.getByRole('button', { name: 'Select Belarus' }));
 
     await expect.element(input).toHaveValue('+375');
@@ -231,18 +404,175 @@ describe('usePhoneInput and composable primitives', () => {
       reason: 'country-selection',
       value: '+375',
     });
-    expect(
-      JSON.parse(
-        page.getByTestId('country-action-country-change').element().textContent ?? '',
-      ),
-    ).toEqual({
+    let events = JSON.parse(
+      page.getByTestId('country-action-country-change').element().textContent ?? '',
+    ) as PhoneCountryChangeDetails[];
+    expect(events).toHaveLength(2);
+    expect(events[1]).toMatchObject({
       country: 'BY',
+      numberingPlan: { resolvedCountry: 'BY', selectedCountry: 'BY' },
       previousCountry: 'CA',
+      previousNumberingPlan: { resolvedCountry: 'CA', selectedCountry: 'CA' },
+      reason: 'user',
       value: '+375',
     });
 
     await userEvent.click(page.getByRole('button', { name: 'Reset country action' }));
     await expect.element(input).toHaveValue('');
     await expect.element(root).toHaveAttribute('data-phone-input-country', 'CA');
+    events = JSON.parse(
+      page.getByTestId('country-action-country-change').element().textContent ?? '',
+    ) as PhoneCountryChangeDetails[];
+    expect(events).toHaveLength(3);
+    expect(events[2]).toMatchObject({
+      country: 'CA',
+      previousCountry: 'BY',
+      reason: 'reset',
+    });
+  });
+
+  test('emits exactly one input callback for each authority country transition', async () => {
+    render(<InputCountryTransitionHarness />);
+    const input = page.getByTestId('country-input-transition');
+
+    await userEvent.type(input, '1');
+    await expect
+      .element(page.getByTestId('country-input-events'))
+      .toHaveTextContent('[]');
+    await userEvent.type(input, '2025550123');
+
+    const events = JSON.parse(
+      page.getByTestId('country-input-events').element().textContent ?? '',
+    ) as PhoneCountryChangeDetails[];
+    expect(events).toHaveLength(3);
+    expect(
+      events.map(({ country, previousCountry, reason }) => ({
+        country,
+        previousCountry,
+        reason,
+      })),
+    ).toEqual([
+      { country: 'CA', previousCountry: null, reason: 'input' },
+      { country: null, previousCountry: 'CA', reason: 'input' },
+      { country: 'US', previousCountry: null, reason: 'input' },
+    ]);
+    expect(events[2]).toMatchObject({ value: '+12025550123' });
+  });
+
+  test('emits a paste country transition with serializable plan details', async () => {
+    render(<PasteCountryTransitionHarness />);
+    await pasteText('country-paste-transition', '+375 29 123 45 67');
+    await expect
+      .element(page.getByTestId('country-paste-events'))
+      .toHaveTextContent('"reason":"paste"');
+
+    const events = JSON.parse(
+      page.getByTestId('country-paste-events').element().textContent ?? '',
+    ) as PhoneCountryChangeDetails[];
+    expect(events).toHaveLength(1);
+    expect(events[0]).toMatchObject({
+      country: 'BY',
+      numberingPlan: { detectedCountry: 'BY', resolvedCountry: 'BY' },
+      previousCountry: null,
+      reason: 'paste',
+      value: '+375291234567',
+    });
+  });
+
+  test('emits external-value transitions without controlled callback loops', async () => {
+    render(<ExternalCountryTransitionHarness />);
+    const eventOutput = page.getByTestId('country-external-events');
+
+    await expect.element(eventOutput).toHaveTextContent('[]');
+    await userEvent.click(page.getByRole('button', { name: 'Set Belarus externally' }));
+    await expect.element(eventOutput).toHaveTextContent('"reason":"external-value"');
+    await userEvent.click(
+      page.getByRole('button', { name: 'Set non-geographic externally' }),
+    );
+
+    const events = JSON.parse(
+      eventOutput.element().textContent ?? '',
+    ) as PhoneCountryChangeDetails[];
+    expect(events).toHaveLength(2);
+    expect(events[0]).toMatchObject({
+      country: 'BY',
+      previousCountry: null,
+      reason: 'external-value',
+    });
+    expect(events[1]).toMatchObject({
+      country: null,
+      numberingPlan: { kind: 'non-geographic', resolvedCountry: null },
+      previousCountry: 'BY',
+      reason: 'external-value',
+    });
+  });
+
+  test('does not duplicate a user transition during controlled reconciliation', async () => {
+    render(<ControlledCountrySelectionHarness />);
+    const eventOutput = page.getByTestId('controlled-country-events');
+
+    await expect.element(eventOutput).toHaveTextContent('"reason":"default"');
+    await userEvent.click(
+      page.getByRole('button', { name: 'Select controlled Belarus' }),
+    );
+    await expect
+      .element(page.getByTestId('controlled-country-input'))
+      .toHaveValue('+375');
+
+    const events = JSON.parse(
+      eventOutput.element().textContent ?? '',
+    ) as PhoneCountryChangeDetails[];
+    expect(events.map(({ reason }) => reason)).toEqual(['default', 'user']);
+  });
+
+  test('reports a distinct external correction when controlled country is rejected', async () => {
+    render(<RejectedControlledCountrySelectionHarness />);
+    const eventOutput = page.getByTestId('rejected-country-events');
+
+    await expect.element(eventOutput).toHaveTextContent('"reason":"default"');
+    await userEvent.click(
+      page.getByRole('button', { name: 'Reject controlled Belarus' }),
+    );
+    await expect
+      .element(page.getByTestId('rejected-country-input'))
+      .toHaveValue('+375');
+    await expect.element(eventOutput).toHaveTextContent('"reason":"external-value"');
+
+    const events = JSON.parse(
+      eventOutput.element().textContent ?? '',
+    ) as PhoneCountryChangeDetails[];
+    expect(events.map(({ reason }) => reason)).toEqual([
+      'default',
+      'user',
+      'external-value',
+    ]);
+    expect(events[2]).toMatchObject({
+      country: 'BY',
+      numberingPlan: { resolvedCountry: 'BY', selectedCountry: null },
+      previousCountry: 'BY',
+      previousNumberingPlan: { resolvedCountry: 'BY', selectedCountry: 'BY' },
+    });
+  });
+
+  test('exports the complete typed country reason vocabulary', () => {
+    const reasonKeys: Record<PhoneCountryChangeReason, true> = {
+      default: true,
+      'external-value': true,
+      input: true,
+      paste: true,
+      reset: true,
+      user: true,
+    };
+    const reasons = [
+      'default',
+      'external-value',
+      'input',
+      'paste',
+      'reset',
+      'user',
+    ] as const satisfies readonly PhoneCountryChangeReason[];
+
+    expect(reasons).toHaveLength(6);
+    expect(Object.keys(reasonKeys).sort()).toEqual([...reasons].sort());
   });
 });
