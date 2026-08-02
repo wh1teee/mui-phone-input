@@ -15,6 +15,9 @@ const externalDependencies = [
 export default defineConfig([
   {
     clean: true,
+    define: {
+      'process.env.NODE_ENV': 'process.env.NODE_ENV',
+    },
     dts: true,
     entry: {
       index: 'src/index.ts',

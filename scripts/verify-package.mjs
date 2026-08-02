@@ -53,6 +53,11 @@ for (const forbiddenServerGlobal of [
 
 assert.doesNotMatch(serverBundle, /from\s+['"]node:/u);
 assert.doesNotMatch(clientBundle, /from\s+['"]node:/u);
+assert.match(clientBundle, /process\.env\.NODE_ENV\s*!==\s*["']production["']/u);
+assert.doesNotMatch(
+  clientBundle,
+  /function shouldWarnInDevelopment\(\)\s*\{\s*return true/u,
+);
 
 run('pnpm', [
   '--dir',

@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "methodology": {
+    "main": "Vite 8 Oxc-minified ESM closure of the packed main entry. Runtime dependencies are bundled; React, React DOM, MUI, Emotion, RHF and Zod peers are external.",
+    "server": "Direct tsdown neutral-platform server entry, excluding metadata presets."
+  },
+  "budgets": {
+    "mainGzipBytes": 25600,
+    "serverGzipBytes": 10240
+  },
+  "main": {
+    "brotliBytes": 6603,
+    "gzipBytes": 7465,
+    "rawBytes": 23396,
+    "sha256": "239f7f51199636d31f0fec449680c8f95a79df081ae26c274260ec46a97e36da"
+  },
+  "server": {
+    "brotliBytes": 597,
+    "gzipBytes": 730,
+    "rawBytes": 1683,
+    "sha256": "19434a9e3636878a3240763d8845d0aadd972eae24b8deabd8b9696bc4e53abf"
+  },
+  "tarballBytes": 15105,
+  "status": "pass"
+}

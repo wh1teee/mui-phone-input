@@ -22,6 +22,16 @@ const browser = resolveBrowser(process.env.VITEST_BROWSER);
 export default defineConfig({
   optimizeDeps: {
     include: [
+      '@emotion/react',
+      '@emotion/styled',
+      '@maskito/core',
+      '@maskito/react',
+      '@mui/material/DefaultPropsProvider',
+      '@mui/material/TextField',
+      '@mui/material/generateUtilityClass',
+      '@mui/material/generateUtilityClasses',
+      '@mui/material/styles',
+      '@mui/material/utils',
       'react',
       'react/jsx-runtime',
       'react-dom',
@@ -32,7 +42,14 @@ export default defineConfig({
   },
   plugins: [react()],
   resolve: {
-    dedupe: ['react', 'react-dom'],
+    dedupe: [
+      '@emotion/react',
+      '@emotion/styled',
+      '@mui/material',
+      '@mui/system',
+      'react',
+      'react-dom',
+    ],
   },
   test: {
     browser: {
