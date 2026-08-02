@@ -1,0 +1,71 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-08-02T10:40:32.009Z",
+  "environment": {
+    "arch": "x64",
+    "browsers": {
+      "chromium": "151.0.7922.34",
+      "firefox": "153.0",
+      "webkit": "26.5"
+    },
+    "node": "v24.18.1",
+    "platform": "linux"
+  },
+  "methodology": {
+    "bundle": "Vite 8 ESM library build; React, React DOM, MUI, Emotion, and libphonenumber-js are external so the result compares engine-specific candidate code.",
+    "performance": "Seven warm-process runs of 20,000 pure parse/format transformations; median reported. This is a deterministic signal, not a DOM-event latency claim."
+  },
+  "candidates": {
+    "maskito": {
+      "bundle": {
+        "brotliBytes": 7539,
+        "gzipBytes": 8392,
+        "minifiedBytes": 28655
+      },
+      "license": "Apache-2.0 dependencies; local wrapper is MIT",
+      "packages": {
+        "@maskito/core": "5.3.1",
+        "@maskito/phone": "5.3.1 (bake-off helper, not selected authority)",
+        "@maskito/react": "5.3.1"
+      },
+      "performance": {
+        "iterations": 20000,
+        "medianMilliseconds": 642.964,
+        "operationsPerSecond": 31106,
+        "runsMilliseconds": [
+          535.365, 575.717, 594.799, 642.964, 694.243, 778.759, 787.665
+        ]
+      },
+      "source": {
+        "directDomMutationMatches": 0,
+        "lines": 184,
+        "sha256": "e35b867ff857fa41adff7adf869aef6747c61af967cc6b1c99c56da0346c457e"
+      }
+    },
+    "adapted-input-format": {
+      "bundle": {
+        "brotliBytes": 2680,
+        "gzipBytes": 3015,
+        "minifiedBytes": 9488
+      },
+      "license": "MIT donor behavior requiring retained attribution if copied",
+      "packages": {
+        "input-format": "0.3.14",
+        "react-phone-number-input": "3.4.17 behavior inspected"
+      },
+      "performance": {
+        "iterations": 20000,
+        "medianMilliseconds": 238.158,
+        "operationsPerSecond": 83978,
+        "runsMilliseconds": [
+          212.155, 219.561, 220.879, 238.158, 257.063, 312.267, 331.754
+        ]
+      },
+      "source": {
+        "directDomMutationMatches": 4,
+        "lines": 153,
+        "sha256": "69d0a04817603a37df88844b76992212d4b655d1b7169abed1e7a13daf541285"
+      }
+    }
+  }
+}

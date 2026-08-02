@@ -22,6 +22,8 @@ assert.equal(packageManifest.peerDependencies.react, '^19.0.0');
 assert.equal(packageManifest.peerDependencies['@mui/material'], '^9.0.0');
 assert.equal(packageManifest.peerDependencies['@emotion/react'], '^11.14.0');
 assert.equal(packageManifest.peerDependencies['@emotion/styled'], '^11.14.0');
+assert.equal(packageManifest.dependencies['@maskito/core'], '5.3.1');
+assert.equal(packageManifest.dependencies['@maskito/react'], '5.3.1');
 
 for (const exportPath of [
   '.',

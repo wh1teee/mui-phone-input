@@ -19,6 +19,7 @@ for (const requiredFile of [
   'package/package.json',
   'package/LICENSE',
   'package/README.md',
+  'package/THIRD_PARTY_NOTICES.md',
   'package/dist/index.js',
   'package/dist/index.d.ts',
   'package/dist/server.js',

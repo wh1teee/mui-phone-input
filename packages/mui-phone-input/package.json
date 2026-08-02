@@ -17,7 +17,8 @@
   "files": [
     "dist",
     "LICENSE",
-    "README.md"
+    "README.md",
+    "THIRD_PARTY_NOTICES.md"
   ],
   "exports": {
     ".": {
@@ -82,6 +83,10 @@
     "Safari >= 17",
     "iOS >= 17"
   ],
+  "dependencies": {
+    "@maskito/core": "5.3.1",
+    "@maskito/react": "5.3.1"
+  },
   "peerDependencies": {
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.0",

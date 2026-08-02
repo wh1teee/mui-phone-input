@@ -40,9 +40,24 @@ come from donor tables or masks.
 
 ### `cap-input-transaction-engine`
 
-Adapt two isolated candidates—Maskito and an internal TypeScript adaptation of
-`react-phone-number-input`/`input-format` behavior—behind the same browser
-adapter. Selection remains blocked on `mpi-oan.22`.
+`mpi-oan.22` selected **Maskito core/React 5.3.1** as the Input Transaction
+foundation. The shared candidate corpus passed in Chromium 151, Firefox 153,
+and WebKit 26.5. Maskito advanced the semantic caret for middle insertion and
+required no package-owned direct DOM mutation. The internal
+`react-phone-number-input`/`input-format` adaptation was smaller and faster in
+the pure transform benchmark, but left the caret at its pre-insert position in
+all three browsers and required direct `value`/selection mutation.
+
+The package-owned Maskito wrapper retains explicit regression coverage for
+transaction coalescing, raw clipboard context, composition buffering, and
+semantic deletion next to separators. `@maskito/phone` remains a bake-off
+helper and behavior reference; it is not a second phone-number authority.
+
+Runtime dependencies are `@maskito/core@5.3.1` and
+`@maskito/react@5.3.1`. Apache-2.0 attribution is shipped in
+`THIRD_PARTY_NOTICES.md`. No input-format or react-phone-number-input source is
+copied. Physical Android/iOS input evidence remains correctly deferred to
+`mpi-oan.24`.
 
 ### `cap-country-selector`
 

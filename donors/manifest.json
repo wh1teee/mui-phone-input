@@ -2,6 +2,18 @@
   "schemaVersion": 1,
   "asOf": "2026-08-02",
   "policy": "Capability-level donor decisions only; no copied production code is present at this baseline.",
+  "inputEngineDecision": {
+    "bead": "mpi-oan.22",
+    "contractVersion": 1,
+    "selected": "maskito",
+    "runtimePackages": ["@maskito/core@5.3.1", "@maskito/react@5.3.1"],
+    "rejectedCandidate": "adapted-input-format",
+    "evidence": [
+      "tests/bakeoff/results/input-engine-results.ts",
+      "docs/research/2026-08-02-input-engine-bakeoff-measurements.json",
+      "docs/adr/0006-select-maskito-as-the-input-transaction-engine.md"
+    ]
+  },
   "donors": [
     {
       "id": "libphonenumber-js",
@@ -327,10 +339,12 @@
         "input-format/format"
       ],
       "knownIssues": [
-        "Neither candidate is accepted until the same real-browser corpus passes in Chromium, Firefox, and WebKit."
+        "Maskito requires a thin package-owned transaction wrapper for callback coalescing, raw paste context, composition buffering, and semantic deletion next to separators.",
+        "The adapted input-format candidate leaves the caret at the pre-insert position for middle insertion in Chromium, Firefox, and WebKit.",
+        "Physical Android predictive-input and iOS IME evidence remains explicitly deferred to mpi-oan.24."
       ],
       "decision": "adapt",
-      "reason": "Run two production-shaped candidates behind one adapter contract, then select by evidence in mpi-oan.22.",
+      "reason": "Select Maskito core/React as the Input Transaction foundation. It passed every required desktop-browser and emulated scenario without manual DOM mutation; the smaller adapted candidate failed smart-caret insertion and would require an internal fork of direct DOM mutation behavior.",
       "localRegressionCoverage": [
         "input.insert.middle",
         "input.delete.backspace-separator",
@@ -340,7 +354,7 @@
         "input.controlled.external-update",
         "input.callback.single"
       ],
-      "licenseAction": "Maskito candidate may depend on Apache-2.0 packages; donor adaptation must preserve MIT attribution and source notes if react-phone-number-input behavior is ported."
+      "licenseAction": "Ship @maskito/core and @maskito/react as Apache-2.0 runtime dependencies with THIRD_PARTY_NOTICES.md. Keep input-format and react-phone-number-input as development-only inspected donors; no donor source is copied."
     },
     {
       "id": "cap-country-selector",

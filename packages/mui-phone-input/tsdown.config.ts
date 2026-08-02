@@ -1,6 +1,8 @@
 import { defineConfig } from 'tsdown';
 
-const peerDependencies = [
+const externalDependencies = [
+  '@maskito/core',
+  '@maskito/react',
   '@emotion/react',
   '@emotion/styled',
   '@mui/material',
@@ -20,7 +22,7 @@ export default defineConfig([
       'flags/local': 'src/flags/local.ts',
     },
     deps: {
-      neverBundle: peerDependencies,
+      neverBundle: externalDependencies,
     },
     format: ['esm'],
     outDir: 'dist',
@@ -41,7 +43,7 @@ export default defineConfig([
       'locales/en': 'src/locales/en.ts',
     },
     deps: {
-      neverBundle: peerDependencies,
+      neverBundle: externalDependencies,
     },
     format: ['esm'],
     outDir: 'dist',

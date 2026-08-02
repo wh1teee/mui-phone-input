@@ -42,6 +42,18 @@ export const INPUT_TRANSACTION_CORPUS = [
     ],
   }),
   inputScenario({
+    id: 'input.clear.complete',
+    title: 'Clear the complete value to the empty Phone Value state',
+    tags: ['delete', 'empty-value', 'callback'],
+    provenance: ['maskito', 'react-phone-number-input'],
+    steps: ['Set +1 202 555 0123', 'Select the complete display', 'Press Backspace'],
+    assertions: [
+      'Canonical value becomes undefined',
+      'Exactly one public callback is emitted',
+      'Display becomes empty',
+    ],
+  }),
+  inputScenario({
     id: 'input.delete.backspace-separator',
     title: 'Backspace next to a formatting separator',
     tags: ['delete', 'backspace', 'separator'],

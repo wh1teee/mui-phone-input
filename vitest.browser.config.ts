@@ -20,7 +20,20 @@ function resolveBrowser(value: string | undefined): BrowserName {
 const browser = resolveBrowser(process.env.VITEST_BROWSER);
 
 export default defineConfig({
+  optimizeDeps: {
+    include: [
+      'react',
+      'react/jsx-runtime',
+      'react-dom',
+      'react-dom/client',
+      'react-dom/server',
+      'react-hook-form',
+    ],
+  },
   plugins: [react()],
+  resolve: {
+    dedupe: ['react', 'react-dom'],
+  },
   test: {
     browser: {
       enabled: true,

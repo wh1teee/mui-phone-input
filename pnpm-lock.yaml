@@ -17,6 +17,27 @@ importers:
       '@changesets/cli':
         specifier: 2.31.1
         version: 2.31.1(@types/node@24.13.3)
+      '@emotion/react':
+        specifier: 11.14.0
+        version: 11.14.0(@types/react@19.2.18)(react@19.2.8)
+      '@emotion/styled':
+        specifier: 11.14.1
+        version: 11.14.1(@emotion/react@11.14.0(@types/react@19.2.18)(react@19.2.8))(@types/react@19.2.18)(react@19.2.8)
+      '@maskito/core':
+        specifier: 5.3.1
+        version: 5.3.1
+      '@maskito/kit':
+        specifier: 5.3.1
+        version: 5.3.1(@maskito/core@5.3.1)
+      '@maskito/phone':
+        specifier: 5.3.1
+        version: 5.3.1(@maskito/core@5.3.1)(@maskito/kit@5.3.1(@maskito/core@5.3.1))(libphonenumber-js@1.13.10)
+      '@maskito/react':
+        specifier: 5.3.1
+        version: 5.3.1(@maskito/core@5.3.1)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+      '@mui/material':
+        specifier: 9.2.0
+        version: 9.2.0(@emotion/react@11.14.0(@types/react@19.2.18)(react@19.2.8))(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@19.2.18)(react@19.2.8))(@types/react@19.2.18)(react@19.2.8))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       '@playwright/test':
         specifier: 1.62.1
         version: 1.62.1
@@ -38,6 +59,12 @@ importers:
       fast-check:
         specifier: 4.9.0
         version: 4.9.0
+      input-format:
+        specifier: 0.3.14
+        version: 0.3.14(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+      libphonenumber-js:
+        specifier: 1.13.10
+        version: 1.13.10
       publint:
         specifier: 0.3.22
         version: 0.3.22
@@ -47,6 +74,12 @@ importers:
       react-dom:
         specifier: 19.2.8
         version: 19.2.8(react@19.2.8)
+      react-hook-form:
+        specifier: 7.83.0
+        version: 7.83.0(react@19.2.8)
+      react-phone-number-input:
+        specifier: 3.4.17
+        version: 3.4.17(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       tsdown:
         specifier: 0.22.14
         version: 0.22.14(@arethetypeswrong/core@0.18.5)(publint@0.3.22)(typescript@6.0.3)
@@ -141,6 +174,13 @@ importers:
         version: 8.2.0(@types/node@24.13.3)
 
   packages/mui-phone-input:
+    dependencies:
+      '@maskito/core':
+        specifier: 5.3.1
+        version: 5.3.1
+      '@maskito/react':
+        specifier: 5.3.1
+        version: 5.3.1(@maskito/core@5.3.1)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
     devDependencies:
       '@emotion/react':
         specifier: 11.14.0
@@ -600,6 +640,28 @@ packages:
 
   '@manypkg/get-packages@1.1.3':
     resolution: {integrity: sha512-fo+QhuU3qE/2TQMQmbVMqaQ6EWbMhi4ABWP+O4AM1NqPBuy0OrApV5LO6BrrgnhtAHS2NH6RrVk9OL181tTi8A==}
+
+  '@maskito/core@5.3.1':
+    resolution: {integrity: sha512-4imRPDKsV9zQwCUt5pR+XOQNgYTO99dzH2MZgyMFfK6npHart6kiNM1CEWLsMUj4BER2s+97uHGDS0eOER+PeQ==}
+
+  '@maskito/kit@5.3.1':
+    resolution: {integrity: sha512-GSYJgEJalqXPLq2XcKu8yYNCVfR5neQ1kae8jZr2bTCPwYktUxU9sWC2qs6KCtjg7lU6Kh4p7bZ+eM2cvqnWow==}
+    peerDependencies:
+      '@maskito/core': ^5.3.1
+
+  '@maskito/phone@5.3.1':
+    resolution: {integrity: sha512-UxIJCwwPyqPMEQ6Mu7W4tOw3cNm5fTPY5PxHD8N4ggoi8fcQxv0f/X1Un1oUSUxRMzhsLQwNl1Iv9uy3tt0f4w==}
+    peerDependencies:
+      '@maskito/core': ^5.3.1
+      '@maskito/kit': ^5.3.1
+      libphonenumber-js: '>=1.0.0'
+
+  '@maskito/react@5.3.1':
+    resolution: {integrity: sha512-dpbxZ4Hon59GtGCF5Jt/KORPihJHK8cwtorJgHC5jUX83J5mE0e/tQdictJl9lKcDdGFK97vxdjwEL/OkKgj9Q==}
+    peerDependencies:
+      '@maskito/core': ^5.3.1
+      react: '>=16.8'
+      react-dom: '>=16.8'
 
   '@mui/core-downloads-tracker@9.2.0':
     resolution: {integrity: sha512-+XMav+ZaXkZKUFUgzjrfMEedfyJKxxviAske2q8N8CWDMeqZdDU2lWMkiUPiB388hGaDqhwvOAwkrsc/pUyp8g==}
@@ -1207,6 +1269,9 @@ packages:
   cjs-module-lexer@1.4.3:
     resolution: {integrity: sha512-9z8TZaGM1pfswYeXrUpzPrkx8UnWYdhJclsiYMm6x/w5+nN+8Tf/LnAgfLGQCm59qAOxU8WwHEq2vNwF6i4j+Q==}
 
+  classnames@2.5.1:
+    resolution: {integrity: sha512-saHYOzhIQs6wy2sVxTM6bUDsQO4F50V9RQ22qBpEdCW+I+/Wmke2HOl6lS6dTpdxVhb88/I6+Hs+438c3lfUow==}
+
   cli-highlight@2.1.11:
     resolution: {integrity: sha512-9KDcoEVwyUXrjcJNvHD0NFc/hiwe/WPVYIleQh2O1N2Zro5gWJZ/K+3DGn8w8P/F6FxOgzyC5bxDyHIgCSPhGg==}
     engines: {node: '>=8.0.0', npm: '>=5.0.0'}
@@ -1246,6 +1311,9 @@ packages:
   cosmiconfig@7.1.0:
     resolution: {integrity: sha512-AdmX6xUzdNASswsFtmwSt7Vj8po9IuqXm0UXz7QKPuEUmPB4XyjGfaAr2PSuELMwkRMVH1EpIkX5bTZGRB3eCA==}
     engines: {node: '>=10'}
+
+  country-flag-icons@1.6.20:
+    resolution: {integrity: sha512-py8JiEKzjhYw6HPJ0L7SxLgCYim36UPRTZX43/kqGueUCZLSvnrqAiwW8HtQibur7mdkFQUkjOgdK+o/9FBtaw==}
 
   cross-spawn@7.0.6:
     resolution: {integrity: sha512-uV2QOWP2nWzsy2aMp8aRibhi9dlzF5Hgh5SHaB9OiTGEyDTiJJyx0uy51QXdyWbtAHNua4XJzUKca3OzKUd3vA==}
@@ -1452,6 +1520,17 @@ packages:
     resolution: {integrity: sha512-NkJQA7oZ4YHQhd2+H3BoRFKF3d/XNsiKpHZCQEMH9pDX27hQQLsTyOocyRgaIVtf8gHX3Nt3LPkR4e5EdtPAGQ==}
     engines: {node: ^22.18.0 || >=24.0.0}
 
+  input-format@0.3.14:
+    resolution: {integrity: sha512-gHMrgrbCgmT4uK5Um5eVDUohuV9lcs95ZUUN9Px2Y0VIfjTzT2wF8Q3Z4fwLFm7c5Z2OXCm53FHoovj6SlOKdg==}
+    peerDependencies:
+      react: '>=18.1.0'
+      react-dom: '>=18.1.0'
+    peerDependenciesMeta:
+      react:
+        optional: true
+      react-dom:
+        optional: true
+
   is-arrayish@0.2.1:
     resolution: {integrity: sha512-zz06S8t0ozoDXMG+ube26zeCTNXcKIPJZJi8hBrF4idCLms4CG9QtK7qBl1boi5ODzFpjswb5JPmHCbMpjaYzg==}
 
@@ -1507,6 +1586,9 @@ packages:
 
   jsonfile@4.0.0:
     resolution: {integrity: sha512-m6F1R3z8jjlf2imQHS2Qez5sjKWQzbuuhuJ/FKYFRZvPE3PuHcSMVZzfsLhGVOkfd20obL5SWEBew5ShlquNxg==}
+
+  libphonenumber-js@1.13.10:
+    resolution: {integrity: sha512-xJxrdqvbl2rtn2MaUJrUejz8J7/uZNC0V77oks2LxYrO/+ZtVpRmz+fEQMuu6VusnEB1fmpByiLS1WXecOnAnw==}
 
   lightningcss-android-arm64@1.33.0:
     resolution: {integrity: sha512-gEpRTalKdosp4Bb8qWtc2iOgE5SeIHlpS1up9bFq2wAyYhl1UdTObYiHe98zEM9SQvSoqQZ1IQD0JNpg3Ml5pg==}
@@ -1816,6 +1898,12 @@ packages:
 
   react-is@19.2.8:
     resolution: {integrity: sha512-s5un28nYxKJw5gvUHyW5PCC28CvBqLu9r3cWgzHT4Vo/5fqqkFcdRYsGcKf50WMPpjjFZS5d76fn3YCo2njKwQ==}
+
+  react-phone-number-input@3.4.17:
+    resolution: {integrity: sha512-1wcjhBAWHgEBAGLi5/XbeZI7Q3aEHNb2z/dHY6R2Gz70TQvu0ZoOT28NTdwtZf4lyRKXWufnTzVhLPBUD8LfmQ==}
+    peerDependencies:
+      react: '>=16.8'
+      react-dom: '>=16.8'
 
   react-transition-group@4.4.5:
     resolution: {integrity: sha512-pZcd1MCJoiKiBR2NRxeCRg13uCXbydPnmB4EOeRrY7480qNWO8IIgQG6zlDkm6uRMsURXPuKq0GWtiM59a5Q6g==}
@@ -2755,6 +2843,24 @@ snapshots:
       globby: 11.1.0
       read-yaml-file: 1.1.0
 
+  '@maskito/core@5.3.1': {}
+
+  '@maskito/kit@5.3.1(@maskito/core@5.3.1)':
+    dependencies:
+      '@maskito/core': 5.3.1
+
+  '@maskito/phone@5.3.1(@maskito/core@5.3.1)(@maskito/kit@5.3.1(@maskito/core@5.3.1))(libphonenumber-js@1.13.10)':
+    dependencies:
+      '@maskito/core': 5.3.1
+      '@maskito/kit': 5.3.1(@maskito/core@5.3.1)
+      libphonenumber-js: 1.13.10
+
+  '@maskito/react@5.3.1(@maskito/core@5.3.1)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)':
+    dependencies:
+      '@maskito/core': 5.3.1
+      react: 19.2.8
+      react-dom: 19.2.8(react@19.2.8)
+
   '@mui/core-downloads-tracker@9.2.0': {}
 
   '@mui/material-nextjs@9.1.1(@emotion/cache@11.14.0)(@emotion/react@11.14.0(@types/react@19.2.18)(react@19.2.8))(@types/react@19.2.18)(next@16.2.12(@playwright/test@1.62.1)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(react@19.2.8)':
@@ -3211,6 +3317,8 @@ snapshots:
 
   cjs-module-lexer@1.4.3: {}
 
+  classnames@2.5.1: {}
+
   cli-highlight@2.1.11:
     dependencies:
       chalk: 4.1.2
@@ -3255,6 +3363,8 @@ snapshots:
       parse-json: 5.2.0
       path-type: 4.0.0
       yaml: 1.10.3
+
+  country-flag-icons@1.6.20: {}
 
   cross-spawn@7.0.6:
     dependencies:
@@ -3423,6 +3533,13 @@ snapshots:
 
   import-without-cache@0.4.0: {}
 
+  input-format@0.3.14(react-dom@19.2.8(react@19.2.8))(react@19.2.8):
+    dependencies:
+      prop-types: 15.8.1
+    optionalDependencies:
+      react: 19.2.8
+      react-dom: 19.2.8(react@19.2.8)
+
   is-arrayish@0.2.1: {}
 
   is-core-module@2.16.2:
@@ -3465,6 +3582,8 @@ snapshots:
   jsonfile@4.0.0:
     optionalDependencies:
       graceful-fs: 4.2.11
+
+  libphonenumber-js@1.13.10: {}
 
   lightningcss-android-arm64@1.33.0:
     optional: true
@@ -3721,6 +3840,16 @@ snapshots:
   react-is@16.13.1: {}
 
   react-is@19.2.8: {}
+
+  react-phone-number-input@3.4.17(react-dom@19.2.8(react@19.2.8))(react@19.2.8):
+    dependencies:
+      classnames: 2.5.1
+      country-flag-icons: 1.6.20
+      input-format: 0.3.14(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+      libphonenumber-js: 1.13.10
+      prop-types: 15.8.1
+      react: 19.2.8
+      react-dom: 19.2.8(react@19.2.8)
 
   react-transition-group@4.4.5(react-dom@19.2.8(react@19.2.8))(react@19.2.8):
     dependencies:
