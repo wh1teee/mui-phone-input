@@ -52,6 +52,18 @@ _Avoid_: Selected Country, Resolved Country
 The country currently used for formatting and displayed by the component after reconciling Selected Country, Detected Country, controlled props, and ambiguity rules.
 _Avoid_: Selected Country, Detected Country
 
+**Numbering Plan Resolution**:
+The current classification of a Phone Draft as geographic, non-geographic, or unresolved, together with its calling code and any compatible countries. A numbering plan can be valid without resolving to a country.
+_Avoid_: Country Detection, Selected Country
+
+**Possible Countries**:
+The countries whose numbering rules remain compatible with the current international digits when a shared calling code is not yet uniquely resolved.
+_Avoid_: Preferred Countries, Guessed Countries
+
+**Non-Geographic Numbering Plan**:
+An international numbering plan that has a calling code but no country, such as a universal international service. It uses a neutral visual identity rather than a fabricated country or flag.
+_Avoid_: Country 001, International Country
+
 **Country Selector**:
 The accessible interface used to make an explicit country selection. It does not own calling-code or numbering-plan data.
 _Avoid_: Flag Dropdown, Prefix Picker
@@ -69,6 +81,10 @@ _Avoid_: Country Table, Dialing Rules
 **Validation State**:
 The structural assessment of a Phone Draft: empty, incomplete, possible, valid, or invalid, accompanied by a typed reason where applicable.
 _Avoid_: Verification Status, Error Visibility
+
+**Validation Mode**:
+The acceptance policy applied to a parsed number. The default `possible` mode checks numbering-plan length without rejecting newly assigned ranges solely because strict metadata has not yet caught up; stricter validity and number-type policies are explicit choices.
+_Avoid_: Validation State, Validation Display Policy
 
 **Validation Display Policy**:
 The rule controlling when a computed validation problem becomes visible to the user, independently of the Validation State itself.

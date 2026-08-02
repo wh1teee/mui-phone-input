@@ -8,6 +8,6 @@ The project publishes one ESM package with explicit client, server, React Hook F
 
 - Next.js and other SSR consumers can validate and format numbers without pulling client UI into server bundles;
 - React Hook Form and Zod remain optional peers;
-- the first stable release supports React 19+, MUI 9+, TypeScript 6 declarations, and modern evergreen browsers only;
+- the first stable release supports React 19+, MUI 9+, TypeScript 6 declarations, Node 24 LTS tooling, and the MUI 9 browser floor; Node 26, TypeScript 7, and future MUI prereleases are non-blocking forward signals until separately accepted;
 - CommonJS, legacy MUI, React Native, GeoIP, telemetry, and built-in OTP behavior are outside the contract.
 
