@@ -10,6 +10,17 @@ export {
   type UnresolvedNumberingPlanResolution,
 } from './numbering-plan';
 export {
+  PhoneInputInput,
+  type PhoneInputInputProps,
+  PhoneInputProvider,
+  type PhoneInputProviderProps,
+  PhoneInputRoot,
+  type PhoneInputRootProps,
+  PhoneInputValidationMessage,
+  type PhoneInputValidationMessageProps,
+  usePhoneInputContext,
+} from './PhoneInputPrimitives';
+export {
   type BuiltInPhoneValidationMode,
   formatPhoneValueForDisplay,
   type PhoneValidationMode,
@@ -27,3 +38,21 @@ export {
   type PhoneValue,
   parsePhoneValue,
 } from './phone-value';
+export {
+  type PhoneInputActions,
+  type PhoneInputChangeDetails,
+  type PhoneInputChangeReason,
+  type PhoneInputInputExternalProps,
+  type PhoneInputNumberingPlanState,
+  type PhoneInputResolvedInputProps,
+  type PhoneInputResolvedRootProps,
+  type PhoneInputResolvedValidationMessageProps,
+  type PhoneInputRootExternalProps,
+  type PhoneInputState,
+  type PhoneInputValidationMessageExternalProps,
+  type PhoneInputValidationState,
+  type PhoneValidationDisplay,
+  type UsePhoneInputParameters,
+  type UsePhoneInputReturn,
+  usePhoneInput,
+} from './usePhoneInput';

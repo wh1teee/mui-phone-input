@@ -289,6 +289,89 @@ async function verifyPackedBrowser(destination, consumer) {
     if ((await page.getByTestId('callback-count').textContent()) !== '29') {
       throw new Error('Packed external reset emitted a callback loop.');
     }
+
+    const composableRoot = page.getByTestId('composable-root');
+    const composableInput = page.getByTestId('composable-input');
+    await composableInput.waitFor({ state: 'visible' });
+    if ((await composableInput.inputValue()) !== '+1') {
+      throw new Error('Packed composable input did not preserve its default value.');
+    }
+    if (
+      !(await composableRoot.getAttribute('class'))?.includes('MuiPhoneInput-root') ||
+      !(await composableInput.getAttribute('class'))?.includes('MuiPhoneInput-input')
+    ) {
+      throw new Error('Packed composable primitives did not expose utility classes.');
+    }
+    if (
+      (await composableInput.getAttribute('data-phone-input-status')) !==
+        'incomplete' ||
+      (await composableInput.getAttribute('data-phone-input-plan')) !== 'unresolved' ||
+      (await composableInput.getAttribute('data-phone-input-accepted')) !== 'false'
+    ) {
+      throw new Error('Packed composable input did not expose prepared state props.');
+    }
+
+    await composableInput.evaluate((element) => {
+      if (!(element instanceof HTMLInputElement)) {
+        throw new TypeError('Expected the packed composable native input.');
+      }
+      element.focus();
+      element.setSelectionRange(element.value.length, element.value.length);
+    });
+    await composableInput.pressSequentially('2025550123');
+    if ((await composableInput.inputValue()) !== '+12025550123') {
+      throw new Error(
+        `Packed composable input did not commit the Phone Value: ${JSON.stringify({
+          callbackCount: await page
+            .getByTestId('composable-callback-count')
+            .textContent(),
+          state: await page.getByTestId('composable-state').textContent(),
+          value: await composableInput.inputValue(),
+        })}`,
+      );
+    }
+    if (
+      (await page.getByTestId('composable-value').textContent()) !== '+12025550123' ||
+      (await page.getByTestId('composable-callback-count').textContent()) !== '10'
+    ) {
+      throw new Error(
+        'Packed composable controller state or callback count is invalid.',
+      );
+    }
+    const composableState = JSON.parse(
+      (await page.getByTestId('composable-state').textContent()) || '{}',
+    );
+    if (
+      composableState.controlled !== false ||
+      composableState.numberingPlan?.resolvedCountry !== 'US' ||
+      composableState.validation?.status !== 'valid' ||
+      composableState.validation?.accepted !== true
+    ) {
+      throw new Error(
+        `Packed composable controller state is invalid: ${JSON.stringify(composableState)}`,
+      );
+    }
+
+    await page.getByRole('button', { name: 'Focus composable input' }).click();
+    if (
+      !(await composableInput.evaluate((element) => element === document.activeElement))
+    ) {
+      throw new Error('Packed composable focus action did not focus the native input.');
+    }
+    await page.getByRole('button', { name: 'Clear composable input' }).click();
+    if (
+      (await composableInput.inputValue()) !== '' ||
+      (await page.getByTestId('composable-callback-count').textContent()) !== '11'
+    ) {
+      throw new Error('Packed composable clear action is incoherent.');
+    }
+    await page.getByRole('button', { name: 'Reset composable input' }).click();
+    if (
+      (await composableInput.inputValue()) !== '+1' ||
+      (await page.getByTestId('composable-callback-count').textContent()) !== '11'
+    ) {
+      throw new Error('Packed composable reset action emitted a callback loop.');
+    }
     if (pageErrors.length > 0) {
       throw new Error(`Packed consumer page errors: ${pageErrors.join('\n')}`);
     }

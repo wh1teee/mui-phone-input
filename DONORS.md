@@ -52,6 +52,15 @@ is the default acceptance policy; strict validity and number-type restrictions
 remain explicit. Structural metadata results never claim ownership or
 deliverability.
 
+## MUI composition boundary
+
+`mpi-oan.6` adopts Material UI 9.2 component conventions rather than exposing
+an opaque visual wrapper. The implementation follows `TextField`,
+`useDefaultProps`, `styled`, `mergeSlotProps`, `useForkRef`, utility-class,
+theme-augmentation, slot and owner-state patterns. React 19 context and ref
+composition are used by the supported primitives. Telephone semantics remain
+inside the shared package controller and are not delegated to visual slots.
+
 ### `cap-input-transaction-engine`
 
 `mpi-oan.22` selected **Maskito core/React 5.3.1** as the Input Transaction

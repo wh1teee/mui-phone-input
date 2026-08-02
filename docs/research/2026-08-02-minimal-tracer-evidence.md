@@ -65,8 +65,8 @@ serializable details, focus, clear, Strict Mode, and external reset.
 Latest and minimum React 19 / MUI 9 consumer matrices use the exact generated
 `.tgz`; no workspace-source resolution is accepted as evidence.
 
-The current combined source matrix contains 52 Browser Mode tests per engine;
-all pass in Chromium, Firefox, and WebKit. The unit suite contains 72 tests.
+The current combined source matrix contains 56 Browser Mode tests per engine;
+all pass in Chromium, Firefox, and WebKit. The unit suite contains 73 tests.
 
 ## Package budgets
 
@@ -79,9 +79,9 @@ externalizes declared peers.
 
 Current exact-artifact measurements are:
 
-- main closure: 9,282 bytes gzip;
+- main closure: 10,604 bytes gzip;
 - server entry: 2,666 bytes gzip;
-- packed tarball: 27,370 bytes.
+- packed tarball: 35,705 bytes.
 
 CI rebuilds the artifact and requires exact byte/hash equality with the
 committed measurement.

@@ -4,7 +4,12 @@ import { createTheme, ThemeProvider } from '@mui/material/styles';
 import {
   MuiPhoneInput,
   type PhoneInputChangeDetails,
+  PhoneInputInput,
+  PhoneInputProvider,
+  PhoneInputRoot,
+  PhoneInputValidationMessage,
   type PhoneValue,
+  usePhoneInput,
 } from '@whiteee/mui-phone-input';
 import { StrictMode, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
@@ -61,12 +66,46 @@ function PackedPhoneInput() {
   );
 }
 
+function PackedComposablePhoneInput() {
+  const [callbackCount, setCallbackCount] = useState(0);
+  const phone = usePhoneInput({
+    defaultValue: '+1',
+    onChange: () => setCallbackCount((count) => count + 1),
+    required: true,
+  });
+
+  return (
+    <PhoneInputProvider value={phone}>
+      <section>
+        <PhoneInputRoot data-testid="composable-root">
+          <label htmlFor={phone.state.inputId}>Composable phone</label>
+          <PhoneInputInput data-testid="composable-input" />
+          <PhoneInputValidationMessage data-testid="composable-validation" />
+        </PhoneInputRoot>
+        <output data-testid="composable-value">{phone.state.value ?? ''}</output>
+        <output data-testid="composable-callback-count">{callbackCount}</output>
+        <output data-testid="composable-state">{JSON.stringify(phone.state)}</output>
+        <button onClick={phone.actions.focus} type="button">
+          Focus composable input
+        </button>
+        <button onClick={phone.actions.clear} type="button">
+          Clear composable input
+        </button>
+        <button onClick={phone.actions.reset} type="button">
+          Reset composable input
+        </button>
+      </section>
+    </PhoneInputProvider>
+  );
+}
+
 createRoot(root).render(
   <StrictMode>
     <ThemeProvider theme={theme}>
       <main>
         <h1>Packed Vite consumer</h1>
         <PackedPhoneInput />
+        <PackedComposablePhoneInput />
       </main>
     </ThemeProvider>
   </StrictMode>,

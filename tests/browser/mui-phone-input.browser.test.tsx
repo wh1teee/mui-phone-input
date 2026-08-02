@@ -1,12 +1,19 @@
 import { createTheme, ThemeProvider } from '@mui/material/styles';
 import type { CountryCode, PhoneNumberType } from 'libphonenumber-js/max';
-import { type ClipboardEvent, StrictMode, useRef, useState } from 'react';
+import {
+  type ClipboardEvent,
+  type ComponentProps,
+  StrictMode,
+  useRef,
+  useState,
+} from 'react';
 import { describe, expect, test, vi } from 'vitest';
 import { page, userEvent } from 'vitest/browser';
 import { render } from 'vitest-browser-react';
 
 import {
   MuiPhoneInput,
+  type MuiPhoneInputOwnerState,
   type PhoneInputChangeDetails,
   type PhoneValidationMode,
   type PhoneValue,
@@ -205,6 +212,15 @@ function ValidationHarness({
       </output>
     </>
   );
+}
+
+function CustomHtmlInput({
+  ownerState: _ownerState,
+  ...props
+}: ComponentProps<'input'> & {
+  ownerState?: unknown;
+}) {
+  return <input {...props} data-custom-phone-slot="true" />;
 }
 
 async function pasteText(inputTestId: string, text: string) {
@@ -592,6 +608,77 @@ describe('MuiPhoneInput tracer', () => {
     await expect.element(root).toHaveStyle({ minWidth: '321px' });
     await expect.element(input).toHaveClass('MuiPhoneInput-input');
     await expect.element(input).toHaveStyle({ letterSpacing: '3px' });
+  });
+
+  test('applies theme variants and prepares custom html input slots', async () => {
+    const theme = createTheme({
+      components: {
+        MuiPhoneInput: {
+          styleOverrides: {
+            root: ({ ownerState }) => ({
+              opacity:
+                (ownerState as unknown as MuiPhoneInputOwnerState).validationStatus ===
+                'empty'
+                  ? 0.75
+                  : 1,
+            }),
+          },
+          variants: [
+            {
+              props: { required: true },
+              style: { outline: '3px solid rgb(1, 2, 3)' },
+            },
+          ],
+        },
+      },
+    });
+    const inputRef = { current: null as HTMLInputElement | null };
+
+    render(
+      <ThemeProvider theme={theme}>
+        <MuiPhoneInput
+          ref={inputRef}
+          required
+          slots={{ htmlInput: CustomHtmlInput }}
+          slotProps={{ htmlInput: { 'data-testid': 'custom-slot-input' } }}
+          validationDisplay="always"
+        />
+      </ThemeProvider>,
+    );
+
+    const customInput = page.getByTestId('custom-slot-input');
+    await expect.element(customInput).toBeInTheDocument();
+    const root = customInput.element().closest('.MuiPhoneInput-root');
+    if (!(root instanceof HTMLElement)) {
+      throw new Error('Expected the MuiPhoneInput root.');
+    }
+    await expect.element(page.elementLocator(root)).toHaveStyle({
+      opacity: '0.75',
+      outline: 'rgb(1, 2, 3) solid 3px',
+    });
+    const input = customInput;
+    await expect.element(input).toHaveAttribute('data-custom-phone-slot', 'true');
+    await expect.element(input).toHaveClass('MuiPhoneInput-input');
+    await expect.element(input).toHaveAttribute('aria-invalid', 'true');
+    await expect.element(input).toHaveAttribute('data-phone-input-status', 'empty');
+    await expect.element(input).toHaveAttribute('data-phone-input-accepted', 'false');
+    await expect.element(input).toHaveAttribute('data-phone-input-plan', 'unresolved');
+    const describedBy = input.element().getAttribute('aria-describedby');
+    expect(describedBy).toBeTruthy();
+    const validationMessageElement = describedBy
+      ? document.getElementById(describedBy)
+      : null;
+    expect(validationMessageElement).toBeInstanceOf(HTMLElement);
+    expect(validationMessageElement).toHaveClass('MuiPhoneInput-validationMessage');
+    expect(validationMessageElement).toHaveAttribute('aria-live', 'polite');
+    expect(inputRef.current).toBe(input.element());
+    await userEvent.type(input, '375291234567');
+    await expect.element(input).toHaveValue('+375291234567');
+    await expect.element(input).toHaveAttribute('aria-invalid', 'false');
+    await expect.element(input).toHaveAttribute('data-phone-input-status', 'valid');
+    await expect.element(input).toHaveAttribute('data-phone-input-accepted', 'true');
+    await expect.element(input).toHaveAttribute('data-phone-input-plan', 'geographic');
+    await expect.element(page.elementLocator(root)).toHaveStyle({ opacity: '1' });
   });
 
   test('shows incomplete validation after blur and clears it on correction', async () => {

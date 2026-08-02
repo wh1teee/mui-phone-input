@@ -145,6 +145,12 @@
       "source": "https://github.com/mui/material-ui",
       "license": "MIT",
       "inspectedSymbols": [
+        "useDefaultProps",
+        "styled",
+        "mergeSlotProps",
+        "useForkRef",
+        "generateUtilityClass",
+        "generateUtilityClasses",
         "useAutocomplete",
         "Autocomplete",
         "TextField",

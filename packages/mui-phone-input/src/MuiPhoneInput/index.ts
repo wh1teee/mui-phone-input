@@ -1,6 +1,7 @@
 export {
   getMuiPhoneInputUtilityClass,
   MuiPhoneInput,
+  type MuiPhoneInputOwnerState,
   type MuiPhoneInputProps,
   muiPhoneInputClasses,
   type PhoneInputChangeDetails,

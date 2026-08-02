@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   getMuiPhoneInputUtilityClass,
+  type MuiPhoneInputOwnerState,
   muiPhoneInputClasses,
 } from '../../packages/mui-phone-input/src';
 
@@ -42,6 +43,25 @@ describe('MuiPhoneInput MUI contract', () => {
   it('exports stable utility classes', () => {
     expect(muiPhoneInputClasses.root).toBe('MuiPhoneInput-root');
     expect(muiPhoneInputClasses.input).toBe('MuiPhoneInput-input');
+    expect(muiPhoneInputClasses.validationMessage).toBe(
+      'MuiPhoneInput-validationMessage',
+    );
     expect(getMuiPhoneInputUtilityClass('root')).toBe('MuiPhoneInput-root');
+  });
+
+  it('exports the computed owner-state contract', () => {
+    const ownerState = {
+      controlled: true,
+      disabled: false,
+      empty: false,
+      error: false,
+      numberingPlanKind: 'geographic',
+      readOnly: false,
+      required: true,
+      validationStatus: 'valid',
+    } satisfies MuiPhoneInputOwnerState;
+
+    expect(ownerState.validationStatus).toBe('valid');
+    expect(ownerState.numberingPlanKind).toBe('geographic');
   });
 });

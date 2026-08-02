@@ -3,8 +3,9 @@
 Modern React 19 and Material UI 9 phone input. The current prerelease tracer
 provides a canonical international candidate, controlled and uncontrolled
 ownership, authority-backed numbering-plan resolution, possible-by-default
-validation, MUI theme registration, stable utility classes, and deterministic
-event-independent change details.
+validation, a shared headless controller, supported composable primitives, MUI
+theme registration, stable utility classes, and deterministic event-independent
+change details.
 
 The package is still under active 1.0 development. Country selection, advanced
 display modes/masks, extensions, locales, flags, metadata variants, and form
@@ -127,6 +128,47 @@ Structural validation does not prove ownership, reachability, SMS/call
 delivery, or that the number exists. Use an explicit verification flow such as
 OTP when the product requires those guarantees.
 
+## Headless controller and primitives
+
+`usePhoneInput` is the same controller used by `MuiPhoneInput`. Advanced
+consumers can compose supported primitives without copying input, numbering or
+validation semantics.
+
+```tsx
+'use client';
+
+import {
+  PhoneInputInput,
+  PhoneInputProvider,
+  PhoneInputRoot,
+  PhoneInputValidationMessage,
+  usePhoneInput,
+} from '@whiteee/mui-phone-input';
+
+function ComposablePhoneInput() {
+  const phone = usePhoneInput({ defaultValue: '+1', required: true });
+
+  return (
+    <PhoneInputProvider value={phone}>
+      <PhoneInputRoot>
+        <label htmlFor={phone.state.inputId}>Phone number</label>
+        <PhoneInputInput />
+        <PhoneInputValidationMessage />
+      </PhoneInputRoot>
+      <button onClick={phone.actions.clear} type="button">
+        Clear
+      </button>
+    </PhoneInputProvider>
+  );
+}
+```
+
+The controller exposes `state`, `actions`, native input refs, and prop getters
+for custom composition. Prepared input props include the engine handlers,
+validation relationships and `data-phone-input-*` state. Consumers should
+spread the complete getter result rather than reimplementing individual
+handlers.
+
 ## Server-safe helpers
 
 ```ts
@@ -145,7 +187,8 @@ The server entrypoint imports no React, MUI, Emotion, DOM, or browser globals.
 ## MUI customization
 
 The component registers `MuiPhoneInput` in the MUI theme and exposes stable
-`root` and `input` utility classes.
+`root`, `input`, and `validationMessage` utility classes. The exported
+`MuiPhoneInputOwnerState` supports owner-state-aware overrides.
 
 ```ts
 const theme = createTheme({
@@ -155,8 +198,20 @@ const theme = createTheme({
       styleOverrides: {
         root: { minWidth: 240 },
         input: { fontVariantNumeric: 'tabular-nums' },
+        validationMessage: { fontWeight: 600 },
       },
+      variants: [
+        {
+          props: { required: true },
+          style: { outlineOffset: 2 },
+        },
+      ],
     },
   },
 });
 ```
+
+`MuiPhoneInput` inherits Material UI `TextField` `slots` and `slotProps`. A
+custom `htmlInput` slot receives the native ref, composed events, utility class,
+ARIA relationships, and prepared `data-phone-input-status`,
+`data-phone-input-plan`, and `data-phone-input-accepted` state.

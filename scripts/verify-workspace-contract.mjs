@@ -10,6 +10,14 @@ const tsdownConfig = await readFile(
   'utf8',
 );
 const ciWorkflow = await readFile('.github/workflows/ci.yml', 'utf8');
+const controllerSource = await readFile(
+  'packages/mui-phone-input/src/usePhoneInput.ts',
+  'utf8',
+);
+const primitivesSource = await readFile(
+  'packages/mui-phone-input/src/PhoneInputPrimitives.tsx',
+  'utf8',
+);
 
 assert.equal(rootPackage.private, true);
 assert.match(rootPackage.packageManager, /^pnpm@11\./u);
@@ -46,6 +54,14 @@ assert.match(tsdownConfig, /platform:\s*['"]neutral['"]/u);
 assert.match(tsdownConfig, /Chrome117/u);
 assert.match(tsdownConfig, /Firefox121/u);
 assert.match(tsdownConfig, /Safari17/u);
+
+for (const source of [controllerSource, primitivesSource]) {
+  assert.doesNotMatch(source, /\.value\s*=/u);
+  assert.doesNotMatch(source, /setSelectionRange\(/u);
+}
+assert.match(controllerSource, /export function usePhoneInput/u);
+assert.match(primitivesSource, /export function PhoneInputProvider/u);
+assert.match(primitivesSource, /export function PhoneInputInput/u);
 
 assert.match(ciWorkflow, /node-version:\s*24/u);
 assert.match(ciWorkflow, /node-version:\s*26/u);

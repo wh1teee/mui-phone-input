@@ -37,6 +37,9 @@ const clientBundle = await readFile(join(packageDist, 'index.js'), 'utf8');
 const serverModule = await import(
   `${pathToFileURL(join(packageDist, 'server.js')).href}?verification=${Date.now()}`
 );
+const clientModule = await import(
+  `${pathToFileURL(join(packageDist, 'index.js')).href}?verification=${Date.now()}`
+);
 
 for (const forbiddenServerDependency of ['react', '@mui/', '@emotion/', 'react-dom']) {
   assert.doesNotMatch(
@@ -59,6 +62,19 @@ assert.doesNotMatch(serverBundle, /from\s+['"]node:/u);
 assert.doesNotMatch(clientBundle, /from\s+['"]node:/u);
 assert.match(serverBundle, /from\s+["']libphonenumber-js\/max["']/u);
 assert.match(clientBundle, /from\s+["']libphonenumber-js\/max["']/u);
+assert.equal(typeof clientModule.MuiPhoneInput, 'function');
+assert.equal(serverModule.MuiPhoneInput, undefined);
+for (const clientExport of [
+  'PhoneInputInput',
+  'PhoneInputProvider',
+  'PhoneInputRoot',
+  'PhoneInputValidationMessage',
+  'usePhoneInput',
+  'usePhoneInputContext',
+]) {
+  assert.equal(typeof clientModule[clientExport], 'function');
+  assert.equal(serverModule[clientExport], undefined);
+}
 const sharedPlan = serverModule.resolveNumberingPlan('+1');
 assert.deepEqual(sharedPlan, {
   countryCallingCode: '1',
@@ -124,7 +140,10 @@ assert.deepEqual(serverModule.validatePhoneValue('+80012345678'), {
   status: 'valid',
   value: '+80012345678',
 });
-assert.match(clientBundle, /process\.env\.NODE_ENV\s*!==\s*["']production["']/u);
+assert.match(
+  clientBundle,
+  /typeof process\s*===\s*["']undefined["']\s*\|\|\s*process\.env\.NODE_ENV\s*!==\s*["']production["']/u,
+);
 assert.doesNotMatch(
   clientBundle,
   /function shouldWarnInDevelopment\(\)\s*\{\s*return true/u,

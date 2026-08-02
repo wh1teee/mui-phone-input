@@ -4,8 +4,9 @@ A highly customizable, accessible phone input for React and Material UI, with `l
 
 > Status: foundations, the Input Transaction bake-off, the production-shaped
 > `MuiPhoneInput` tracer, numbering-plan resolution, and possible-by-default
-> validation/server parity are implemented on the delivery branch. npm
-> publication remains blocked on the explicit owner gate `mpi-g7a`.
+> validation/server parity, MUI theme integration, `usePhoneInput`, and
+> composable primitives are implemented on the delivery branch. npm publication
+> remains blocked on the explicit owner gate `mpi-g7a`.
 
 ## Goals
 
@@ -26,5 +27,6 @@ Execution is tracked exclusively in Beads/Dolt under epic `mpi-oan`. Run
 frontier. Workspace foundations are recorded in `mpi-oan.1`, donor/corpus
 evidence in `mpi-oan.2`, the Maskito engine decision in `mpi-oan.22` and ADR
 0006, the minimal tracer in `mpi-oan.3`, numbering plans in `mpi-oan.4`, and
-validation/server parity in `mpi-oan.10`.
+validation/server parity in `mpi-oan.10`. The shared MUI/composable contract is
+recorded in `mpi-oan.6`.
 
