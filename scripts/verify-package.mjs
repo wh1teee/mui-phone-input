@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
+import { pathToFileURL } from 'node:url';
 
 import { createPackageArtifact, repositoryRoot, run } from './lib/package-artifact.mjs';
 
@@ -33,6 +34,9 @@ assert.doesNotMatch(contents, /^package\/src\//mu);
 const packageDist = join(repositoryRoot, 'packages/mui-phone-input/dist');
 const serverBundle = await readFile(join(packageDist, 'server.js'), 'utf8');
 const clientBundle = await readFile(join(packageDist, 'index.js'), 'utf8');
+const serverModule = await import(
+  `${pathToFileURL(join(packageDist, 'server.js')).href}?verification=${Date.now()}`
+);
 
 for (const forbiddenServerDependency of ['react', '@mui/', '@emotion/', 'react-dom']) {
   assert.doesNotMatch(
@@ -53,6 +57,36 @@ for (const forbiddenServerGlobal of [
 
 assert.doesNotMatch(serverBundle, /from\s+['"]node:/u);
 assert.doesNotMatch(clientBundle, /from\s+['"]node:/u);
+assert.match(serverBundle, /from\s+["']libphonenumber-js\/max["']/u);
+assert.match(clientBundle, /from\s+["']libphonenumber-js\/max["']/u);
+const sharedPlan = serverModule.resolveNumberingPlan('+1');
+assert.deepEqual(sharedPlan, {
+  countryCallingCode: '1',
+  detectedCountry: null,
+  kind: 'unresolved',
+  possibleCountries: sharedPlan.possibleCountries,
+  resolvedCountry: null,
+  selectedCountry: null,
+});
+assert.equal(sharedPlan.possibleCountries.length, 25);
+assert.ok(sharedPlan.possibleCountries.includes('CA'));
+assert.ok(sharedPlan.possibleCountries.includes('US'));
+assert.deepEqual(serverModule.resolveNumberingPlan('+12025550123'), {
+  countryCallingCode: '1',
+  detectedCountry: 'US',
+  kind: 'geographic',
+  possibleCountries: ['US'],
+  resolvedCountry: 'US',
+  selectedCountry: null,
+});
+assert.deepEqual(serverModule.resolveNumberingPlan('+800'), {
+  countryCallingCode: '800',
+  detectedCountry: null,
+  kind: 'non-geographic',
+  possibleCountries: [],
+  resolvedCountry: null,
+  selectedCountry: null,
+});
 assert.match(clientBundle, /process\.env\.NODE_ENV\s*!==\s*["']production["']/u);
 assert.doesNotMatch(
   clientBundle,

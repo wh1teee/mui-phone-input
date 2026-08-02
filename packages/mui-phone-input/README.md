@@ -32,6 +32,7 @@ export function PhoneField() {
   return (
     <MuiPhoneInput
       label="Phone number"
+      selectedCountry="BY"
       value={value}
       onChange={(nextValue, details) => {
         setValue(nextValue);
@@ -53,6 +54,31 @@ preserved while the user edits.
 ```
 
 Do not switch between controlled and uncontrolled ownership after mount.
+
+## Numbering-plan resolution
+
+```ts
+import { resolveNumberingPlan } from '@whiteee/mui-phone-input/server';
+
+const plan = resolveNumberingPlan('+12025550123', {
+  selectedCountry: 'CA',
+});
+
+// {
+//   kind: 'geographic',
+//   countryCallingCode: '1',
+//   selectedCountry: null,
+//   detectedCountry: 'US',
+//   resolvedCountry: 'US',
+//   possibleCountries: ['US']
+// }
+```
+
+Shared calling codes remain unresolved until authority data or a compatible
+explicit selection resolves them. While unresolved, `possibleCountries`
+contains every authority-backed country for the calling code; once digits
+narrow the plan, the list narrows with `PhoneNumber.getPossibleCountries()`.
+Non-geographic plans expose no country.
 
 ## Server-safe helpers
 

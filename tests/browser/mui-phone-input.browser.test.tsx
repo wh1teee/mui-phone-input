@@ -1,4 +1,5 @@
 import { createTheme, ThemeProvider } from '@mui/material/styles';
+import type { CountryCode } from 'libphonenumber-js/max';
 import { type ClipboardEvent, StrictMode, useRef, useState } from 'react';
 import { describe, expect, test, vi } from 'vitest';
 import { page, userEvent } from 'vitest/browser';
@@ -10,7 +11,9 @@ import {
   type PhoneValue,
 } from '../../packages/mui-phone-input/src';
 
-function ControlledHarness() {
+function ControlledHarness({
+  selectedCountry,
+}: Readonly<{ selectedCountry?: CountryCode }> = {}) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [value, setValue] = useState<PhoneValue>();
   const [callbackCount, setCallbackCount] = useState(0);
@@ -28,6 +31,7 @@ function ControlledHarness() {
         ref={inputRef}
         slotProps={{ htmlInput: { 'data-testid': 'controlled-phone' } }}
         value={value}
+        {...(selectedCountry ? { selectedCountry } : {})}
       />
       <output data-testid="controlled-value">{value ?? ''}</output>
       <output data-testid="controlled-callback-count">{callbackCount}</output>
@@ -123,6 +127,39 @@ function PreventedPasteHarness() {
       <output data-testid="prevented-paste-details">
         {details ? JSON.stringify(details) : ''}
       </output>
+    </>
+  );
+}
+
+function ExternalNumberingHarness() {
+  const [value, setValue] = useState<PhoneValue>('+1');
+  const [callbackCount, setCallbackCount] = useState(0);
+  const [details, setDetails] = useState<PhoneInputChangeDetails>();
+
+  return (
+    <>
+      <MuiPhoneInput
+        onChange={(nextValue, nextDetails) => {
+          setValue(nextValue);
+          setDetails(nextDetails);
+          setCallbackCount((count) => count + 1);
+        }}
+        selectedCountry="CA"
+        slotProps={{ htmlInput: { 'data-testid': 'external-numbering-phone' } }}
+        value={value}
+      />
+      <output data-testid="external-numbering-callback-count">{callbackCount}</output>
+      <output data-testid="external-numbering-details">
+        {details ? JSON.stringify(details) : ''}
+      </output>
+      <button
+        onClick={() => {
+          setValue('+12025550123');
+        }}
+        type="button"
+      >
+        Set external US number
+      </button>
     </>
   );
 }
@@ -263,9 +300,12 @@ describe('MuiPhoneInput tracer', () => {
       reason: 'not-evaluated',
     });
     expect(details.numberingPlan).toEqual({
-      countryCallingCode: null,
-      kind: 'unresolved',
-      possibleCountries: [],
+      countryCallingCode: '375',
+      detectedCountry: 'BY',
+      kind: 'geographic',
+      possibleCountries: ['BY'],
+      resolvedCountry: 'BY',
+      selectedCountry: null,
     });
     expect(serializedDetails).not.toMatch(/nativeEvent|synthetic|target/u);
   });
@@ -348,6 +388,102 @@ describe('MuiPhoneInput tracer', () => {
     ) as PhoneInputChangeDetails;
     expect(details.reason).toBe('paste');
     expect(details.value).toBe('+375291234567');
+    expect(details.numberingPlan).toEqual({
+      countryCallingCode: '375',
+      detectedCountry: 'BY',
+      kind: 'geographic',
+      possibleCountries: ['BY'],
+      resolvedCountry: 'BY',
+      selectedCountry: null,
+    });
+  });
+
+  test('keeps a selected shared-code country until digits detect another country', async () => {
+    render(<ControlledHarness selectedCountry="CA" />);
+    const input = page.getByTestId('controlled-phone');
+
+    await userEvent.type(input, '1');
+    let details = JSON.parse(
+      page.getByTestId('controlled-details').element().textContent ?? '',
+    ) as PhoneInputChangeDetails;
+    expect(details.numberingPlan).toMatchObject({
+      countryCallingCode: '1',
+      detectedCountry: null,
+      kind: 'geographic',
+      possibleCountries: expect.arrayContaining(['CA', 'US']),
+      resolvedCountry: 'CA',
+      selectedCountry: 'CA',
+    });
+
+    await userEvent.type(input, '2025550123');
+    details = JSON.parse(
+      page.getByTestId('controlled-details').element().textContent ?? '',
+    ) as PhoneInputChangeDetails;
+    expect(details.numberingPlan).toMatchObject({
+      countryCallingCode: '1',
+      detectedCountry: 'US',
+      kind: 'geographic',
+      possibleCountries: ['US'],
+      resolvedCountry: 'US',
+      selectedCountry: null,
+    });
+  });
+
+  test('clears incompatible selection for a non-geographic plan', async () => {
+    render(<ControlledHarness selectedCountry="US" />);
+    const input = page.getByTestId('controlled-phone');
+
+    await userEvent.type(input, '80012345678');
+
+    const details = JSON.parse(
+      page.getByTestId('controlled-details').element().textContent ?? '',
+    ) as PhoneInputChangeDetails;
+    expect(details.numberingPlan).toEqual({
+      countryCallingCode: '800',
+      detectedCountry: null,
+      kind: 'non-geographic',
+      possibleCountries: [],
+      resolvedCountry: null,
+      selectedCountry: null,
+    });
+  });
+
+  test('resolves an external controlled value without a callback loop', async () => {
+    render(<ExternalNumberingHarness />);
+    const input = page.getByTestId('external-numbering-phone');
+
+    await expect.element(input).toHaveValue('+1');
+    await userEvent.click(page.getByRole('button', { name: 'Set external US number' }));
+    await expect.element(input).toHaveValue('+12025550123');
+    await expect
+      .element(page.getByTestId('external-numbering-callback-count'))
+      .toHaveTextContent('0');
+
+    const inputElement = input.element();
+    if (!(inputElement instanceof HTMLInputElement)) {
+      throw new Error('Expected a native phone input.');
+    }
+    inputElement.focus();
+    inputElement.setSelectionRange(
+      inputElement.value.length - 1,
+      inputElement.value.length,
+    );
+    await userEvent.keyboard('4');
+
+    await expect
+      .element(page.getByTestId('external-numbering-callback-count'))
+      .toHaveTextContent('1');
+    const details = JSON.parse(
+      page.getByTestId('external-numbering-details').element().textContent ?? '',
+    ) as PhoneInputChangeDetails;
+    expect(details.numberingPlan).toMatchObject({
+      countryCallingCode: '1',
+      detectedCountry: 'US',
+      kind: 'geographic',
+      possibleCountries: ['US'],
+      resolvedCountry: 'US',
+      selectedCountry: null,
+    });
   });
 
   test('rejects an uncontrolled-to-controlled ownership switch after mount', async () => {

@@ -169,6 +169,12 @@ async function verifyPackedBrowser(destination, consumer) {
       details.value !== '+37529' ||
       details.previousValue !== '+3752' ||
       details.reason !== 'input' ||
+      details.numberingPlan?.kind !== 'geographic' ||
+      details.numberingPlan?.countryCallingCode !== '375' ||
+      details.numberingPlan?.detectedCountry !== 'BY' ||
+      details.numberingPlan?.resolvedCountry !== 'BY' ||
+      details.numberingPlan?.selectedCountry !== null ||
+      JSON.stringify(details.numberingPlan?.possibleCountries) !== '["BY"]' ||
       'nativeEvent' in details ||
       'target' in details
     ) {
@@ -191,15 +197,69 @@ async function verifyPackedBrowser(destination, consumer) {
       throw new Error('Packed clear transaction did not emit exactly one callback.');
     }
 
-    await input.pressSequentially('44');
-    if ((await page.getByTestId('callback-count').textContent()) !== '8') {
-      throw new Error('Packed input emitted duplicate callbacks under Strict Mode.');
+    await input.pressSequentially('1');
+    if ((await page.getByTestId('callback-count').textContent()) !== '7') {
+      throw new Error('Packed shared-code input emitted a duplicate callback.');
+    }
+    const unresolvedDetails = JSON.parse(
+      (await page.getByTestId('change-details').textContent()) || '{}',
+    );
+    if (
+      unresolvedDetails.numberingPlan?.kind !== 'unresolved' ||
+      unresolvedDetails.numberingPlan?.countryCallingCode !== '1' ||
+      unresolvedDetails.numberingPlan?.possibleCountries?.length !== 25 ||
+      !unresolvedDetails.numberingPlan.possibleCountries.includes('CA') ||
+      !unresolvedDetails.numberingPlan.possibleCountries.includes('US')
+    ) {
+      throw new Error(
+        `Packed unresolved numbering plan is invalid: ${JSON.stringify(unresolvedDetails)}`,
+      );
+    }
+
+    await input.pressSequentially('2025550123');
+    if ((await page.getByTestId('callback-count').textContent()) !== '17') {
+      throw new Error('Packed resolved-country input emitted duplicate callbacks.');
+    }
+    const resolvedDetails = JSON.parse(
+      (await page.getByTestId('change-details').textContent()) || '{}',
+    );
+    if (
+      resolvedDetails.numberingPlan?.kind !== 'geographic' ||
+      resolvedDetails.numberingPlan?.detectedCountry !== 'US' ||
+      resolvedDetails.numberingPlan?.resolvedCountry !== 'US' ||
+      JSON.stringify(resolvedDetails.numberingPlan?.possibleCountries) !== '["US"]'
+    ) {
+      throw new Error(
+        `Packed resolved numbering plan is invalid: ${JSON.stringify(resolvedDetails)}`,
+      );
+    }
+
+    await input.selectText();
+    await input.press('Backspace');
+    await input.pressSequentially('80012345678');
+    if ((await page.getByTestId('callback-count').textContent()) !== '29') {
+      throw new Error('Packed non-geographic input emitted duplicate callbacks.');
+    }
+    const nonGeographicDetails = JSON.parse(
+      (await page.getByTestId('change-details').textContent()) || '{}',
+    );
+    if (
+      nonGeographicDetails.numberingPlan?.kind !== 'non-geographic' ||
+      nonGeographicDetails.numberingPlan?.countryCallingCode !== '800' ||
+      nonGeographicDetails.numberingPlan?.detectedCountry !== null ||
+      nonGeographicDetails.numberingPlan?.resolvedCountry !== null ||
+      nonGeographicDetails.numberingPlan?.selectedCountry !== null ||
+      JSON.stringify(nonGeographicDetails.numberingPlan?.possibleCountries) !== '[]'
+    ) {
+      throw new Error(
+        `Packed non-geographic numbering plan is invalid: ${JSON.stringify(nonGeographicDetails)}`,
+      );
     }
     await page.getByRole('button', { name: 'Reset phone input' }).click();
     if ((await input.inputValue()) !== '') {
       throw new Error('Packed external reset did not clear the display.');
     }
-    if ((await page.getByTestId('callback-count').textContent()) !== '8') {
+    if ((await page.getByTestId('callback-count').textContent()) !== '29') {
       throw new Error('Packed external reset emitted a callback loop.');
     }
     if (pageErrors.length > 0) {

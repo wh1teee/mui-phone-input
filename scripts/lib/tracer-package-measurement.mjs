@@ -9,18 +9,21 @@ import { createPackageArtifact, repositoryRoot } from './package-artifact.mjs';
 const MAIN_GZIP_BUDGET_BYTES = 25 * 1024;
 const SERVER_GZIP_BUDGET_BYTES = 10 * 1024;
 
-const PEER_EXTERNALS = [
+const MAIN_BUDGET_EXTERNALS = [
   '@emotion/react',
   '@emotion/styled',
   '@mui/material',
+  'libphonenumber-js',
   'react',
   'react-dom',
   'react-hook-form',
   'zod',
 ];
 
-function isPeerExternal(id) {
-  return PEER_EXTERNALS.some((peer) => id === peer || id.startsWith(`${peer}/`));
+function isMainBudgetExternal(id) {
+  return MAIN_BUDGET_EXTERNALS.some(
+    (external) => id === external || id.startsWith(`${external}/`),
+  );
 }
 
 function sizeRecord(content) {
@@ -42,7 +45,7 @@ async function buildMainClosure() {
       },
       minify: 'oxc',
       rollupOptions: {
-        external: isPeerExternal,
+        external: isMainBudgetExternal,
       },
       sourcemap: false,
       write: false,
@@ -76,7 +79,7 @@ export async function measureTracerPackage() {
   return {
     schemaVersion: 1,
     methodology: {
-      main: 'Vite 8 Oxc-minified ESM closure of the packed main entry. Runtime dependencies are bundled; React, React DOM, MUI, Emotion, RHF and Zod peers are external.',
+      main: 'Vite 8 Oxc-minified ESM closure of the packed main entry. Maskito runtime dependencies are bundled; React, React DOM, MUI, Emotion, RHF and Zod peers plus libphonenumber-js metadata are external because metadata has a separate budget.',
       server:
         'Direct tsdown neutral-platform server entry, excluding metadata presets.',
     },

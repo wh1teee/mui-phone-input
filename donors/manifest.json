@@ -14,6 +14,17 @@
       "docs/adr/0006-select-maskito-as-the-input-transaction-engine.md"
     ]
   },
+  "numberingPlanDecision": {
+    "authority": "libphonenumber-js@1.13.10",
+    "bead": "mpi-oan.4",
+    "publicApi": "resolveNumberingPlan",
+    "evidence": [
+      "tests/unit/numbering-plan.test.ts",
+      "tests/unit/numbering-plan-entrypoints.test.ts",
+      "tests/browser/mui-phone-input.browser.test.tsx",
+      "docs/research/2026-08-02-numbering-plan-authority-evidence.md"
+    ]
+  },
   "donors": [
     {
       "id": "libphonenumber-js",
@@ -27,6 +38,7 @@
         "parsePhoneNumberWithError",
         "getCountries",
         "getCountryCallingCode",
+        "PhoneNumber.getPossibleCountries",
         "PhoneNumber.isPossible",
         "PhoneNumber.isValid",
         "PhoneNumber.getType"
@@ -308,6 +320,7 @@
       "symbols": [
         "AsYouType",
         "parsePhoneNumberWithError",
+        "PhoneNumber.getPossibleCountries",
         "PhoneNumber.isPossible",
         "PhoneNumber.isValid",
         "PhoneNumber.getType"

@@ -181,6 +181,9 @@ importers:
       '@maskito/react':
         specifier: 5.3.1
         version: 5.3.1(@maskito/core@5.3.1)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+      libphonenumber-js:
+        specifier: 1.13.10
+        version: 1.13.10
     devDependencies:
       '@emotion/react':
         specifier: 11.14.0

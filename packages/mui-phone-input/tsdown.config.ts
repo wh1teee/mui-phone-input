@@ -3,6 +3,7 @@ import { defineConfig } from 'tsdown';
 const externalDependencies = [
   '@maskito/core',
   '@maskito/react',
+  'libphonenumber-js',
   '@emotion/react',
   '@emotion/styled',
   '@mui/material',

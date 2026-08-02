@@ -16,6 +16,21 @@ Source inspected for the 1.0 engine decision:
 
 No Maskito source code is copied into this package.
 
+## libphonenumber-js
+
+The package uses `libphonenumber-js@1.13.10` as its only phone-numbering
+authority. It provides parsing, country calling codes, geographic and
+non-geographic numbering-plan metadata, country detection, and the source data
+for Possible Countries.
+
+libphonenumber-js is Copyright © Nikolay Kuchumov and is distributed under the
+MIT licence. Source inspected for the 1.0 authority contract:
+
+- <https://gitlab.com/catamphetamine/libphonenumber-js>
+- revision `9758fd594a531a86e0c388da4611e30142da73b2`
+
+No manual country or calling-code table is maintained by this package.
+
 ## input-format and react-phone-number-input
 
 `input-format@0.3.14` and `react-phone-number-input@3.4.17` were inspected and

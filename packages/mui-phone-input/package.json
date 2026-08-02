@@ -85,7 +85,8 @@
   ],
   "dependencies": {
     "@maskito/core": "5.3.1",
-    "@maskito/react": "5.3.1"
+    "@maskito/react": "5.3.1",
+    "libphonenumber-js": "1.13.10"
   },
   "peerDependencies": {
     "@emotion/react": "^11.14.0",

@@ -8,6 +8,7 @@ import {
 } from '@mui/material/styles';
 import TextField, { type TextFieldProps } from '@mui/material/TextField';
 import { mergeSlotProps } from '@mui/material/utils';
+import type { CountryCode } from 'libphonenumber-js/max';
 import {
   type ClipboardEvent,
   type CompositionEvent,
@@ -24,6 +25,7 @@ import {
 } from 'react';
 import type { InputEngineContext } from '../internal/input-transaction-engine';
 import { useInputTransactionEngineBridge } from '../internal/use-input-transaction-engine';
+import { type NumberingPlanResolution, resolveNumberingPlan } from '../numbering-plan';
 import { assertPhoneValue, type PhoneValue, parsePhoneValue } from '../phone-value';
 import {
   getMuiPhoneInputUtilityClass,
@@ -49,11 +51,7 @@ export interface PhoneInputValidationState {
   reason: 'empty' | 'not-evaluated';
 }
 
-export interface PhoneInputNumberingPlanState {
-  countryCallingCode: string | null;
-  kind: 'unresolved';
-  possibleCountries: readonly string[];
-}
+export type PhoneInputNumberingPlanState = NumberingPlanResolution;
 
 export interface PhoneInputChangeDetails {
   numberingPlan: PhoneInputNumberingPlanState;
@@ -70,6 +68,7 @@ export type MuiPhoneInputProps = Omit<
   classes?: Partial<MuiPhoneInputClasses>;
   defaultValue?: PhoneValue;
   onChange?: (value: PhoneValue, details: PhoneInputChangeDetails) => void;
+  selectedCountry?: CountryCode | null;
   value?: PhoneValue;
 };
 
@@ -138,14 +137,6 @@ function createValidationState(value: PhoneValue): PhoneInputValidationState {
   };
 }
 
-function createNumberingPlanState(): PhoneInputNumberingPlanState {
-  return {
-    countryCallingCode: null,
-    kind: 'unresolved',
-    possibleCountries: [],
-  };
-}
-
 function resolveChangeReason(
   inputType: string,
   value: PhoneValue,
@@ -200,6 +191,7 @@ export const MuiPhoneInput: ForwardRefExoticComponent<
       error = false,
       onChange,
       required = false,
+      selectedCountry,
       slotProps,
       value,
       ...other
@@ -227,6 +219,23 @@ export const MuiPhoneInput: ForwardRefExoticComponent<
     const currentValue = controlledRef.current ? value : uncontrolledValue;
     const currentValueRef = useRef(currentValue);
     currentValueRef.current = currentValue;
+    const numberingPlanOptions = useMemo(
+      () => (selectedCountry == null ? {} : { selectedCountry }),
+      [selectedCountry],
+    );
+    const currentNumberingPlan = useMemo(
+      () => resolveNumberingPlan(currentValue, numberingPlanOptions),
+      [currentValue, numberingPlanOptions],
+    );
+    const inputContext = useMemo<InputEngineContext>(
+      () => ({
+        ...E164_INPUT_CONTEXT,
+        ...(currentNumberingPlan.resolvedCountry
+          ? { country: currentNumberingPlan.resolvedCountry }
+          : {}),
+      }),
+      [currentNumberingPlan.resolvedCountry],
+    );
 
     const ownerState: MuiPhoneInputOwnerState = {
       controlled: controlledRef.current,
@@ -261,14 +270,14 @@ export const MuiPhoneInput: ForwardRefExoticComponent<
         }
 
         onChange?.(nextValue, {
-          numberingPlan: createNumberingPlanState(),
+          numberingPlan: resolveNumberingPlan(nextValue, numberingPlanOptions),
           previousValue,
           reason,
           validation: createValidationState(nextValue),
           value: nextValue,
         });
       },
-      [onChange],
+      [numberingPlanOptions, onChange],
     );
     const scheduleCommit = useCallback(
       (displayValue: string, reason: PhoneInputChangeReason) => {
@@ -387,8 +396,8 @@ export const MuiPhoneInput: ForwardRefExoticComponent<
           ] as const)
         : ([displayValue.length, displayValue.length] as const);
 
-      engineBridge.reconcileExternal({ displayValue, selection }, E164_INPUT_CONTEXT);
-    }, [currentValue, engineBridge]);
+      engineBridge.reconcileExternal({ displayValue, selection }, inputContext);
+    }, [currentValue, engineBridge, inputContext]);
 
     useEffect(() => {
       const input = inputRef.current;

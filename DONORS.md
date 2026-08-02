@@ -38,6 +38,13 @@ Adapt only the public `libphonenumber-js` API. Parsing, calling codes,
 geographic/non-geographic plans, possibility, validity, and number type may not
 come from donor tables or masks.
 
+`mpi-oan.4` implements this boundary with `AsYouType`,
+`PhoneNumber.getPossibleCountries()`, `getCountries`, `getCountryCallingCode`,
+and `isSupportedCountry` from `libphonenumber-js@1.13.10`. Possible Countries
+are broad while a shared calling code is unresolved and narrow when authority
+data identifies a smaller candidate set. No manual country or calling-code
+table is present.
+
 ### `cap-input-transaction-engine`
 
 `mpi-oan.22` selected **Maskito core/React 5.3.1** as the Input Transaction

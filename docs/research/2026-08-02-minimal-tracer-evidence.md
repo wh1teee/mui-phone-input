@@ -13,8 +13,9 @@ The main client entrypoint exports:
 - `isPhoneValue`, `parsePhoneValue`, and `assertPhoneValue`;
 - `muiPhoneInputClasses` and `getMuiPhoneInputUtilityClass`.
 
-The server entrypoint exports only the Phone Value type and helpers. It imports
-no React, MUI, Emotion, Maskito, DOM, browser globals, or Node-only built-ins.
+The server entrypoint exports the Phone Value type/helpers and the pure
+Numbering Plan resolver. It imports no React, MUI, Emotion, Maskito, DOM,
+browser globals, or Node-only built-ins.
 
 ## Tracer contract
 
@@ -27,12 +28,13 @@ no React, MUI, Emotion, Maskito, DOM, browser globals, or Node-only built-ins.
 - External controlled updates and form reset reconciliation do not create
   callback loops.
 - Callback details are serializable and contain value, previous value, reason,
-  validation placeholder state, and unresolved numbering-plan placeholder
-  state. They contain no DOM or React event object.
+  validation placeholder state, and geographic/unresolved/non-geographic
+  Numbering Plan Resolution. They contain no DOM or React event object.
 
-The tracer intentionally does not claim country resolution, possibility,
-validity, number type, advanced formatting, selector behavior, extensions, or
-form adapters. Those remain owned by later Beads.
+The tracer now claims authority-backed country and numbering-plan resolution.
+It intentionally does not yet claim possibility/validity policy, number type,
+advanced formatting, selector behavior, extensions, or form adapters. Those
+remain owned by later Beads.
 
 ## Browser evidence
 
@@ -47,7 +49,10 @@ Source Browser Mode tests cover:
 - Unicode digit composition lifecycle;
 - rejected ownership switching;
 - prevented-paste reason isolation;
-- runtime MUI default props and root/input style overrides.
+- runtime MUI default props and root/input style overrides;
+- selected/detected/resolved country stability across shared calling codes;
+- non-geographic plans without fabricated country state;
+- external controlled-number reconciliation without callback loops.
 
 The same public tarball is installed outside the workspace in production
 Next.js and Vite consumers. Their built applications are started and exercised
@@ -68,9 +73,9 @@ externalizes declared peers.
 
 Current exact-artifact measurements are:
 
-- main closure: 7,465 bytes gzip;
-- server entry: 730 bytes gzip;
-- packed tarball: 15,105 bytes.
+- main closure: 8,012 bytes gzip;
+- server entry: 1,529 bytes gzip;
+- packed tarball: 20,408 bytes.
 
 CI rebuilds the artifact and requires exact byte/hash equality with the
 committed measurement.

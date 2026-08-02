@@ -17,6 +17,7 @@ describe('foundation test seam', () => {
       'assertPhoneValue',
       'isPhoneValue',
       'parsePhoneValue',
+      'resolveNumberingPlan',
     ]);
     expect(serverEntry).not.toHaveProperty('MuiPhoneInput');
   });
