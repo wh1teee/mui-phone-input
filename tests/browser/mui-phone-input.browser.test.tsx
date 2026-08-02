@@ -128,17 +128,52 @@ function PreventedPasteHarness() {
 }
 
 async function pasteText(inputTestId: string, text: string) {
-  const source = document.createElement('textarea');
-  source.value = text;
-  document.body.append(source);
-  source.focus();
-  source.select();
-  await userEvent.copy();
-  source.remove();
+  const locator = page.getByTestId(inputTestId);
+  await expect.element(locator).toBeInTheDocument();
+  const input = locator.element();
 
-  const input = page.getByTestId(inputTestId);
-  await userEvent.click(input);
-  await userEvent.paste();
+  if (!(input instanceof HTMLInputElement)) {
+    throw new Error('Expected a native phone input.');
+  }
+
+  input.focus();
+  input.select();
+  const transfer = new DataTransfer();
+  transfer.setData('text/plain', text);
+  const pasteEvent = new ClipboardEvent('paste', {
+    bubbles: true,
+    cancelable: true,
+    clipboardData: transfer,
+  });
+  input.dispatchEvent(pasteEvent);
+
+  if (pasteEvent.defaultPrevented) {
+    return;
+  }
+
+  const beforeInput = new InputEvent('beforeinput', {
+    bubbles: true,
+    cancelable: true,
+    data: text,
+    inputType: 'insertFromPaste',
+  });
+  input.dispatchEvent(beforeInput);
+
+  if (!beforeInput.defaultPrevented) {
+    input.setRangeText(
+      text,
+      input.selectionStart ?? 0,
+      input.selectionEnd ?? input.value.length,
+      'end',
+    );
+  }
+  input.dispatchEvent(
+    new InputEvent('input', {
+      bubbles: true,
+      data: text,
+      inputType: 'insertFromPaste',
+    }),
+  );
 }
 
 describe('MuiPhoneInput tracer', () => {
