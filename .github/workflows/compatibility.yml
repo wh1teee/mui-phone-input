@@ -1,0 +1,35 @@
+name: React and MUI compatibility
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  packed-consumer:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        support-matrix:
+          - minimum
+          - latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.9.0
+      - uses: actions/setup-node@v4
+        with:
+          cache: pnpm
+          node-version: 24
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm verify:consumers
+        env:
+          SUPPORT_MATRIX: ${{ matrix.support-matrix }}
+

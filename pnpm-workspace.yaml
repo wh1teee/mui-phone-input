@@ -1,0 +1,16 @@
+packages:
+  - apps/*
+  - packages/*
+
+allowBuilds:
+  sharp: true
+autoInstallPeers: false
+engineStrict: true
+linkWorkspacePackages: false
+minimumReleaseAge: 1440
+preferWorkspacePackages: false
+resolutionMode: highest
+saveExact: true
+sharedWorkspaceLockfile: true
+strictPeerDependencies: true
+verifyStoreIntegrity: true

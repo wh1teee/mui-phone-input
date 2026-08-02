@@ -1,0 +1,123 @@
+{
+  "name": "@whiteee/mui-phone-input",
+  "version": "0.0.0-development",
+  "description": "Accessible, deeply customizable international phone input for React and Material UI.",
+  "license": "MIT",
+  "author": "Konstantsin Petrovskiy",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wh1teee/mui-phone-input.git"
+  },
+  "homepage": "https://github.com/wh1teee/mui-phone-input#readme",
+  "bugs": {
+    "url": "https://github.com/wh1teee/mui-phone-input/issues"
+  },
+  "type": "module",
+  "sideEffects": false,
+  "files": [
+    "dist",
+    "LICENSE",
+    "README.md"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./server": {
+      "types": "./dist/server.d.ts",
+      "import": "./dist/server.js",
+      "default": "./dist/server.js"
+    },
+    "./react-hook-form": {
+      "types": "./dist/react-hook-form.d.ts",
+      "import": "./dist/react-hook-form.js",
+      "default": "./dist/react-hook-form.js"
+    },
+    "./zod": {
+      "types": "./dist/zod.d.ts",
+      "import": "./dist/zod.js",
+      "default": "./dist/zod.js"
+    },
+    "./metadata/max": {
+      "types": "./dist/metadata/max.d.ts",
+      "import": "./dist/metadata/max.js",
+      "default": "./dist/metadata/max.js"
+    },
+    "./metadata/min": {
+      "types": "./dist/metadata/min.d.ts",
+      "import": "./dist/metadata/min.js",
+      "default": "./dist/metadata/min.js"
+    },
+    "./metadata/mobile": {
+      "types": "./dist/metadata/mobile.d.ts",
+      "import": "./dist/metadata/mobile.js",
+      "default": "./dist/metadata/mobile.js"
+    },
+    "./metadata/custom": {
+      "types": "./dist/metadata/custom.d.ts",
+      "import": "./dist/metadata/custom.js",
+      "default": "./dist/metadata/custom.js"
+    },
+    "./locales/en": {
+      "types": "./dist/locales/en.d.ts",
+      "import": "./dist/locales/en.js",
+      "default": "./dist/locales/en.js"
+    },
+    "./flags/local": {
+      "types": "./dist/flags/local.d.ts",
+      "import": "./dist/flags/local.js",
+      "default": "./dist/flags/local.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "engines": {
+    "node": ">=24"
+  },
+  "browserslist": [
+    "Chrome >= 117",
+    "Edge >= 121",
+    "Firefox >= 121",
+    "Safari >= 17",
+    "iOS >= 17"
+  ],
+  "peerDependencies": {
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.0",
+    "@mui/material": "^9.0.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-hook-form": "^7.0.0",
+    "zod": "^4.0.0"
+  },
+  "peerDependenciesMeta": {
+    "react-hook-form": {
+      "optional": true
+    },
+    "zod": {
+      "optional": true
+    }
+  },
+  "optionalDependencies": {},
+  "publishConfig": {
+    "access": "public",
+    "tag": "next"
+  },
+  "scripts": {
+    "build": "tsdown",
+    "clean": "node ../../scripts/clean-package.mjs",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "devDependencies": {
+    "@emotion/react": "11.14.0",
+    "@emotion/styled": "11.14.1",
+    "@mui/material": "9.2.0",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "react-hook-form": "7.83.0",
+    "tsdown": "0.22.14",
+    "typescript": "6.0.3",
+    "zod": "4.4.3"
+  }
+}

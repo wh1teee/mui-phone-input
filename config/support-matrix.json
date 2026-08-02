@@ -1,0 +1,30 @@
+{
+  "blocking": {
+    "node": "24",
+    "typescript": "6.0.3",
+    "react": {
+      "minimum": "19.0.0",
+      "latest": "19.2.8"
+    },
+    "mui": {
+      "minimum": "9.0.0",
+      "latest": "9.2.0"
+    },
+    "emotion": {
+      "reactMinimum": "11.14.0",
+      "styledMinimum": "11.14.0",
+      "reason": "React 19 removes the global JSX namespace used by older Emotion declarations"
+    },
+    "browsers": {
+      "chrome": "117",
+      "edge": "121",
+      "firefox": "121",
+      "safari": "17",
+      "iosSafari": "17"
+    }
+  },
+  "forwardSignals": {
+    "node": "26",
+    "typescript": "7.0.2"
+  }
+}
