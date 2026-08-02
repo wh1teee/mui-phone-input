@@ -1,5 +1,3 @@
-import '@whiteee/mui-phone-input/server';
-
 import { createTheme, ThemeProvider } from '@mui/material/styles';
 import {
   MuiPhoneInput,
@@ -12,11 +10,15 @@ import {
   type PhoneValue,
   usePhoneInput,
 } from '@whiteee/mui-phone-input';
+import { resolveNumberingPlan } from '@whiteee/mui-phone-input/server';
 import { StrictMode, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 
+import { SsrStateMatrix } from './ssr-state-matrix';
+
 const theme = createTheme({ cssVariables: true });
 const root = document.querySelector('#root');
+const serverPlan = resolveNumberingPlan('+80012345678');
 
 if (!root) {
   throw new Error('Missing Vite consumer root element.');
@@ -117,8 +119,10 @@ createRoot(root).render(
     <ThemeProvider theme={theme}>
       <main>
         <h1>Packed Vite consumer</h1>
+        <output data-testid="server-plan-matrix">{serverPlan.kind}</output>
         <PackedPhoneInput />
         <PackedComposablePhoneInput />
+        <SsrStateMatrix />
       </main>
     </ThemeProvider>
   </StrictMode>,

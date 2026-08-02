@@ -30,5 +30,6 @@ evidence in `mpi-oan.2`, the Maskito engine decision in `mpi-oan.22` and ADR
 0006, the minimal tracer in `mpi-oan.3`, numbering plans in `mpi-oan.4`, and
 validation/server parity in `mpi-oan.10`. The shared MUI/composable contract is
 recorded in `mpi-oan.6`; Country Selector authority and responsive behavior are
-recorded in `mpi-oan.5`.
+recorded in `mpi-oan.5`; exact Next.js SSR/hydration and packed Next/Vite proof
+are recorded in `mpi-oan.13`.
 

@@ -23,13 +23,58 @@ for (const requiredFile of [
   'package/THIRD_PARTY_NOTICES.md',
   'package/dist/index.js',
   'package/dist/index.d.ts',
+  'package/dist/index.js.map',
   'package/dist/server.js',
   'package/dist/server.d.ts',
+  'package/dist/server.js.map',
 ]) {
   assert.match(contents, new RegExp(`^${requiredFile}$`, 'mu'));
 }
 
 assert.doesNotMatch(contents, /^package\/src\//mu);
+
+const packedClientSourceMap = JSON.parse(
+  execFileSync('tar', ['-xOf', tarball, 'package/dist/index.js.map'], {
+    cwd: repositoryRoot,
+    encoding: 'utf8',
+  }),
+);
+const packedServerSourceMap = JSON.parse(
+  execFileSync('tar', ['-xOf', tarball, 'package/dist/server.js.map'], {
+    cwd: repositoryRoot,
+    encoding: 'utf8',
+  }),
+);
+for (const requiredClientSource of [
+  '../src/PhoneInputCountrySelector.tsx',
+  '../src/PhoneInputPrimitives.tsx',
+  '../src/MuiPhoneInput/MuiPhoneInput.tsx',
+  '../src/internal/use-input-transaction-engine.ts',
+  '../src/usePhoneInput.ts',
+]) {
+  assert.ok(
+    packedClientSourceMap.sources.includes(requiredClientSource),
+    `Packed browser graph is missing ${requiredClientSource}.`,
+  );
+}
+assert.deepEqual(packedServerSourceMap.sources, [
+  '../src/phone-value.ts',
+  '../src/numbering-plan.ts',
+  '../src/phone-validation.ts',
+]);
+for (const forbiddenServerSource of [
+  'MuiPhoneInput',
+  'PhoneInput',
+  '/internal/',
+  'react-hook-form',
+]) {
+  assert.ok(
+    packedServerSourceMap.sources.every(
+      (source) => !source.includes(forbiddenServerSource),
+    ),
+    `Packed neutral server graph contains ${forbiddenServerSource}.`,
+  );
+}
 
 const packageDist = join(repositoryRoot, 'packages/mui-phone-input/dist');
 const serverBundle = await readFile(join(packageDist, 'server.js'), 'utf8');

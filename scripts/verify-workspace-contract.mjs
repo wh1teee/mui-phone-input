@@ -18,6 +18,10 @@ const primitivesSource = await readFile(
   'packages/mui-phone-input/src/PhoneInputPrimitives.tsx',
   'utf8',
 );
+const packedConsumersVerifier = await readFile(
+  'scripts/verify-packed-consumers.mjs',
+  'utf8',
+);
 
 assert.equal(rootPackage.private, true);
 assert.match(rootPackage.packageManager, /^pnpm@11\./u);
@@ -71,6 +75,13 @@ for (const source of [controllerSource, primitivesSource]) {
 assert.match(controllerSource, /export function usePhoneInput/u);
 assert.match(primitivesSource, /export function PhoneInputProvider/u);
 assert.match(primitivesSource, /export function PhoneInputInput/u);
+assert.match(packedConsumersVerifier, /javaScriptEnabled:\s*false/u);
+assert.match(packedConsumersVerifier, /server-render-probe\.mjs/u);
+assert.match(packedConsumersVerifier, /hydration-marker/u);
+assert.match(
+  packedConsumersVerifier,
+  /Next\.js server HTML and hydrated phone states/u,
+);
 
 assert.match(ciWorkflow, /node-version:\s*24/u);
 assert.match(ciWorkflow, /node-version:\s*26/u);

@@ -13,6 +13,8 @@ import {
 } from '@whiteee/mui-phone-input';
 import { useRef, useState } from 'react';
 
+import { SsrStateMatrix } from './ssr-state-matrix';
+
 export function PhoneInputSmoke() {
   const inputRef = useRef<HTMLInputElement>(null);
   const [value, setValue] = useState<PhoneValue>();
@@ -64,6 +66,7 @@ export function PhoneInputSmoke() {
         </button>
       </section>
       <PackedComposablePhoneInput />
+      <SsrStateMatrix />
     </>
   );
 }

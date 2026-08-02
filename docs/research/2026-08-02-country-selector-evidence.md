@@ -86,7 +86,7 @@ Current exact-artifact measurements remain within the established budgets:
 
 - main closure: 15,200 bytes gzip;
 - server entry: 2,666 bytes gzip;
-- packed tarball: 55,705 bytes.
+- packed tarball: 56,008 bytes.
 
 No package was published. npm identity and publication remain behind the owner
 gate `mpi-g7a`.

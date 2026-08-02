@@ -66,6 +66,14 @@ serializable details, focus, clear, Strict Mode, and external reset.
 Latest and minimum React 19 / MUI 9 consumer matrices use the exact generated
 `.tgz`; no workspace-source resolution is accepted as evidence.
 
+The production Next.js verifier compares selected semantic fields from
+JavaScript-disabled server output and the hydrated DOM for empty, geographic,
+unresolved and non-geographic states. An isolated exact-package Node render
+blocks `navigator` and `Intl.DateTimeFormat.resolvedOptions` access and requires
+byte-identical repeated HTML. The Vite production smoke renders the same state
+matrix. Full details are recorded in
+`2026-08-02-ssr-packed-consumption-evidence.md`.
+
 The current combined source matrix contains 62 Browser Mode tests per engine;
 all pass in Chromium, Firefox, and WebKit. The unit suite contains 81 tests.
 
@@ -82,7 +90,7 @@ Current exact-artifact measurements are:
 
 - main closure: 15,200 bytes gzip;
 - server entry: 2,666 bytes gzip;
-- packed tarball: 55,705 bytes.
+- packed tarball: 56,008 bytes.
 
 CI rebuilds the artifact and requires exact byte/hash equality with the
 committed measurement.

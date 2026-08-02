@@ -1,3 +1,4 @@
+import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { cp, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { createServer } from 'node:net';
@@ -97,6 +98,72 @@ async function stopServer(process) {
   }
 }
 
+const SSR_STATE_EXPECTATIONS = {
+  empty: {
+    accepted: 'true',
+    plan: 'unresolved',
+    placeholder: 'Empty phone',
+    status: 'empty',
+    value: '',
+  },
+  geographic: {
+    accepted: 'true',
+    plan: 'geographic',
+    placeholder: 'Geographic phone',
+    status: 'valid',
+    value: '+375291234567',
+  },
+  'non-geographic': {
+    accepted: 'true',
+    plan: 'non-geographic',
+    placeholder: 'Non-geographic phone',
+    status: 'valid',
+    value: '+80012345678',
+  },
+  unresolved: {
+    accepted: 'false',
+    plan: 'unresolved',
+    placeholder: 'Unresolved phone',
+    status: 'incomplete',
+    value: '+1',
+  },
+};
+
+async function collectSsrStateSnapshot(page) {
+  const snapshot = {};
+
+  for (const [kind, expectation] of Object.entries(SSR_STATE_EXPECTATIONS)) {
+    const input = page.getByTestId(`ssr-${kind}-input`);
+    const trigger = page.getByTestId(`ssr-${kind}-country`);
+    await input.waitFor({ state: 'visible' });
+    snapshot[kind] = {
+      accepted: await input.getAttribute('data-phone-input-accepted'),
+      country: await input.getAttribute('data-phone-input-country'),
+      invalid: await input.getAttribute('aria-invalid'),
+      placeholder: await input.getAttribute('placeholder'),
+      plan: await input.getAttribute('data-phone-input-plan'),
+      status: await input.getAttribute('data-phone-input-status'),
+      triggerLabel: await trigger.getAttribute('aria-label'),
+      triggerText: (await trigger.textContent())?.replace(/\s+/gu, ' ').trim(),
+      value: await input.inputValue(),
+    };
+
+    assert.deepEqual(
+      {
+        accepted: snapshot[kind].accepted,
+        placeholder: snapshot[kind].placeholder,
+        plan: snapshot[kind].plan,
+        status: snapshot[kind].status,
+        value: snapshot[kind].value,
+      },
+      expectation,
+      `Unexpected ${kind} consumer state.`,
+    );
+  }
+
+  return snapshot;
+}
+
 async function verifyPackedBrowser(destination, consumer) {
   const port = await reservePort();
   const url = `http://127.0.0.1:${port}`;
@@ -141,11 +208,62 @@ async function verifyPackedBrowser(destination, consumer) {
   try {
     await waitForServer(url, serverProcess, () => logs);
     browser = await chromium.launch({ headless: true });
+    let serverSnapshot;
+    if (consumer === 'next-consumer') {
+      const serverContext = await browser.newContext({ javaScriptEnabled: false });
+      try {
+        const serverPage = await serverContext.newPage();
+        await serverPage.goto(url, { waitUntil: 'domcontentloaded' });
+        serverSnapshot = await collectSsrStateSnapshot(serverPage);
+        assert.equal(
+          await serverPage.getByTestId('hydration-marker').textContent(),
+          'server',
+        );
+        assert.deepEqual(
+          JSON.parse(
+            (await serverPage.getByTestId('server-plan-matrix').textContent()) || '{}',
+          ),
+          {
+            empty: 'unresolved',
+            geographic: 'geographic',
+            nonGeographic: 'non-geographic',
+            unresolved: 'unresolved',
+          },
+        );
+      } finally {
+        await serverContext.close();
+      }
+    }
+
     const page = await browser.newPage();
     const pageErrors = [];
+    const consoleErrors = [];
     page.on('pageerror', (error) => pageErrors.push(error));
+    page.on('console', (message) => {
+      if (message.type() === 'error') {
+        consoleErrors.push(message.text());
+      }
+    });
 
     await page.goto(url, { waitUntil: 'networkidle' });
+    await page.getByTestId('hydration-marker').waitFor({ state: 'visible' });
+    await page
+      .getByTestId('hydration-marker')
+      .filter({ hasText: 'hydrated' })
+      .waitFor();
+    const hydratedSnapshot = await collectSsrStateSnapshot(page);
+    if (consumer === 'next-consumer') {
+      assert.deepEqual(
+        hydratedSnapshot,
+        serverSnapshot,
+        'Next.js server HTML and hydrated phone states diverged.',
+      );
+    } else {
+      assert.equal(
+        await page.getByTestId('server-plan-matrix').textContent(),
+        'non-geographic',
+      );
+    }
     const input = page.getByTestId('phone-input');
     await input.pressSequentially('37529');
     await input.waitFor({ state: 'visible' });
@@ -315,11 +433,13 @@ async function verifyPackedBrowser(destination, consumer) {
         `Packed MuiPhoneInput country details are invalid: ${JSON.stringify(countryDetails)}`,
       );
     }
-    if (
-      !(await countryTrigger.evaluate((element) => element === document.activeElement))
-    ) {
-      throw new Error('Packed country selector did not restore focus to its trigger.');
-    }
+    await page.waitForFunction(
+      () =>
+        document.activeElement?.getAttribute('data-testid') ===
+        'country-selector-trigger',
+      undefined,
+      { timeout: 3_000 },
+    );
 
     const composableRoot = page.getByTestId('composable-root');
     const composableInput = page.getByTestId('composable-input');
@@ -433,6 +553,9 @@ async function verifyPackedBrowser(destination, consumer) {
     if (pageErrors.length > 0) {
       throw new Error(`Packed consumer page errors: ${pageErrors.join('\n')}`);
     }
+    if (consoleErrors.length > 0) {
+      throw new Error(`Packed consumer console errors: ${consoleErrors.join('\n')}`);
+    }
   } finally {
     await browser?.close();
     await stopServer(serverProcess);
@@ -491,6 +614,9 @@ try {
     );
 
     run('pnpm', ['--dir', destination, 'install', '--frozen-lockfile=false']);
+    if (consumer === 'next-consumer') {
+      run('pnpm', ['--dir', destination, 'exec', 'node', 'server-render-probe.mjs']);
+    }
     run('pnpm', ['--dir', destination, 'build']);
     await verifyPackedBrowser(destination, consumer);
     console.log(

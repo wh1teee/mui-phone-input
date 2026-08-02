@@ -218,6 +218,19 @@ import {
 
 The server entrypoint imports no React, MUI, Emotion, DOM, or browser globals.
 
+## SSR and hydration
+
+Use explicit initial values, countries, locale and placeholders when the server
+and client must produce the same first render. The package does not read
+`navigator`, GeoIP, storage or browser locale during server render.
+
+The release verifier installs the exact `.tgz` in a Next.js App Router
+application and compares semantic snapshots from JavaScript-disabled server
+output and the post-hydration DOM for empty, geographic, unresolved shared-code
+and non-geographic states. The same tarball is production-built and exercised
+in Vite. Import pure helpers from `@whiteee/mui-phone-input/server`; that entry
+contains no MUI or React component graph.
+
 ## MUI customization
 
 The component registers `MuiPhoneInput` in the MUI theme and exposes stable
