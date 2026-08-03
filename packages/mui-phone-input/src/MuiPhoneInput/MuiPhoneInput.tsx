@@ -18,6 +18,7 @@ import {
   useMemo,
 } from 'react';
 
+import type { PhoneCountrySelectionResult } from '../country-selector';
 import {
   type PhoneCountrySelectorClasses,
   PhoneInputCountrySelector,
@@ -81,6 +82,7 @@ export type MuiPhoneInputProps = Omit<
     country: CountryCode | null,
     details: PhoneCountryChangeDetails,
   ) => void;
+  onCountrySelection?: (result: PhoneCountrySelectionResult) => void;
   readOnly?: boolean;
   ref?: Ref<HTMLInputElement>;
   selectedCountry?: CountryCode | null;
@@ -232,6 +234,7 @@ export function MuiPhoneInput(inProps: MuiPhoneInputProps): ReactNode {
     id,
     onChange,
     onCountryChange,
+    onCountrySelection,
     readOnly = false,
     ref: inputRefProp,
     required = false,
@@ -258,6 +261,7 @@ export function MuiPhoneInput(inProps: MuiPhoneInputProps): ReactNode {
     ...(id === undefined ? {} : { id }),
     ...(onChange === undefined ? {} : { onChange }),
     ...(onCountryChange === undefined ? {} : { onCountryChange }),
+    ...(onCountrySelection === undefined ? {} : { onCountrySelection }),
     ...(Object.hasOwn(props, 'selectedCountry') ? { selectedCountry } : {}),
     ...(validationMessage === undefined ? {} : { validationMessage }),
   });

@@ -3,6 +3,7 @@
 import {
   MuiPhoneInput,
   type PhoneCountryChangeDetails,
+  type PhoneCountrySelectionResult,
   type PhoneInputChangeDetails,
   PhoneInputCountrySelector,
   PhoneInputInput,
@@ -21,6 +22,8 @@ export function PhoneInputSmoke() {
   const [value, setValue] = useState<PhoneValue>();
   const [callbackCount, setCallbackCount] = useState(0);
   const [countryDetails, setCountryDetails] = useState<PhoneCountryChangeDetails>();
+  const [countrySelection, setCountrySelection] =
+    useState<PhoneCountrySelectionResult>();
   const [details, setDetails] = useState<PhoneInputChangeDetails>();
 
   return (
@@ -35,6 +38,7 @@ export function PhoneInputSmoke() {
             setCallbackCount((count) => count + 1);
           }}
           onCountryChange={(_country, nextDetails) => setCountryDetails(nextDetails)}
+          onCountrySelection={setCountrySelection}
           ref={inputRef}
           slotProps={{
             countrySelector: {
@@ -53,6 +57,9 @@ export function PhoneInputSmoke() {
         </output>
         <output data-testid="country-change-details">
           {countryDetails ? JSON.stringify(countryDetails) : ''}
+        </output>
+        <output data-testid="country-selection-details">
+          {countrySelection ? JSON.stringify(countrySelection) : ''}
         </output>
         <button
           onClick={() => {

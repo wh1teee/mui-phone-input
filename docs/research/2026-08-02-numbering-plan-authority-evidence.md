@@ -26,6 +26,12 @@ or selected-country context does not emit a user `onChange` callback. Country
 state transitions are reported separately through typed `onCountryChange`
 details with complete previous and next Numbering Plans.
 
+Country-selection conversion is modeled separately by the lossless typed
+transaction recorded in
+`2026-08-03-lossless-country-selection-evidence.md`. Numbering Plan Resolution
+remains the authority used to accept a candidate or preserve the original
+draft as a conflict.
+
 ## Authority boundary
 
 `libphonenumber-js@1.13.10` is the only numbering authority.

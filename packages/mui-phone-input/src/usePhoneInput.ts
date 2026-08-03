@@ -22,7 +22,10 @@ import {
   useState,
 } from 'react';
 
-import { selectPhoneCountryValue } from './country-selector';
+import {
+  type PhoneCountrySelectionResult,
+  resolvePhoneCountrySelection,
+} from './country-selector';
 import type { InputEngineContext } from './internal/input-transaction-engine';
 import { useInputTransactionEngineBridge } from './internal/use-input-transaction-engine';
 import { type NumberingPlanResolution, resolveNumberingPlan } from './numbering-plan';
@@ -89,6 +92,7 @@ export interface UsePhoneInputParameters {
     country: CountryCode | null,
     details: PhoneCountryChangeDetails,
   ) => void;
+  onCountrySelection?: (result: PhoneCountrySelectionResult) => void;
   readOnly?: boolean;
   required?: boolean;
   selectedCountry?: CountryCode | null;
@@ -124,7 +128,7 @@ export interface PhoneInputActions {
   clear(): void;
   focus(): void;
   reset(): void;
-  selectCountry(country: CountryCode): void;
+  selectCountry(country: CountryCode): PhoneCountrySelectionResult;
 }
 
 export type PhoneInputDataAttributes = {
@@ -339,6 +343,7 @@ function usePhoneInputInternal(
     id,
     onChange,
     onCountryChange,
+    onCountrySelection,
     readOnly = false,
     required = false,
     selectedCountry,
@@ -808,16 +813,21 @@ function usePhoneInputInternal(
       assertCountry(country, 'selected');
       const previousCountry = currentSelectedCountryRef.current;
       const previousValue = currentValueRef.current;
-      const nextValue = selectPhoneCountryValue(previousValue, country);
+      const selection = resolvePhoneCountrySelection(previousValue, country);
 
-      if (!countryControlledRef.current) {
-        currentSelectedCountryRef.current = country;
-        setUncontrolledCountry(country);
+      if (selection.status === 'applied') {
+        if (!countryControlledRef.current) {
+          currentSelectedCountryRef.current = country;
+          setUncontrolledCountry(country);
+        }
+
+        commit(selection.value, 'country-selection', country, previousCountry);
       }
 
-      commit(nextValue ?? '', 'country-selection', country, previousCountry);
+      onCountrySelection?.(selection);
+      return selection;
     },
-    [commit],
+    [commit, onCountrySelection],
   );
   const actions = useMemo<PhoneInputActions>(
     () => ({ clear, focus, reset: resetState, selectCountry }),

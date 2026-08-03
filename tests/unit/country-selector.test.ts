@@ -1,8 +1,15 @@
+import mobileExamples from 'libphonenumber-js/examples.mobile.json';
+import {
+  getCountries,
+  getCountryCallingCode,
+  getExampleNumber,
+} from 'libphonenumber-js/max';
 import { describe, expect, it } from 'vitest';
 
 import {
   createPhoneCountryOptions,
   filterPhoneCountryOptions,
+  resolvePhoneCountrySelection,
   selectPhoneCountryValue,
 } from '../../packages/mui-phone-input/src/country-selector';
 
@@ -72,7 +79,65 @@ describe('country selection transaction', () => {
     expect(selectPhoneCountryValue('+12025550123', 'BY')).toBe('+3752025550123');
   });
 
-  it('falls back to the calling code when shared-code digits conflict', () => {
-    expect(selectPhoneCountryValue('+12025550123', 'CA')).toBe('+1');
+  it('preserves the draft and exposes a typed shared-code conflict', () => {
+    expect(resolvePhoneCountrySelection('+12025550123', 'CA')).toMatchObject({
+      candidateValue: '+12025550123',
+      country: 'CA',
+      numberingPlan: { resolvedCountry: 'US', selectedCountry: null },
+      previousNumberingPlan: { resolvedCountry: 'US', selectedCountry: null },
+      previousValue: '+12025550123',
+      reason: 'incompatible-draft',
+      status: 'conflict',
+      value: '+12025550123',
+    });
+    expect(selectPhoneCountryValue('+12025550123', 'CA')).toBe('+12025550123');
+  });
+
+  it('preserves complete non-geographic drafts as an explicit conflict', () => {
+    expect(resolvePhoneCountrySelection('+80012345678', 'BY')).toMatchObject({
+      country: 'BY',
+      previousValue: '+80012345678',
+      reason: 'non-geographic-draft',
+      status: 'conflict',
+      value: '+80012345678',
+    });
+  });
+
+  it('proves every authority example pair avoids a bare-calling-code collapse', () => {
+    const countries = getCountries().filter((country) =>
+      Boolean(getExampleNumber(country, mobileExamples)),
+    );
+    let pairCount = 0;
+    let appliedCount = 0;
+    let conflictCount = 0;
+
+    for (const sourceCountry of countries) {
+      const sourceValue = getExampleNumber(sourceCountry, mobileExamples)?.number;
+      expect(sourceValue).toBeDefined();
+
+      for (const targetCountry of countries) {
+        if (sourceCountry === targetCountry) {
+          continue;
+        }
+        pairCount += 1;
+        const result = resolvePhoneCountrySelection(
+          sourceValue as `+${string}`,
+          targetCountry,
+        );
+        const bareCallingCode = `+${getCountryCallingCode(targetCountry)}`;
+
+        if (result.status === 'conflict') {
+          conflictCount += 1;
+          expect(result.value).toBe(sourceValue);
+        } else {
+          appliedCount += 1;
+          expect(result.value).not.toBe(bareCallingCode);
+        }
+      }
+    }
+
+    expect(pairCount).toBe(59_780);
+    expect(appliedCount).toBe(57_018);
+    expect(conflictCount).toBe(2_762);
   });
 });

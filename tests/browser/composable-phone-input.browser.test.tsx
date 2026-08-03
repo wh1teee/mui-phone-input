@@ -6,6 +6,7 @@ import { render } from 'vitest-browser-react';
 import {
   type PhoneCountryChangeDetails,
   type PhoneCountryChangeReason,
+  type PhoneCountrySelectionResult,
   PhoneInputInput,
   PhoneInputProvider,
   PhoneInputRoot,
@@ -246,6 +247,70 @@ function RejectedControlledCountrySelectionHarness() {
       </output>
       <button onClick={() => phone.actions.selectCountry('BY')} type="button">
         Reject controlled Belarus
+      </button>
+    </>
+  );
+}
+
+function CountrySelectionConflictHarness() {
+  const [changeCount, setChangeCount] = useState(0);
+  const [actionResult, setActionResult] = useState<PhoneCountrySelectionResult>();
+  const [selectionEvents, setSelectionEvents] = useState<PhoneCountrySelectionResult[]>(
+    [],
+  );
+  const phone = usePhoneInput({
+    defaultValue: '+12025550123',
+    onChange: () => setChangeCount((count) => count + 1),
+    onCountrySelection: (result) => setSelectionEvents((events) => [...events, result]),
+  });
+
+  return (
+    <>
+      <input {...phone.getInputProps({ 'data-testid': 'country-conflict-input' })} />
+      <output data-testid="country-conflict-change-count">{changeCount}</output>
+      <output data-testid="country-conflict-events">
+        {JSON.stringify(selectionEvents)}
+      </output>
+      <output data-testid="country-conflict-action-result">
+        {actionResult ? JSON.stringify(actionResult) : ''}
+      </output>
+      <button
+        onClick={() => setActionResult(phone.actions.selectCountry('CA'))}
+        type="button"
+      >
+        Select conflicting Canada
+      </button>
+    </>
+  );
+}
+
+function CountrySelectionAppliedHarness() {
+  const [changeCount, setChangeCount] = useState(0);
+  const [actionResult, setActionResult] = useState<PhoneCountrySelectionResult>();
+  const [selectionEvents, setSelectionEvents] = useState<PhoneCountrySelectionResult[]>(
+    [],
+  );
+  const phone = usePhoneInput({
+    defaultValue: '+12025550123',
+    onChange: () => setChangeCount((count) => count + 1),
+    onCountrySelection: (result) => setSelectionEvents((events) => [...events, result]),
+  });
+
+  return (
+    <>
+      <input {...phone.getInputProps({ 'data-testid': 'country-applied-input' })} />
+      <output data-testid="country-applied-change-count">{changeCount}</output>
+      <output data-testid="country-applied-events">
+        {JSON.stringify(selectionEvents)}
+      </output>
+      <output data-testid="country-applied-action-result">
+        {actionResult ? JSON.stringify(actionResult) : ''}
+      </output>
+      <button
+        onClick={() => setActionResult(phone.actions.selectCountry('BY'))}
+        type="button"
+      >
+        Select compatible Belarus
       </button>
     </>
   );
@@ -551,6 +616,69 @@ describe('usePhoneInput and composable primitives', () => {
       numberingPlan: { resolvedCountry: 'BY', selectedCountry: null },
       previousCountry: 'BY',
       previousNumberingPlan: { resolvedCountry: 'BY', selectedCountry: 'BY' },
+    });
+  });
+
+  test('preserves a conflicting country-selection draft and emits one typed result', async () => {
+    render(<CountrySelectionConflictHarness />);
+    const input = page.getByTestId('country-conflict-input');
+    const eventOutput = page.getByTestId('country-conflict-events');
+
+    await userEvent.click(
+      page.getByRole('button', { name: 'Select conflicting Canada' }),
+    );
+    await expect.element(input).toHaveValue('+12025550123');
+    await expect
+      .element(page.getByTestId('country-conflict-change-count'))
+      .toHaveTextContent('0');
+    await expect.element(eventOutput).toHaveTextContent('"status":"conflict"');
+
+    const events = JSON.parse(
+      eventOutput.element().textContent ?? '',
+    ) as PhoneCountrySelectionResult[];
+    expect(events).toHaveLength(1);
+    expect(
+      JSON.parse(
+        page.getByTestId('country-conflict-action-result').element().textContent ?? '',
+      ),
+    ).toEqual(events[0]);
+    expect(events[0]).toMatchObject({
+      country: 'CA',
+      previousValue: '+12025550123',
+      reason: 'incompatible-draft',
+      status: 'conflict',
+      value: '+12025550123',
+    });
+  });
+
+  test('commits a compatible country selection once through the shared result', async () => {
+    render(<CountrySelectionAppliedHarness />);
+    const eventOutput = page.getByTestId('country-applied-events');
+
+    await userEvent.click(
+      page.getByRole('button', { name: 'Select compatible Belarus' }),
+    );
+    await expect
+      .element(page.getByTestId('country-applied-input'))
+      .toHaveValue('+3752025550123');
+    await expect
+      .element(page.getByTestId('country-applied-change-count'))
+      .toHaveTextContent('1');
+
+    const events = JSON.parse(
+      eventOutput.element().textContent ?? '',
+    ) as PhoneCountrySelectionResult[];
+    expect(events).toHaveLength(1);
+    expect(
+      JSON.parse(
+        page.getByTestId('country-applied-action-result').element().textContent ?? '',
+      ),
+    ).toEqual(events[0]);
+    expect(events[0]).toMatchObject({
+      country: 'BY',
+      reason: 'national-digits-preserved',
+      status: 'applied',
+      value: '+3752025550123',
     });
   });
 

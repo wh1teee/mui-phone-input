@@ -7,6 +7,12 @@ export {
   filterPhoneCountryOptions,
   type PhoneCountryNameResolver,
   type PhoneCountryOption,
+  type PhoneCountrySelectionAppliedReason,
+  type PhoneCountrySelectionAppliedResult,
+  type PhoneCountrySelectionConflictReason,
+  type PhoneCountrySelectionConflictResult,
+  type PhoneCountrySelectionResult,
+  resolvePhoneCountrySelection,
   selectPhoneCountryValue,
 } from './country-selector';
 export * from './MuiPhoneInput';

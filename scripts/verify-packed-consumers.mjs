@@ -462,6 +462,22 @@ async function verifyPackedBrowser(destination, consumer) {
         `Packed country-change details are invalid: ${JSON.stringify(countryChangeDetails)}`,
       );
     }
+    const countrySelectionDetails = JSON.parse(
+      (await page.getByTestId('country-selection-details').textContent()) || '{}',
+    );
+    if (
+      countrySelectionDetails.country !== 'BY' ||
+      countrySelectionDetails.previousValue !== undefined ||
+      countrySelectionDetails.candidateValue !== '+375' ||
+      countrySelectionDetails.value !== '+375' ||
+      countrySelectionDetails.reason !== 'calling-code-initialized' ||
+      countrySelectionDetails.status !== 'applied' ||
+      countrySelectionDetails.numberingPlan?.selectedCountry !== 'BY'
+    ) {
+      throw new Error(
+        `Packed country-selection result is invalid: ${JSON.stringify(countrySelectionDetails)}`,
+      );
+    }
     await page.waitForFunction(
       () =>
         document.activeElement?.getAttribute('data-testid') ===

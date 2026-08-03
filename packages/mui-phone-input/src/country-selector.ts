@@ -5,7 +5,7 @@ import {
   isSupportedCountry,
 } from 'libphonenumber-js/max';
 
-import { resolveNumberingPlan } from './numbering-plan';
+import { type NumberingPlanResolution, resolveNumberingPlan } from './numbering-plan';
 import { assertPhoneValue, type PhoneValue } from './phone-value';
 
 export interface PhoneCountryOption {
@@ -36,6 +36,42 @@ export interface FilterPhoneCountryOptionsParameters {
   limit?: number;
   selectedCountry?: CountryCode | null;
 }
+
+export type PhoneCountrySelectionAppliedReason =
+  | 'calling-code-initialized'
+  | 'calling-code-preserved'
+  | 'national-digits-preserved';
+
+export type PhoneCountrySelectionConflictReason =
+  | 'incompatible-draft'
+  | 'non-geographic-draft';
+
+interface PhoneCountrySelectionResultBase {
+  candidateNumberingPlan: NumberingPlanResolution;
+  candidateValue: Exclude<PhoneValue, undefined>;
+  country: CountryCode;
+  numberingPlan: NumberingPlanResolution;
+  previousNumberingPlan: NumberingPlanResolution;
+  previousValue: PhoneValue;
+  value: PhoneValue;
+}
+
+export interface PhoneCountrySelectionAppliedResult
+  extends PhoneCountrySelectionResultBase {
+  reason: PhoneCountrySelectionAppliedReason;
+  status: 'applied';
+  value: Exclude<PhoneValue, undefined>;
+}
+
+export interface PhoneCountrySelectionConflictResult
+  extends PhoneCountrySelectionResultBase {
+  reason: PhoneCountrySelectionConflictReason;
+  status: 'conflict';
+}
+
+export type PhoneCountrySelectionResult =
+  | PhoneCountrySelectionAppliedResult
+  | PhoneCountrySelectionConflictResult;
 
 function createDisplayNames(locale: string): Intl.DisplayNames | null {
   try {
@@ -217,23 +253,70 @@ export function filterPhoneCountryOptions(
   return bounded;
 }
 
-export function selectPhoneCountryValue(
+export function resolvePhoneCountrySelection(
   value: PhoneValue,
   country: CountryCode,
-): PhoneValue {
+): PhoneCountrySelectionResult {
   assertPhoneValue(value);
   assertSupportedCountry(country, 'selected');
 
   const callingCode = getCountryCallingCode(country);
   const currentDigits = value?.slice(1) ?? '';
-  const currentPlan = resolveNumberingPlan(value);
-  const nationalDigits = currentPlan.countryCallingCode
-    ? currentDigits.slice(currentPlan.countryCallingCode.length)
+  const previousNumberingPlan = resolveNumberingPlan(value);
+  const nationalDigits = previousNumberingPlan.countryCallingCode
+    ? currentDigits.slice(previousNumberingPlan.countryCallingCode.length)
     : currentDigits;
-  const candidate = `+${callingCode}${nationalDigits}` as PhoneValue;
-  const candidatePlan = resolveNumberingPlan(candidate, { selectedCountry: country });
+  const candidate = `+${callingCode}${nationalDigits}` as Exclude<
+    PhoneValue,
+    undefined
+  >;
+  const candidateNumberingPlan = resolveNumberingPlan(candidate, {
+    selectedCountry: country,
+  });
+  const conflictReason =
+    previousNumberingPlan.kind === 'non-geographic' && nationalDigits.length > 0
+      ? 'non-geographic-draft'
+      : candidateNumberingPlan.selectedCountry !== country
+        ? 'incompatible-draft'
+        : null;
 
-  return candidatePlan.selectedCountry === country
-    ? candidate
-    : (`+${callingCode}` as PhoneValue);
+  if (conflictReason) {
+    return Object.freeze({
+      candidateNumberingPlan,
+      candidateValue: candidate,
+      country,
+      numberingPlan: previousNumberingPlan,
+      previousNumberingPlan,
+      previousValue: value,
+      reason: conflictReason,
+      status: 'conflict',
+      value,
+    });
+  }
+
+  const reason: PhoneCountrySelectionAppliedReason =
+    nationalDigits.length === 0
+      ? 'calling-code-initialized'
+      : previousNumberingPlan.countryCallingCode === callingCode
+        ? 'calling-code-preserved'
+        : 'national-digits-preserved';
+
+  return Object.freeze({
+    candidateNumberingPlan,
+    candidateValue: candidate,
+    country,
+    numberingPlan: candidateNumberingPlan,
+    previousNumberingPlan,
+    previousValue: value,
+    reason,
+    status: 'applied',
+    value: candidate,
+  });
+}
+
+export function selectPhoneCountryValue(
+  value: PhoneValue,
+  country: CountryCode,
+): PhoneValue {
+  return resolvePhoneCountrySelection(value, country).value;
 }

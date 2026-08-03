@@ -116,6 +116,18 @@ assert.match(
   clientTypes,
   /onCountryChange\?: \(country: CountryCode \| null, details: PhoneCountryChangeDetails\) => void;/u,
 );
+assert.match(
+  clientTypes,
+  /type PhoneCountrySelectionResult = PhoneCountrySelectionAppliedResult \| PhoneCountrySelectionConflictResult;/u,
+);
+assert.match(
+  clientTypes,
+  /onCountrySelection\?: \(result: PhoneCountrySelectionResult\) => void;/u,
+);
+assert.match(
+  clientTypes,
+  /selectCountry\(country: CountryCode\): PhoneCountrySelectionResult;/u,
+);
 assert.equal(typeof clientModule.MuiPhoneInput, 'function');
 assert.equal(serverModule.MuiPhoneInput, undefined);
 for (const clientExport of [
@@ -126,6 +138,7 @@ for (const clientExport of [
   'PhoneInputValidationMessage',
   'createPhoneCountryOptions',
   'filterPhoneCountryOptions',
+  'resolvePhoneCountrySelection',
   'selectPhoneCountryValue',
   'usePhoneInput',
   'usePhoneInputContext',
@@ -147,6 +160,42 @@ assert.equal(
 assert.equal(
   clientModule.selectPhoneCountryValue('+12025550123', 'BY'),
   '+3752025550123',
+);
+assert.deepEqual(clientModule.resolvePhoneCountrySelection('+12025550123', 'CA'), {
+  candidateNumberingPlan: {
+    countryCallingCode: '1',
+    detectedCountry: 'US',
+    kind: 'geographic',
+    possibleCountries: ['US'],
+    resolvedCountry: 'US',
+    selectedCountry: null,
+  },
+  candidateValue: '+12025550123',
+  country: 'CA',
+  numberingPlan: {
+    countryCallingCode: '1',
+    detectedCountry: 'US',
+    kind: 'geographic',
+    possibleCountries: ['US'],
+    resolvedCountry: 'US',
+    selectedCountry: null,
+  },
+  previousNumberingPlan: {
+    countryCallingCode: '1',
+    detectedCountry: 'US',
+    kind: 'geographic',
+    possibleCountries: ['US'],
+    resolvedCountry: 'US',
+    selectedCountry: null,
+  },
+  previousValue: '+12025550123',
+  reason: 'incompatible-draft',
+  status: 'conflict',
+  value: '+12025550123',
+});
+assert.equal(
+  clientModule.selectPhoneCountryValue('+12025550123', 'CA'),
+  '+12025550123',
 );
 const sharedPlan = serverModule.resolveNumberingPlan('+1');
 assert.deepEqual(sharedPlan, {

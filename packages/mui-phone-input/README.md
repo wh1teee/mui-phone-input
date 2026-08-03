@@ -94,6 +94,24 @@ stream rather than an unconditional setter. Update `selectedCountry` for
 detected/resolved transitions remain observable without overwriting explicit
 ownership.
 
+Country selection is lossless. Use `onCountrySelection` or the return value of
+`actions.selectCountry` to observe whether the request was applied or conflicted:
+
+```tsx
+<MuiPhoneInput
+  onCountrySelection={(result) => {
+    if (result.status === 'conflict') {
+      console.log(result.reason, result.previousValue, result.candidateValue);
+    }
+  }}
+/>
+```
+
+`resolvePhoneCountrySelection(value, country)` exposes the same pure typed
+transaction. `selectPhoneCountryValue` remains a value-only wrapper. Compatible
+national digits are retained; an incompatible or non-geographic draft remains
+unchanged instead of collapsing to the target calling code.
+
 The default `mode="auto"` uses a desktop Popper and a mobile full-screen Dialog
 with one shared search draft. Set `mode="desktop"` or `"mobile"` for an explicit
 presentation. `portalContainer` controls the portal target and `disablePortal`

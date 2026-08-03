@@ -2,6 +2,7 @@ import { createTheme, ThemeProvider } from '@mui/material/styles';
 import {
   MuiPhoneInput,
   type PhoneCountryChangeDetails,
+  type PhoneCountrySelectionResult,
   type PhoneInputChangeDetails,
   PhoneInputCountrySelector,
   PhoneInputInput,
@@ -30,6 +31,8 @@ function PackedPhoneInput() {
   const [value, setValue] = useState<PhoneValue>();
   const [callbackCount, setCallbackCount] = useState(0);
   const [countryDetails, setCountryDetails] = useState<PhoneCountryChangeDetails>();
+  const [countrySelection, setCountrySelection] =
+    useState<PhoneCountrySelectionResult>();
   const [details, setDetails] = useState<PhoneInputChangeDetails>();
 
   return (
@@ -43,6 +46,7 @@ function PackedPhoneInput() {
           setCallbackCount((count) => count + 1);
         }}
         onCountryChange={(_country, nextDetails) => setCountryDetails(nextDetails)}
+        onCountrySelection={setCountrySelection}
         ref={inputRef}
         slotProps={{
           countrySelector: {
@@ -61,6 +65,9 @@ function PackedPhoneInput() {
       </output>
       <output data-testid="country-change-details">
         {countryDetails ? JSON.stringify(countryDetails) : ''}
+      </output>
+      <output data-testid="country-selection-details">
+        {countrySelection ? JSON.stringify(countrySelection) : ''}
       </output>
       <button
         onClick={() => {
