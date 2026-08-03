@@ -33,6 +33,18 @@ for (const requiredFile of [
 
 assert.doesNotMatch(contents, /^package\/src\//mu);
 
+const packedManifest = JSON.parse(
+  execFileSync('tar', ['-xOf', tarball, 'package/package.json'], {
+    cwd: repositoryRoot,
+    encoding: 'utf8',
+  }),
+);
+assert.equal(
+  packedManifest.engines,
+  undefined,
+  'Published package metadata must not expose the maintainer Node floor.',
+);
+
 const packedClientSourceMap = JSON.parse(
   execFileSync('tar', ['-xOf', tarball, 'package/dist/index.js.map'], {
     cwd: repositoryRoot,

@@ -18,7 +18,10 @@ pnpm add @whiteee/mui-phone-input @mui/material @emotion/react @emotion/styled
 ```
 
 React 19, React DOM 19, and MUI 9 are peer dependencies. The package is ESM
-only and requires Node 24+ for tooling.
+only and intentionally has no published Node engine constraint, so browser
+consumers are not blocked by the repository toolchain. Exact tarballs are
+installed and loaded under Node 22 and Node 24; repository development and
+release tooling requires Node 24 LTS.
 
 ## Controlled usage
 

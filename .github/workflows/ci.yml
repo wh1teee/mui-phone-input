@@ -26,6 +26,23 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm exec playwright install --with-deps chromium
       - run: pnpm ci:pr
+      - id: published-runtime-artifact
+        run: |
+          artifact_dir="$RUNNER_TEMP/mui-phone-input-runtime"
+          rm -rf "$artifact_dir"
+          mkdir -p "$artifact_dir"
+          pnpm build
+          pnpm --dir packages/mui-phone-input pack --pack-destination "$artifact_dir"
+          artifact_path="$(find "$artifact_dir" -maxdepth 1 -name '*.tgz' -print -quit)"
+          test -n "$artifact_path"
+          echo "tarball=$artifact_path" >> "$GITHUB_OUTPUT"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.23.1
+      - run: >-
+          node scripts/verify-published-runtime.mjs
+          --expected-major=22
+          --artifact="${{ steps.published-runtime-artifact.outputs.tarball }}"
 
   node-26-forward:
     name: Node 26 forward signal

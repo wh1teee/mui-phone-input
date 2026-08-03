@@ -21,6 +21,16 @@ A highly customizable, accessible phone input for React and Material UI, with `l
 
 The target npm package name is `@whiteee/mui-phone-input`. This machine is not authenticated to npm, so scope ownership and Trusted Publishing approval are tracked as the human release gate `mpi-g7a`; implementation may proceed, but registry publication may not.
 
+## Runtime support
+
+Repository installation, development, and release tooling require Node 24 LTS.
+That maintainer requirement is intentionally not published as a package engine
+constraint: browser consumers must not be rejected before their bundler can
+consume the ESM entrypoint. Exact package tarballs are installed with
+`engine-strict=true` and load both the main and neutral server entrypoints under
+Node 22 and Node 24. Node 22 is the current demonstrated consumer runtime floor;
+lower Node versions are not part of the support contract.
+
 See the [product context](./CONTEXT.md), [architecture decisions](./docs/adr), [specification](./docs/specs/0001-mui-phone-input-1.0.md), [implementation-readiness research](./docs/research/2026-08-02-implementation-readiness-review.md), and [donor manifest](./DONORS.md).
 
 Execution is tracked exclusively in Beads/Dolt under epic `mpi-oan`. Run

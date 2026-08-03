@@ -38,6 +38,10 @@ const productionDependenciesVerifier = await readFile(
   'scripts/verify-production-dependencies.mjs',
   'utf8',
 );
+const publishedRuntimeVerifier = await readFile(
+  'scripts/verify-published-runtime.mjs',
+  'utf8',
+);
 
 assert.equal(rootPackage.private, true);
 assert.match(rootPackage.packageManager, /^pnpm@11\./u);
@@ -46,6 +50,7 @@ assert.match(rootPackage.engines.node, /24/u);
 assert.equal(packageManifest.name, '@whiteee/mui-phone-input');
 assert.equal(packageManifest.type, 'module');
 assert.equal(packageManifest.sideEffects, false);
+assert.equal(packageManifest.engines, undefined);
 assert.equal(packageManifest.peerDependencies.react, '^19.0.0');
 assert.equal(packageManifest.peerDependencies['@mui/material'], '^9.0.0');
 assert.equal(packageManifest.peerDependencies['@emotion/react'], '^11.14.0');
@@ -112,6 +117,8 @@ assert.match(ciWorkflow, /node-version:\s*26/u);
 assert.match(ciWorkflow, /continue-on-error:\s*true/u);
 assert.match(rootPackage.scripts['ci:pr'], /verify:production-dependencies/u);
 assert.match(rootPackage.scripts['ci:forward'], /verify:production-dependencies/u);
+assert.match(rootPackage.scripts['ci:pr'], /verify:published-runtime/u);
+assert.match(rootPackage.scripts['verify:published-runtime'], /expected-major=24/u);
 assert.match(rootPackage.scripts['ci:pr'], /verify:package-concurrency/u);
 assert.match(packageArtifactSource, /mkdtemp\(join\(artifactsDirectory, ['"]run-/u);
 assert.doesNotMatch(packageArtifactSource, /rm\(artifactsDirectory/u);
@@ -122,5 +129,11 @@ assert.match(
   productionDependenciesVerifier,
   /auditResult\.status\s*===\s*0\s*\|\|\s*advisories\.length\s*>\s*0/u,
 );
+assert.match(publishedRuntimeVerifier, /engine-strict=true/u);
+assert.match(publishedRuntimeVerifier, /@whiteee\/mui-phone-input\/server/u);
+assert.match(publishedRuntimeVerifier, /--artifact=/u);
+assert.match(ciWorkflow, /node-version:\s*22\.23\.1/u);
+assert.match(ciWorkflow, /verify-published-runtime\.mjs\s+--expected-major=22/u);
+assert.match(ciWorkflow, /published-runtime-artifact\.outputs\.tarball/u);
 
 console.log('Workspace contract verified.');

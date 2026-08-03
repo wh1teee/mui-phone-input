@@ -73,9 +73,6 @@
     },
     "./package.json": "./package.json"
   },
-  "engines": {
-    "node": ">=24"
-  },
   "browserslist": [
     "Chrome >= 117",
     "Edge >= 121",
