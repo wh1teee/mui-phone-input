@@ -317,6 +317,43 @@ function CountrySelectionAppliedHarness() {
   );
 }
 
+function ImpossibleCountrySelectionHarness() {
+  const [changeCount, setChangeCount] = useState(0);
+  const [countryChangeCount, setCountryChangeCount] = useState(0);
+  const [actionResult, setActionResult] = useState<PhoneCountrySelectionResult>();
+  const [selectionEvents, setSelectionEvents] = useState<PhoneCountrySelectionResult[]>(
+    [],
+  );
+  const phone = usePhoneInput({
+    defaultValue: '+24740123',
+    onChange: () => setChangeCount((count) => count + 1),
+    onCountryChange: () => setCountryChangeCount((count) => count + 1),
+    onCountrySelection: (result) => setSelectionEvents((events) => [...events, result]),
+  });
+
+  return (
+    <>
+      <input {...phone.getInputProps({ 'data-testid': 'country-impossible-input' })} />
+      <output data-testid="country-impossible-change-count">{changeCount}</output>
+      <output data-testid="country-impossible-country-change-count">
+        {countryChangeCount}
+      </output>
+      <output data-testid="country-impossible-events">
+        {JSON.stringify(selectionEvents)}
+      </output>
+      <output data-testid="country-impossible-action-result">
+        {actionResult ? JSON.stringify(actionResult) : ''}
+      </output>
+      <button
+        onClick={() => setActionResult(phone.actions.selectCountry('AZ'))}
+        type="button"
+      >
+        Select impossible Azerbaijan
+      </button>
+    </>
+  );
+}
+
 function PartialCountryPrefixHarness() {
   const [changeCount, setChangeCount] = useState(0);
   const [selectionEvents, setSelectionEvents] = useState<PhoneCountrySelectionResult[]>(
@@ -707,6 +744,44 @@ describe('usePhoneInput and composable primitives', () => {
       reason: 'national-digits-preserved',
       status: 'applied',
       value: '+4940123',
+    });
+  });
+
+  test('rejects an impossible target without value or country callbacks', async () => {
+    render(<ImpossibleCountrySelectionHarness />);
+    const input = page.getByTestId('country-impossible-input');
+    const countryChangeCount = page.getByTestId(
+      'country-impossible-country-change-count',
+    );
+
+    await expect.element(input).toHaveValue('+24740123');
+    await expect.element(countryChangeCount).toHaveTextContent('1');
+    await userEvent.click(
+      page.getByRole('button', { name: 'Select impossible Azerbaijan' }),
+    );
+    await expect.element(input).toHaveValue('+24740123');
+    await expect
+      .element(page.getByTestId('country-impossible-change-count'))
+      .toHaveTextContent('0');
+    await expect.element(countryChangeCount).toHaveTextContent('1');
+
+    const events = JSON.parse(
+      page.getByTestId('country-impossible-events').element().textContent ?? '',
+    ) as PhoneCountrySelectionResult[];
+    expect(events).toHaveLength(1);
+    expect(
+      JSON.parse(
+        page.getByTestId('country-impossible-action-result').element().textContent ??
+          '',
+      ),
+    ).toEqual(events[0]);
+    expect(events[0]).toMatchObject({
+      candidateValue: '+99440123',
+      country: 'AZ',
+      previousValue: '+24740123',
+      reason: 'impossible-target-draft',
+      status: 'conflict',
+      value: '+24740123',
     });
   });
 

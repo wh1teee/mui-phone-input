@@ -28,9 +28,11 @@ details with complete previous and next Numbering Plans.
 
 Country-selection conversion is modeled separately by the lossless typed
 transaction recorded in
-`2026-08-03-lossless-country-selection-evidence.md`. Numbering Plan Resolution
-remains the authority used to accept a candidate or preserve the original
-draft as a conflict.
+`2026-08-03-lossless-country-selection-evidence.md`. Complete-source target
+possibility and typed impossible-target conflicts are recorded in
+`2026-08-03-impossible-target-country-conversion-evidence.md`. Numbering Plan
+Resolution remains the authority used to accept a candidate or preserve the
+original draft as a conflict.
 
 ## Authority boundary
 
@@ -43,6 +45,9 @@ draft as a conflict.
 - selected-country number-type patterns from the same max metadata prove
   whether an incomplete draft can still become valid without treating
   temporary length narrowing as incompatibility;
+- generic and selected-country-only possibility distinguish an incomplete
+  convertible draft from a complete source whose target candidate is
+  structurally impossible;
 - `isSupportedCountry()` validates explicit configuration.
 
 The package contains no handwritten country/calling-code table and no

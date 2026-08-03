@@ -23,7 +23,8 @@
       "tests/unit/numbering-plan-entrypoints.test.ts",
       "tests/browser/mui-phone-input.browser.test.tsx",
       "docs/research/2026-08-02-numbering-plan-authority-evidence.md",
-      "docs/research/2026-08-03-explicit-country-draft-authority-evidence.md"
+      "docs/research/2026-08-03-explicit-country-draft-authority-evidence.md",
+      "docs/research/2026-08-03-impossible-target-country-conversion-evidence.md"
     ]
   },
   "validationDecision": {
@@ -53,6 +54,7 @@
         "getCountryCallingCode",
         "formatIncompletePhoneNumber",
         "PhoneNumber.getPossibleCountries",
+        "isPossiblePhoneNumber",
         "PhoneNumber.isPossible",
         "PhoneNumber.isValid",
         "PhoneNumber.getType",
@@ -70,6 +72,7 @@
       "knownIssues": [
         "It is a numbering authority, not an input-selection or country-selector engine.",
         "PhoneNumber.getPossibleCountries narrows shared plans by current length and is not proof that an explicit compatible draft became impossible.",
+        "A target candidate that remains an authority-compatible prefix can still be impossible at its current target-country length.",
         "Metadata variants intentionally provide different validation precision."
       ]
     },
@@ -348,6 +351,7 @@
         "formatIncompletePhoneNumber",
         "parsePhoneNumberWithError",
         "PhoneNumber.getPossibleCountries",
+        "isPossiblePhoneNumber",
         "PhoneNumber.isPossible",
         "PhoneNumber.isValid",
         "PhoneNumber.getType",
@@ -358,7 +362,8 @@
       ],
       "knownIssues": [
         "UI state must distinguish selected, detected, resolved, and possible countries without inventing country data.",
-        "Length-only Possible Countries narrowing cannot by itself clear a compatible explicit-country draft."
+        "Length-only Possible Countries narrowing cannot by itself clear a compatible explicit-country draft.",
+        "Complete-source country conversion must prove target-country possibility before committing preserved national digits."
       ],
       "decision": "adapt",
       "reason": "Use the public library API as the sole phone authority and build package state around its outputs.",

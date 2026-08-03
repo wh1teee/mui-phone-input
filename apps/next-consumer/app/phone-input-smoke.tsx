@@ -93,6 +93,14 @@ export function PhoneInputSmoke() {
         >
           Reset phone input
         </button>
+        <button
+          onClick={() => {
+            setValue('+24740123');
+          }}
+          type="button"
+        >
+          Load impossible country source
+        </button>
       </section>
       <section>
         <MuiPhoneInput

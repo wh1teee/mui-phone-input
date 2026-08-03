@@ -2,11 +2,16 @@ import {
   type CountryCode,
   getCountries,
   getCountryCallingCode,
+  isPossiblePhoneNumber,
   isSupportedCountry,
 } from 'libphonenumber-js/max';
 import maxMetadata from 'libphonenumber-js/metadata.max.json';
 
-import { type NumberingPlanResolution, resolveNumberingPlan } from './numbering-plan';
+import {
+  isPhoneValuePossibleForCountry,
+  type NumberingPlanResolution,
+  resolveNumberingPlan,
+} from './numbering-plan';
 import { assertPhoneValue, type PhoneValue } from './phone-value';
 
 export interface PhoneCountryOption {
@@ -46,6 +51,7 @@ export type PhoneCountrySelectionAppliedReason =
 
 export type PhoneCountrySelectionConflictReason =
   | 'incompatible-draft'
+  | 'impossible-target-draft'
   | 'non-geographic-draft';
 
 interface PhoneCountrySelectionResultBase {
@@ -300,12 +306,16 @@ export function resolvePhoneCountrySelection(
   const candidateNumberingPlan = resolveNumberingPlan(candidate, {
     selectedCountry: country,
   });
+  const sourceIsPossible =
+    value !== undefined && value !== '+' && isPossiblePhoneNumber(value);
   const conflictReason =
     previousNumberingPlan.kind === 'non-geographic' && nationalDigits.length > 0
       ? 'non-geographic-draft'
-      : candidateNumberingPlan.selectedCountry !== country
-        ? 'incompatible-draft'
-        : null;
+      : sourceIsPossible && !isPhoneValuePossibleForCountry(candidate, country)
+        ? 'impossible-target-draft'
+        : candidateNumberingPlan.selectedCountry !== country
+          ? 'incompatible-draft'
+          : null;
 
   if (conflictReason) {
     return Object.freeze({

@@ -574,6 +574,62 @@ async function verifyPackedBrowser(destination, consumer) {
       { timeout: 3_000 },
     );
 
+    await page.getByRole('button', { name: 'Load impossible country source' }).click();
+    await page.waitForFunction(
+      () =>
+        document.querySelector('[data-testid="phone-input"]')?.value === '+24740123',
+    );
+    const callbackCountBeforeConflict = await page
+      .getByTestId('callback-count')
+      .textContent();
+    await page.waitForFunction(() =>
+      document
+        .querySelector('[data-testid="country-change-details"]')
+        ?.textContent?.includes('"value":"+24740123"'),
+    );
+    const countryChangeBeforeConflict = await page
+      .getByTestId('country-change-details')
+      .textContent();
+
+    await countryTrigger.click();
+    await countrySearch.fill('AZ');
+    const impossibleCountryOption = page.locator(
+      '[role="option"][data-country="AZ"][data-packed-slot-country="AZ"]',
+    );
+    await impossibleCountryOption.waitFor();
+    await countrySearch.press('Enter');
+    await page.waitForFunction(() =>
+      document
+        .querySelector('[data-testid="country-selection-details"]')
+        ?.textContent?.includes('"reason":"impossible-target-draft"'),
+    );
+
+    if (
+      (await input.inputValue()) !== '+24740123' ||
+      (await page.getByTestId('phone-value').textContent()) !== '+24740123' ||
+      (await page.getByTestId('callback-count').textContent()) !==
+        callbackCountBeforeConflict ||
+      (await page.getByTestId('country-change-details').textContent()) !==
+        countryChangeBeforeConflict
+    ) {
+      throw new Error('Packed impossible country selection mutated committed state.');
+    }
+    const impossibleSelectionDetails = JSON.parse(
+      (await page.getByTestId('country-selection-details').textContent()) || '{}',
+    );
+    if (
+      impossibleSelectionDetails.country !== 'AZ' ||
+      impossibleSelectionDetails.previousValue !== '+24740123' ||
+      impossibleSelectionDetails.candidateValue !== '+99440123' ||
+      impossibleSelectionDetails.value !== '+24740123' ||
+      impossibleSelectionDetails.reason !== 'impossible-target-draft' ||
+      impossibleSelectionDetails.status !== 'conflict'
+    ) {
+      throw new Error(
+        `Packed impossible country-selection result is invalid: ${JSON.stringify(impossibleSelectionDetails)}`,
+      );
+    }
+
     const composableRoot = page.getByTestId('composable-root');
     const composableInput = page.getByTestId('composable-input');
     await composableInput.waitFor({ state: 'visible' });

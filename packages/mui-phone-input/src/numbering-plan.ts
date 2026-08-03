@@ -1,4 +1,8 @@
-import { Metadata, type MetadataJson } from 'libphonenumber-js/core';
+import {
+  isPossiblePhoneNumber,
+  Metadata,
+  type MetadataJson,
+} from 'libphonenumber-js/core';
 import {
   AsYouType,
   type CountryCode,
@@ -174,6 +178,19 @@ function validateSelectedCountry(
   }
 
   return selectedCountry;
+}
+
+export function isPhoneValuePossibleForCountry(
+  value: PhoneValue,
+  country: CountryCode,
+): boolean {
+  assertPhoneValue(value);
+  validateSelectedCountry(country);
+  return (
+    value !== undefined &&
+    value !== '+' &&
+    isPossiblePhoneNumber(value, metadataForSelectedCountry(country))
+  );
 }
 
 function resolveCompatibleSelection(
