@@ -84,6 +84,8 @@ assert.match(packedConsumersVerifier, /javaScriptEnabled:\s*false/u);
 assert.match(packedConsumersVerifier, /server-render-probe\.mjs/u);
 assert.match(packedConsumersVerifier, /hydration-marker/u);
 assert.match(packedConsumersVerifier, /responsive-country-selector-trigger/u);
+assert.match(packedConsumersVerifier, /production-dependency-policy\.json/u);
+assert.match(packedConsumersVerifier, /audit['"],\s*['"]--prod/u);
 assert.match(
   packedConsumersVerifier,
   /viewport:\s*\{\s*height:\s*844,\s*width:\s*390/u,
@@ -96,5 +98,7 @@ assert.match(
 assert.match(ciWorkflow, /node-version:\s*24/u);
 assert.match(ciWorkflow, /node-version:\s*26/u);
 assert.match(ciWorkflow, /continue-on-error:\s*true/u);
+assert.match(rootPackage.scripts['ci:pr'], /verify:production-dependencies/u);
+assert.match(rootPackage.scripts['ci:forward'], /verify:production-dependencies/u);
 
 console.log('Workspace contract verified.');
