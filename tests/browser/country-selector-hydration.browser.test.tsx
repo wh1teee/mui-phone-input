@@ -67,8 +67,12 @@ function createMatchMediaController(): MatchMediaController {
 }
 
 function HydrationHarness({
+  filteredActive = false,
   mode = 'auto',
-}: Readonly<{ mode?: PhoneCountrySelectorMode }>) {
+}: Readonly<{
+  filteredActive?: boolean;
+  mode?: PhoneCountrySelectorMode;
+}>) {
   const [value, setValue] = useState<`+${string}` | undefined>('+375');
 
   return (
@@ -78,6 +82,9 @@ function HydrationHarness({
       slotProps={{
         countrySelector: {
           'data-testid': 'hydrated-country-trigger',
+          ...(filteredActive
+            ? { countryFilter: (country: string) => country !== 'BY' }
+            : {}),
           mode,
         },
       }}
@@ -86,16 +93,25 @@ function HydrationHarness({
   );
 }
 
-function serverMarkup(mode: PhoneCountrySelectorMode): string {
-  return renderToString(<HydrationHarness mode={mode} />);
+function serverMarkup(mode: PhoneCountrySelectorMode, filteredActive = false): string {
+  return renderToString(
+    <HydrationHarness filteredActive={filteredActive} mode={mode} />,
+  );
 }
 
-function hydrate(markup: string, mode: PhoneCountrySelectorMode): Root {
+function hydrate(
+  markup: string,
+  mode: PhoneCountrySelectorMode,
+  filteredActive = false,
+): Root {
   const container = document.createElement('div');
   container.dataset.testid = 'hydration-container';
   container.innerHTML = markup;
   document.body.append(container);
-  const root = hydrateRoot(container, <HydrationHarness mode={mode} />);
+  const root = hydrateRoot(
+    container,
+    <HydrationHarness filteredActive={filteredActive} mode={mode} />,
+  );
   roots.push(root);
   return root;
 }
@@ -118,6 +134,33 @@ afterEach(async () => {
 });
 
 describe('country selector hydration', () => {
+  test.each(['desktop', 'mobile'] as const)(
+    'keeps a filtered resolved country coherent in %s server HTML and hydration',
+    async (mode) => {
+      const media = createMatchMediaController();
+      media.install(mode === 'mobile');
+      const markup = serverMarkup(mode, true);
+      expect(markup).toContain('aria-label="Select country. Belarus, BY, +375"');
+      const consoleError = vi
+        .spyOn(console, 'error')
+        .mockImplementation(() => undefined);
+
+      hydrate(markup, mode, true);
+      await settleHydration();
+
+      const trigger = page.getByTestId('hydrated-country-trigger');
+      await expect
+        .element(trigger)
+        .toHaveAccessibleName('Select country. Belarus, BY, +375');
+      await expect.element(trigger).toHaveTextContent('BY+375');
+      await userEvent.click(trigger);
+      expect(
+        document.querySelectorAll('[role="option"][data-country="BY"]'),
+      ).toHaveLength(0);
+      expect(consoleError).not.toHaveBeenCalled();
+    },
+  );
+
   test('hydrates an auto selector on a mobile first load without stale ARIA', async () => {
     const media = createMatchMediaController();
     media.install(false);

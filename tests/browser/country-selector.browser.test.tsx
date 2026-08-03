@@ -4,7 +4,7 @@ import Drawer from '@mui/material/Drawer';
 import { createTheme, ThemeProvider } from '@mui/material/styles';
 import axe from 'axe-core';
 import { type ComponentPropsWithRef, useEffect, useState } from 'react';
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test, vi } from 'vitest';
 import { page, userEvent } from 'vitest/browser';
 import { render } from 'vitest-browser-react';
 
@@ -20,6 +20,7 @@ import {
   type PhoneInputCountrySelectorProps,
   PhoneInputInput,
   PhoneInputProvider,
+  type PhoneValue,
   usePhoneInput,
   usePhoneInputContext,
 } from '../../packages/mui-phone-input/src';
@@ -512,7 +513,255 @@ function EmbeddedPortalPolicyHarness({
   );
 }
 
+type FilteredActiveCountrySource = 'controlled' | 'default' | 'resolved';
+
+function FilteredActiveCountryHarness({
+  disablePortal = false,
+  initialExcluded = true,
+  mode = 'desktop',
+  source = 'default',
+}: Readonly<{
+  disablePortal?: boolean;
+  initialExcluded?: boolean;
+  mode?: Exclude<PhoneCountrySelectorMode, 'auto'>;
+  source?: FilteredActiveCountrySource;
+}>) {
+  const [excludeActive, setExcludeActive] = useState(initialExcluded);
+  const [value, setValue] = useState<PhoneValue>(
+    source === 'resolved' ? '+375291234567' : undefined,
+  );
+  const [changeCount, setChangeCount] = useState(0);
+  const [countryChangeCount, setCountryChangeCount] = useState(0);
+  const [countrySelectionCount, setCountrySelectionCount] = useState(0);
+  const ownershipProps =
+    source === 'default'
+      ? ({ defaultCountry: 'BY' } as const)
+      : source === 'controlled'
+        ? ({ selectedCountry: 'BY' } as const)
+        : ({ value } as const);
+
+  return (
+    <>
+      <MuiPhoneInput
+        {...ownershipProps}
+        label={`Filtered ${source} country phone`}
+        onChange={(nextValue) => {
+          if (source === 'resolved') {
+            setValue(nextValue);
+          }
+          setChangeCount((count) => count + 1);
+        }}
+        onCountryChange={() => setCountryChangeCount((count) => count + 1)}
+        onCountrySelection={() => setCountrySelectionCount((count) => count + 1)}
+        slotProps={{
+          countrySelector: {
+            'data-testid': `filtered-${source}-${mode}-trigger`,
+            countryFilter: (country) => !(excludeActive && country === 'BY'),
+            disablePortal,
+            locale: 'be',
+            mode,
+            resolveCountryName: localizedName,
+          },
+          htmlInput: { 'data-testid': `filtered-${source}-${mode}-input` },
+        }}
+      />
+      <button onClick={() => setExcludeActive(true)} type="button">
+        Exclude active country
+      </button>
+      <button onClick={() => setExcludeActive(false)} type="button">
+        Include active country
+      </button>
+      <output data-testid={`filtered-${source}-change-count`}>{changeCount}</output>
+      <output data-testid={`filtered-${source}-country-change-count`}>
+        {countryChangeCount}
+      </output>
+      <output data-testid={`filtered-${source}-country-selection-count`}>
+        {countrySelectionCount}
+      </output>
+    </>
+  );
+}
+
 describe('responsive country selector', () => {
+  test('keeps a filtered uncontrolled default country visible and accurately named', async () => {
+    const view = await render(
+      <MuiPhoneInput
+        defaultCountry="BY"
+        label="Filtered default country phone"
+        slotProps={{
+          countrySelector: {
+            'data-testid': 'filtered-default-country-trigger',
+            countryFilter: (country) => country !== 'BY',
+            mode: 'desktop',
+          },
+        }}
+      />,
+    );
+    const trigger = page.getByTestId('filtered-default-country-trigger');
+
+    await expect
+      .element(trigger)
+      .toHaveAccessibleName('Select country. Belarus, BY, +375');
+    await expect.element(trigger).toHaveTextContent('BY+375');
+    await view.unmount();
+  });
+
+  test.each(['controlled', 'resolved'] as const)(
+    'keeps a filtered %s country visible and accurately named',
+    async (source) => {
+      const view = await render(<FilteredActiveCountryHarness source={source} />);
+      const trigger = page.getByTestId(`filtered-${source}-desktop-trigger`);
+      const input = page.getByTestId(`filtered-${source}-desktop-input`);
+
+      await expect
+        .element(trigger)
+        .toHaveAccessibleName('Select country. Беларусь, BY, +375');
+      await expect.element(trigger).toHaveTextContent('BY+375');
+      if (source === 'controlled') {
+        await expect.element(input).toHaveAttribute('data-phone-input-country', 'BY');
+      } else {
+        await expect.element(input).toHaveAttribute('data-phone-input-country', '');
+        await expect
+          .element(input)
+          .toHaveAttribute('data-phone-input-plan', 'geographic');
+        await expect.element(input).toHaveValue('+375291234567');
+      }
+      await view.unmount();
+    },
+  );
+
+  test.each([
+    { disablePortal: false, mode: 'desktop' as const },
+    { disablePortal: true, mode: 'desktop' as const },
+    { disablePortal: false, mode: 'mobile' as const },
+    { disablePortal: true, mode: 'mobile' as const },
+  ])(
+    'keeps the filtered active country presentation-only in $mode mode with disablePortal=$disablePortal',
+    async ({ disablePortal, mode }) => {
+      const onChange = vi.fn();
+      const onCountryChange = vi.fn();
+      const onCountrySelection = vi.fn();
+      const view = await render(
+        <div data-testid="filtered-active-surface-host">
+          <MuiPhoneInput
+            defaultCountry="BY"
+            label="Strictly filtered active country phone"
+            onChange={onChange}
+            onCountryChange={onCountryChange}
+            onCountrySelection={onCountrySelection}
+            slotProps={{
+              countrySelector: {
+                'data-testid': 'strictly-filtered-active-trigger',
+                countryFilter: (country) => country === 'US',
+                disablePortal,
+                locale: 'be',
+                mode,
+                resolveCountryName: localizedName,
+                slotProps: {
+                  searchInput: {
+                    'data-testid': 'strictly-filtered-active-search',
+                  },
+                },
+              },
+              htmlInput: { 'data-testid': 'strictly-filtered-active-input' },
+            }}
+          />
+        </div>,
+      );
+      const host = page.getByTestId('filtered-active-surface-host');
+      const trigger = page.getByTestId('strictly-filtered-active-trigger');
+
+      await expect
+        .element(trigger)
+        .toHaveAccessibleName('Select country. Беларусь, BY, +375');
+      onChange.mockClear();
+      onCountryChange.mockClear();
+      onCountrySelection.mockClear();
+      await userEvent.click(trigger);
+      const search = page.getByTestId('strictly-filtered-active-search');
+      await expect.element(search).toHaveFocus();
+      expect(host.element().contains(search.element())).toBe(disablePortal);
+      expect(
+        document.querySelectorAll('[role="option"][data-country="BY"]'),
+      ).toHaveLength(0);
+
+      for (const query of ['Беларусь', 'BY', '+375']) {
+        await userEvent.fill(search, query);
+        expect(
+          document.querySelectorAll('[role="option"][data-country="BY"]'),
+        ).toHaveLength(0);
+        await userEvent.keyboard('{ArrowDown}{Home}{End}{Enter}');
+        expect(onChange).not.toHaveBeenCalled();
+        expect(onCountryChange).not.toHaveBeenCalled();
+        expect(onCountrySelection).not.toHaveBeenCalled();
+      }
+
+      await userEvent.fill(search, '');
+      for (const key of ['{ArrowDown}', '{Home}', '{End}']) {
+        await userEvent.keyboard(key);
+        const activeId = search.element().getAttribute('aria-activedescendant');
+        const activeOption = activeId ? document.getElementById(activeId) : null;
+        expect(activeOption).toHaveAttribute('data-country', 'US');
+      }
+
+      expect(onChange).not.toHaveBeenCalled();
+      expect(onCountryChange).not.toHaveBeenCalled();
+      expect(onCountrySelection).not.toHaveBeenCalled();
+      const input = page.getByTestId('strictly-filtered-active-input');
+      await expect.element(input).toHaveAttribute('data-phone-input-country', 'BY');
+      await expect.element(input).toHaveValue('');
+      await view.unmount();
+    },
+  );
+
+  test.each(['default', 'controlled'] as const)(
+    'preserves %s country ownership and callback cardinality while the filter tightens and relaxes',
+    async (source) => {
+      const view = await render(
+        <FilteredActiveCountryHarness initialExcluded={false} source={source} />,
+      );
+      const trigger = page.getByTestId(`filtered-${source}-desktop-trigger`);
+      const input = page.getByTestId(`filtered-${source}-desktop-input`);
+
+      await userEvent.click(trigger);
+      expect(
+        document.querySelectorAll('[role="option"][data-country="BY"]'),
+      ).toHaveLength(1);
+      await userEvent.keyboard('{Escape}');
+
+      await userEvent.click(
+        page.getByRole('button', { name: 'Exclude active country' }),
+      );
+      await expect
+        .element(trigger)
+        .toHaveAccessibleName('Select country. Беларусь, BY, +375');
+      await expect.element(input).toHaveAttribute('data-phone-input-country', 'BY');
+      await userEvent.click(trigger);
+      expect(
+        document.querySelectorAll('[role="option"][data-country="BY"]'),
+      ).toHaveLength(0);
+      await userEvent.keyboard('{Escape}');
+
+      await userEvent.click(
+        page.getByRole('button', { name: 'Include active country' }),
+      );
+      await userEvent.click(trigger);
+      expect(
+        document.querySelectorAll('[role="option"][data-country="BY"]'),
+      ).toHaveLength(1);
+      await expect
+        .element(page.getByTestId(`filtered-${source}-change-count`))
+        .toHaveTextContent('0');
+      await expect
+        .element(page.getByTestId(`filtered-${source}-country-change-count`))
+        .toHaveTextContent('1');
+      await expect
+        .element(page.getByTestId(`filtered-${source}-country-selection-count`))
+        .toHaveTextContent('0');
+      await view.unmount();
+    },
+  );
+
   test('lets forward and reverse Tab leave the desktop selector', async () => {
     const view = await render(<KeyboardExitHarness disablePortal mode="desktop" />);
     const trigger = page.getByTestId('desktop-keyboard-trigger');
@@ -718,9 +967,9 @@ describe('responsive country selector', () => {
   test.each(['desktop', 'mobile'] as const)(
     'has no automated WCAG 2.2 A/AA violations in the open %s selector',
     async (mode) => {
-      const view = await render(<KeyboardExitHarness mode={mode} resultLimit={5} />);
+      const view = await render(<FilteredActiveCountryHarness mode={mode} />);
 
-      await userEvent.click(page.getByTestId(`${mode}-keyboard-trigger`));
+      await userEvent.click(page.getByTestId(`filtered-default-${mode}-trigger`));
       await expect
         .element(page.getByRole('combobox', { name: 'Search countries' }))
         .toHaveFocus();

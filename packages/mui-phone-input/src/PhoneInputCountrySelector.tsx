@@ -518,9 +518,17 @@ export function PhoneInputCountrySelector({
   );
   const displayCountry =
     phone.state.selectedCountry ?? phone.state.numberingPlan.resolvedCountry;
-  const selectedOption = useMemo(
-    () => options.find((option) => option.country === displayCountry) ?? null,
-    [displayCountry, options],
+  const activeOption = useMemo(
+    () =>
+      displayCountry
+        ? (createPhoneCountryOptions({
+            countryFilter: (country) => country === displayCountry,
+            locale,
+            ...(preferredCountries === undefined ? {} : { preferredCountries }),
+            ...(resolveCountryName === undefined ? {} : { resolveCountryName }),
+          })[0] ?? null)
+        : null,
+    [displayCountry, locale, preferredCountries, resolveCountryName],
   );
   const triggerDisabled =
     phone.state.disabled || phone.state.readOnly || triggerProps.disabled === true;
@@ -611,7 +619,7 @@ export function PhoneInputCountrySelector({
     open,
     openOnFocus: true,
     options,
-    value: selectedOption,
+    value: activeOption,
   });
   const { ref: autocompleteListboxRef, ...listboxProps } =
     autocomplete.getListboxProps() as ComponentPropsWithRef<'ul'>;
@@ -638,8 +646,8 @@ export function PhoneInputCountrySelector({
     },
     [autocompleteInputRef],
   );
-  const triggerLabel = selectedOption
-    ? `${messages.selectCountry}. ${optionLabel(selectedOption)}`
+  const triggerLabel = activeOption
+    ? `${messages.selectCountry}. ${optionLabel(activeOption)}`
     : messages.selectCountry;
 
   useEffect(() => {
@@ -1012,7 +1020,7 @@ export function PhoneInputCountrySelector({
 
   const triggerIndicatorOwnerState: PhoneCountrySelectorIndicatorOwnerState = {
     ...ownerState,
-    option: selectedOption,
+    option: activeOption,
     placement: 'trigger',
   };
   const externalTriggerCountryCodeSlotProps = resolveSlotProps(
@@ -1052,10 +1060,10 @@ export function PhoneInputCountrySelector({
     <>
       <TriggerSlot {...triggerSlotProps}>
         <CountryCodeSlot {...triggerCountryCodeSlotProps}>
-          {selectedOption?.country ?? '—'}
+          {activeOption?.country ?? '—'}
         </CountryCodeSlot>
         <CallingCodeSlot {...triggerCallingCodeSlotProps}>
-          {selectedOption ? `+${selectedOption.callingCode}` : '▾'}
+          {activeOption ? `+${activeOption.callingCode}` : '▾'}
         </CallingCodeSlot>
       </TriggerSlot>
 

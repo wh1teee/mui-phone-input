@@ -6,6 +6,7 @@ import {
 import { useEffect, useState } from 'react';
 
 type SsrState = Readonly<{
+  filterActiveCountry?: boolean;
   kind: string;
   placeholder: string;
   selectedCountry?: MuiPhoneInputProps['selectedCountry'];
@@ -14,7 +15,12 @@ type SsrState = Readonly<{
 
 const SSR_STATES: readonly SsrState[] = [
   { kind: 'empty', placeholder: 'Empty phone', value: undefined },
-  { kind: 'geographic', placeholder: 'Geographic phone', value: '+375291234567' },
+  {
+    filterActiveCountry: true,
+    kind: 'geographic',
+    placeholder: 'Geographic phone',
+    value: '+375291234567',
+  },
   {
     kind: 'territory',
     placeholder: 'Territory phone',
@@ -43,27 +49,32 @@ export function SsrStateMatrix() {
   return (
     <section data-testid="ssr-state-matrix">
       <output data-testid="hydration-marker">{hydrated ? 'hydrated' : 'server'}</output>
-      {SSR_STATES.map(({ kind, placeholder, selectedCountry, value }) => (
-        <MuiPhoneInput
-          data-testid={`ssr-${kind}-root`}
-          id={`ssr-${kind}`}
-          key={kind}
-          label={`SSR ${kind}`}
-          placeholder={placeholder}
-          readOnly
-          {...(selectedCountry === undefined ? {} : { selectedCountry })}
-          slotProps={{
-            countrySelector: {
-              'data-testid': `ssr-${kind}-country`,
-              disablePortal: true,
-              locale: 'en',
-              mode: 'desktop',
-            },
-            htmlInput: { 'data-testid': `ssr-${kind}-input` },
-          }}
-          value={value}
-        />
-      ))}
+      {SSR_STATES.map(
+        ({ filterActiveCountry, kind, placeholder, selectedCountry, value }) => (
+          <MuiPhoneInput
+            data-testid={`ssr-${kind}-root`}
+            id={`ssr-${kind}`}
+            key={kind}
+            label={`SSR ${kind}`}
+            placeholder={placeholder}
+            readOnly
+            {...(selectedCountry === undefined ? {} : { selectedCountry })}
+            slotProps={{
+              countrySelector: {
+                'data-testid': `ssr-${kind}-country`,
+                ...(filterActiveCountry
+                  ? { countryFilter: (country) => country !== 'BY' }
+                  : {}),
+                disablePortal: true,
+                locale: 'en',
+                mode: 'desktop',
+              },
+              htmlInput: { 'data-testid': `ssr-${kind}-input` },
+            }}
+            value={value}
+          />
+        ),
+      )}
     </section>
   );
 }

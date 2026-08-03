@@ -188,6 +188,17 @@ async function collectSsrStateSnapshot(page) {
     );
   }
 
+  assert.equal(
+    snapshot.geographic.triggerLabel,
+    'Select country. Belarus, BY, +375',
+    'A filtered resolved country must remain named on the packed trigger.',
+  );
+  assert.equal(
+    snapshot.geographic.triggerText,
+    'BY+375',
+    'A filtered resolved country must remain visible on the packed trigger.',
+  );
+
   return snapshot;
 }
 
