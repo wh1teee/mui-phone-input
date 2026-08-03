@@ -206,6 +206,8 @@ export function usePhoneInputTransactions(
   const pendingCommitScheduledRef = useRef(false);
   const pasteTransactionRef = useRef(false);
   const pasteResetFrameRef = useRef<number | undefined>(undefined);
+  const lifecycleActiveRef = useRef(true);
+  const lifecycleGenerationRef = useRef(0);
   const [pendingCompositionSelection, setPendingCompositionSelection] =
     useState<PendingCompositionSelection | null>(null);
   const engineBridge = useInputTransactionEngineBridge();
@@ -302,7 +304,17 @@ export function usePhoneInputTransactions(
 
       const form = input?.form;
       if (form) {
-        const handleReset = () => queueMicrotask(reset);
+        const handleReset = () => {
+          const lifecycleGeneration = lifecycleGenerationRef.current;
+          queueMicrotask(() => {
+            if (
+              lifecycleActiveRef.current &&
+              lifecycleGenerationRef.current === lifecycleGeneration
+            ) {
+              reset();
+            }
+          });
+        };
         form.addEventListener('reset', handleReset);
         formCleanupRef.current = () => form.removeEventListener('reset', handleReset);
       }
@@ -405,7 +417,15 @@ export function usePhoneInputTransactions(
       }
 
       pendingCommitScheduledRef.current = true;
+      const lifecycleGeneration = lifecycleGenerationRef.current;
       queueMicrotask(() => {
+        if (
+          !lifecycleActiveRef.current ||
+          lifecycleGenerationRef.current !== lifecycleGeneration
+        ) {
+          return;
+        }
+
         pendingCommitScheduledRef.current = false;
         const transaction = pendingTransactionRef.current;
         pendingTransactionRef.current = null;
@@ -421,11 +441,19 @@ export function usePhoneInputTransactions(
   const handlePaste = useCallback((event: ClipboardEvent<HTMLInputElement>) => {
     if (!event.defaultPrevented) {
       pasteTransactionRef.current = true;
+      const lifecycleGeneration = lifecycleGenerationRef.current;
 
       if (pasteResetFrameRef.current !== undefined) {
         window.cancelAnimationFrame(pasteResetFrameRef.current);
       }
       pasteResetFrameRef.current = window.requestAnimationFrame(() => {
+        if (
+          !lifecycleActiveRef.current ||
+          lifecycleGenerationRef.current !== lifecycleGeneration
+        ) {
+          return;
+        }
+
         pasteTransactionRef.current = false;
         pasteResetFrameRef.current = undefined;
       });
@@ -568,16 +596,27 @@ export function usePhoneInputTransactions(
     }
   }, [currentValue, engineBridge, inputContext, pendingCompositionSelection]);
 
-  useEffect(
-    () => () => {
+  useEffect(() => {
+    lifecycleActiveRef.current = true;
+
+    return () => {
+      lifecycleActiveRef.current = false;
+      lifecycleGenerationRef.current += 1;
       formCleanupRef.current?.();
       engineCleanupRef.current?.();
+      pendingTransactionRef.current = null;
+      pendingCommitScheduledRef.current = false;
+      composingRef.current = false;
+      compositionTextRef.current = null;
+      compositionDigitOffsetRef.current = null;
+      pendingCountryReconciliationRef.current = null;
       if (pasteResetFrameRef.current !== undefined) {
         window.cancelAnimationFrame(pasteResetFrameRef.current);
       }
-    },
-    [],
-  );
+      pasteResetFrameRef.current = undefined;
+      pasteTransactionRef.current = false;
+    };
+  }, []);
 
   const focus = useCallback(() => inputElementRef.current?.focus(), []);
   const clear = useCallback(() => commit('', 'clear'), [commit]);

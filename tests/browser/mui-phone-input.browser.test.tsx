@@ -4,6 +4,7 @@ import {
   type ClipboardEvent,
   type ComponentProps,
   StrictMode,
+  useLayoutEffect,
   useRef,
   useState,
 } from 'react';
@@ -186,6 +187,37 @@ function ExternalNumberingHarness() {
         Set external US number
       </button>
     </>
+  );
+}
+
+function LayoutEffectTransactionHarness({
+  onChange,
+}: Readonly<{ onChange: (value: PhoneValue) => void }>) {
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useLayoutEffect(() => {
+    const input = inputRef.current;
+    if (!input) {
+      throw new Error('Missing layout-effect phone input.');
+    }
+
+    setNativeInputValue(input, '+12');
+    input.dispatchEvent(
+      new InputEvent('input', {
+        bubbles: true,
+        data: '12',
+        inputType: 'insertText',
+      }),
+    );
+  }, []);
+
+  return (
+    <MuiPhoneInput
+      onChange={onChange}
+      ref={inputRef}
+      slotProps={{ htmlInput: { 'data-testid': 'layout-effect-phone' } }}
+      value={undefined}
+    />
   );
 }
 
@@ -914,6 +946,240 @@ describe('MuiPhoneInput tracer', () => {
     ) as PhoneInputChangeDetails;
     expect(details.reason).toBe('clear');
     expect(details.value).toBeUndefined();
+  });
+
+  test('cancels a queued input transaction when the component unmounts', async () => {
+    const onChange = vi.fn();
+    const view = await render(
+      <MuiPhoneInput
+        onChange={onChange}
+        slotProps={{ htmlInput: { 'data-testid': 'unmount-input-phone' } }}
+        value={undefined}
+      />,
+    );
+    const locator = page.getByTestId('unmount-input-phone');
+    await expect.element(locator).toBeInTheDocument();
+    const input = locator.element();
+
+    if (!(input instanceof HTMLInputElement)) {
+      throw new Error('Expected the native phone input.');
+    }
+
+    setNativeInputValue(input, '+12');
+    input.dispatchEvent(
+      new InputEvent('input', {
+        bubbles: true,
+        data: '12',
+        inputType: 'insertText',
+      }),
+    );
+    await view.unmount();
+    await Promise.resolve();
+
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  test('cancels a queued form reset when the component unmounts', async () => {
+    const onCountryChange = vi.fn();
+    const view = await render(
+      <form>
+        <MuiPhoneInput
+          defaultValue="+12025550123"
+          onCountryChange={onCountryChange}
+          slotProps={{ htmlInput: { 'data-testid': 'unmount-reset-phone' } }}
+        />
+      </form>,
+    );
+    const locator = page.getByTestId('unmount-reset-phone');
+    await expect.element(locator).toHaveValue('+12025550123');
+    const input = locator.element();
+
+    if (!(input instanceof HTMLInputElement) || !input.form) {
+      throw new Error('Expected a native phone input inside a form.');
+    }
+
+    await Promise.resolve();
+    expect(onCountryChange).toHaveBeenCalledTimes(1);
+    onCountryChange.mockClear();
+
+    setNativeInputValue(input, '+375291234567');
+    input.dispatchEvent(
+      new InputEvent('input', {
+        bubbles: true,
+        data: '+375291234567',
+        inputType: 'insertText',
+      }),
+    );
+    await Promise.resolve();
+    expect(onCountryChange).toHaveBeenCalledTimes(1);
+    onCountryChange.mockClear();
+
+    input.form.dispatchEvent(new Event('reset', { bubbles: true, cancelable: true }));
+    await view.unmount();
+    await Promise.resolve();
+
+    expect(onCountryChange).not.toHaveBeenCalled();
+  });
+
+  test('cancels a queued paste transaction when the component unmounts', async () => {
+    const onChange = vi.fn();
+    const view = await render(
+      <MuiPhoneInput
+        onChange={onChange}
+        slotProps={{ htmlInput: { 'data-testid': 'unmount-paste-phone' } }}
+        value={undefined}
+      />,
+    );
+    const locator = page.getByTestId('unmount-paste-phone');
+    await expect.element(locator).toBeInTheDocument();
+    const input = locator.element();
+
+    if (!(input instanceof HTMLInputElement)) {
+      throw new Error('Expected the native phone input.');
+    }
+
+    const transfer = new DataTransfer();
+    transfer.setData('text/plain', '+375291234567');
+    input.dispatchEvent(
+      new ClipboardEvent('paste', {
+        bubbles: true,
+        cancelable: true,
+        clipboardData: transfer,
+      }),
+    );
+    setNativeInputValue(input, '+375291234567');
+    input.dispatchEvent(
+      new InputEvent('input', {
+        bubbles: true,
+        data: '+375291234567',
+        inputType: 'insertFromPaste',
+      }),
+    );
+    await view.unmount();
+    await Promise.resolve();
+    await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  test('keeps a new Strict Mode lifecycle independent from a canceled transaction', async () => {
+    const onChange = vi.fn();
+    const firstView = await render(
+      <StrictMode>
+        <MuiPhoneInput
+          onChange={onChange}
+          slotProps={{ htmlInput: { 'data-testid': 'strict-unmount-phone' } }}
+          value={undefined}
+        />
+      </StrictMode>,
+    );
+    const firstLocator = page.getByTestId('strict-unmount-phone');
+    await expect.element(firstLocator).toBeInTheDocument();
+    const firstInput = firstLocator.element();
+
+    if (!(firstInput instanceof HTMLInputElement)) {
+      throw new Error('Expected the first Strict Mode phone input.');
+    }
+
+    setNativeInputValue(firstInput, '+12');
+    firstInput.dispatchEvent(
+      new InputEvent('input', {
+        bubbles: true,
+        data: '12',
+        inputType: 'insertText',
+      }),
+    );
+    await firstView.unmount();
+
+    const secondView = await render(
+      <StrictMode>
+        <MuiPhoneInput
+          onChange={onChange}
+          slotProps={{ htmlInput: { 'data-testid': 'strict-remount-phone' } }}
+          value={undefined}
+        />
+      </StrictMode>,
+    );
+    await Promise.resolve();
+    expect(onChange).not.toHaveBeenCalled();
+
+    const secondLocator = page.getByTestId('strict-remount-phone');
+    await expect.element(secondLocator).toBeInTheDocument();
+    const secondInput = secondLocator.element();
+    if (!(secondInput instanceof HTMLInputElement)) {
+      throw new Error('Expected the second Strict Mode phone input.');
+    }
+
+    setNativeInputValue(secondInput, '+375');
+    secondInput.dispatchEvent(
+      new InputEvent('input', {
+        bubbles: true,
+        data: '+375',
+        inputType: 'insertText',
+      }),
+    );
+    await Promise.resolve();
+
+    expect(onChange).toHaveBeenCalledTimes(1);
+    expect(onChange).toHaveBeenLastCalledWith(
+      '+375',
+      expect.objectContaining({ reason: 'input', value: '+375' }),
+    );
+    await secondView.unmount();
+  });
+
+  test('cancels pending input work when composition is active during unmount', async () => {
+    const onChange = vi.fn();
+    const view = await render(
+      <MuiPhoneInput
+        onChange={onChange}
+        slotProps={{ htmlInput: { 'data-testid': 'unmount-composition-phone' } }}
+        value={undefined}
+      />,
+    );
+    const locator = page.getByTestId('unmount-composition-phone');
+    await expect.element(locator).toBeInTheDocument();
+    const input = locator.element();
+
+    if (!(input instanceof HTMLInputElement)) {
+      throw new Error('Expected the native phone input.');
+    }
+
+    setNativeInputValue(input, '+1');
+    input.dispatchEvent(
+      new InputEvent('input', {
+        bubbles: true,
+        data: '1',
+        inputType: 'insertText',
+      }),
+    );
+    input.dispatchEvent(new CompositionEvent('compositionstart', { bubbles: true }));
+    setNativeInputValue(input, '+12');
+    input.dispatchEvent(
+      new InputEvent('input', {
+        bubbles: true,
+        data: '2',
+        inputType: 'insertCompositionText',
+        isComposing: true,
+      }),
+    );
+    await view.unmount();
+    await Promise.resolve();
+
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  test('accepts a transaction dispatched before passive lifecycle setup', async () => {
+    const onChange = vi.fn();
+    render(<LayoutEffectTransactionHarness onChange={onChange} />);
+    await expect.element(page.getByTestId('layout-effect-phone')).toBeInTheDocument();
+    await Promise.resolve();
+
+    expect(onChange).toHaveBeenCalledTimes(1);
+    expect(onChange).toHaveBeenLastCalledWith(
+      '+12',
+      expect.objectContaining({ reason: 'input', value: '+12' }),
+    );
   });
 
   test('applies MuiPhoneInput default props and root/input style overrides', async () => {

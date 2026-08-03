@@ -28,6 +28,8 @@ built-ins.
 - One committed edit emits at most one public callback.
 - External controlled updates and form reset reconciliation do not create
   callback loops.
+- Queued input, reset, paste and composition-related work is invalidated at
+  unmount and cannot call consumers or mutate uncontrolled state afterward.
 - Callback details are serializable and contain value, previous value, reason,
   typed validation/acceptance state, and geographic/unresolved/non-geographic
   Numbering Plan Resolution. They contain no DOM or React event object.
@@ -49,6 +51,8 @@ Source Browser Mode tests cover:
 - uncontrolled form reset;
 - invalid/formatted clipboard sanitation;
 - Unicode digit composition lifecycle;
+- queued input, form-reset, paste and composition cancellation at unmount;
+- Strict Mode remount isolation and pre-passive layout-effect transactions;
 - rejected ownership switching;
 - prevented-paste reason isolation;
 - runtime MUI default props and root/input style overrides;
@@ -74,7 +78,7 @@ byte-identical repeated HTML. The Vite production smoke renders the same state
 matrix. Full details are recorded in
 `2026-08-02-ssr-packed-consumption-evidence.md`.
 
-The current combined source matrix contains 101 Browser Mode tests per engine;
+The current combined source matrix contains 107 Browser Mode tests per engine;
 all pass in Chromium, Firefox, and WebKit. The unit suite contains 93 tests.
 
 ## Package budgets
@@ -88,9 +92,9 @@ externalizes declared peers.
 
 Current exact-artifact measurements are:
 
-- main closure: 20,172 bytes gzip;
+- main closure: 20,306 bytes gzip;
 - server entry: 4,794 bytes gzip;
-- packed tarball: 84,617 bytes.
+- packed tarball: 85,051 bytes.
 
 CI rebuilds the artifact and requires exact byte/hash equality with the
 committed measurement.

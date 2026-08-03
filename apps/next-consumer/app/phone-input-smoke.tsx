@@ -114,6 +114,7 @@ export function PhoneInputSmoke() {
         />
       </section>
       <PackedControlledInitialCountry />
+      <PackedUnmountLifecycle />
       <PackedComposablePhoneInput />
       <SsrStateMatrix />
     </>
@@ -138,6 +139,51 @@ function PackedControlledInitialCountry() {
       <output data-testid="controlled-initial-country-events">
         {JSON.stringify(events)}
       </output>
+    </section>
+  );
+}
+
+function PackedUnmountLifecycle() {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [callbackCount, setCallbackCount] = useState(0);
+  const [mounted, setMounted] = useState(true);
+
+  return (
+    <section>
+      {mounted ? (
+        <MuiPhoneInput
+          onChange={() => setCallbackCount((count) => count + 1)}
+          ref={inputRef}
+          slotProps={{ htmlInput: { 'data-testid': 'packed-unmount-input' } }}
+          value={undefined}
+        />
+      ) : null}
+      <output data-testid="packed-unmount-callback-count">{callbackCount}</output>
+      <button
+        onClick={() => {
+          const input = inputRef.current;
+          const nativeValueSetter = Object.getOwnPropertyDescriptor(
+            HTMLInputElement.prototype,
+            'value',
+          )?.set;
+          if (!input || !nativeValueSetter) {
+            throw new Error('Missing packed unmount input.');
+          }
+
+          nativeValueSetter.call(input, '+12');
+          input.dispatchEvent(
+            new InputEvent('input', {
+              bubbles: true,
+              data: '12',
+              inputType: 'insertText',
+            }),
+          );
+          setMounted(false);
+        }}
+        type="button"
+      >
+        Queue input and unmount
+      </button>
     </section>
   );
 }

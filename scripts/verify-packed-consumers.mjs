@@ -370,6 +370,16 @@ async function verifyPackedBrowser(destination, consumer) {
         `Packed controlled initial country transition is invalid: ${JSON.stringify(initialControlledCountryEvents)}`,
       );
     }
+    const packedUnmountInput = page.getByTestId('packed-unmount-input');
+    await packedUnmountInput.waitFor({ state: 'visible' });
+    await page.getByRole('button', { name: 'Queue input and unmount' }).click();
+    await packedUnmountInput.waitFor({ state: 'detached' });
+    await page.waitForFunction(
+      () =>
+        document.querySelector('[data-testid="packed-unmount-callback-count"]')
+          ?.textContent === '0',
+    );
+
     const input = page.getByTestId('phone-input');
     await input.pressSequentially('37529');
     await input.waitFor({ state: 'visible' });
