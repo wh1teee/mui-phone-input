@@ -184,16 +184,6 @@ const CountrySelectorGroupOptions = styled('ul')({
   padding: 0,
 });
 
-const VisuallyHidden = styled('span')({
-  blockSize: 1,
-  clip: 'rect(0 0 0 0)',
-  clipPath: 'inset(50%)',
-  inlineSize: 1,
-  overflow: 'hidden',
-  position: 'absolute',
-  whiteSpace: 'nowrap',
-});
-
 const TABBABLE_SELECTOR = [
   'a[href]',
   'button:not([disabled])',
@@ -495,6 +485,7 @@ export function PhoneInputCountrySelector({
                   return (
                     <CountrySelectorOption
                       {...optionPropsWithoutKey}
+                      aria-label={optionLabel(option)}
                       className={joinClassNames(
                         classes.countrySelectorOption,
                         optionPropsWithoutKey.className,
@@ -506,7 +497,6 @@ export function PhoneInputCountrySelector({
                       <span>{option.localizedName}</span>
                       <span aria-hidden="true">{option.country}</span>
                       <span aria-hidden="true">+{option.callingCode}</span>
-                      <VisuallyHidden>{optionLabel(option)}</VisuallyHidden>
                     </CountrySelectorOption>
                   );
                 })}

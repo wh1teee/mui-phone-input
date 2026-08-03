@@ -399,6 +399,14 @@ describe('responsive country selector', () => {
 
     await userEvent.type(search, 'BY');
     await expect
+      .element(
+        page.getByRole('option', {
+          exact: true,
+          name: 'Беларусь, BY, +375',
+        }),
+      )
+      .toBeInTheDocument();
+    await expect
       .element(page.getByRole('option', { name: /Беларусь/u }))
       .toBeInTheDocument();
     await expect
@@ -426,6 +434,24 @@ describe('responsive country selector', () => {
       reason: 'country-selection',
       value: '+375',
     });
+  });
+
+  test('announces an English country option exactly once', async () => {
+    const view = await render(<KeyboardExitHarness mode="desktop" />);
+
+    await userEvent.click(page.getByTestId('desktop-keyboard-trigger'));
+    const search = page.getByRole('combobox', { name: 'Search countries' });
+    await userEvent.type(search, 'BY');
+
+    await expect
+      .element(
+        page.getByRole('option', {
+          exact: true,
+          name: 'Belarus, BY, +375',
+        }),
+      )
+      .toBeInTheDocument();
+    await view.unmount();
   });
 
   test('keeps the highlighted option visible in the bounded standard list', async () => {
