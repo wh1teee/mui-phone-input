@@ -2,6 +2,7 @@ import { createTheme, ThemeProvider } from '@mui/material/styles';
 import {
   MuiPhoneInput,
   type PhoneCountryChangeDetails,
+  type PhoneCountrySelectorOptionOwnerState,
   type PhoneCountrySelectionResult,
   type PhoneInputChangeDetails,
   PhoneInputCountrySelector,
@@ -13,7 +14,7 @@ import {
   usePhoneInput,
 } from '@whiteee/mui-phone-input';
 import { resolveNumberingPlan } from '@whiteee/mui-phone-input/server';
-import { StrictMode, useRef, useState } from 'react';
+import { type ComponentPropsWithRef, StrictMode, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 
 import { SsrStateMatrix } from './ssr-state-matrix';
@@ -21,6 +22,15 @@ import { SsrStateMatrix } from './ssr-state-matrix';
 const theme = createTheme({ cssVariables: true });
 const root = document.querySelector('#root');
 const serverPlan = resolveNumberingPlan('+80012345678');
+
+function PackedCountryOption({
+  ownerState,
+  ...props
+}: ComponentPropsWithRef<'li'> & {
+  ownerState: PhoneCountrySelectorOptionOwnerState;
+}) {
+  return <li {...props} data-packed-slot-country={ownerState.option.country} />;
+}
 
 if (!root) {
   throw new Error('Missing Vite consumer root element.');
@@ -53,6 +63,12 @@ function PackedPhoneInput() {
             'data-testid': 'country-selector-trigger',
             mode: 'desktop',
             preferredCountries: ['BY', 'US'],
+            slotProps: {
+              option: (ownerState) => ({
+                'data-testid': `packed-country-option-${ownerState.option.country}`,
+              }),
+            },
+            slots: { option: PackedCountryOption },
           },
           htmlInput: { 'data-testid': 'phone-input' },
         }}

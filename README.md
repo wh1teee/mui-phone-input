@@ -49,5 +49,7 @@ evidence in `mpi-oan.2`, the Maskito engine decision in `mpi-oan.22` and ADR
 validation/server parity in `mpi-oan.10`. The shared MUI/composable contract is
 recorded in `mpi-oan.6`; Country Selector authority and responsive behavior are
 recorded in `mpi-oan.5`; exact Next.js SSR/hydration and packed Next/Vite proof
-are recorded in `mpi-oan.13`.
+are recorded in `mpi-oan.13`. Stable semantic Country Selector slots and their
+private implementation boundary are recorded in `mpi-oan.35` and the
+[semantic-slot evidence](./docs/research/2026-08-03-country-selector-semantic-slots-evidence.md).
 

@@ -26,8 +26,15 @@ export {
 } from './numbering-plan';
 export {
   type PhoneCountrySelectorClasses,
+  type PhoneCountrySelectorGroupOwnerState,
+  type PhoneCountrySelectorIndicatorOwnerState,
   type PhoneCountrySelectorMessages,
   type PhoneCountrySelectorMode,
+  type PhoneCountrySelectorOptionOwnerState,
+  type PhoneCountrySelectorOwnerState,
+  type PhoneCountrySelectorPresentation,
+  type PhoneCountrySelectorSlotProps,
+  type PhoneCountrySelectorSlots,
   PhoneInputCountrySelector,
   type PhoneInputCountrySelectorProps,
 } from './PhoneInputCountrySelector';

@@ -4,19 +4,44 @@ import { describe, expect, it } from 'vitest';
 import {
   getMuiPhoneInputUtilityClass,
   type MuiPhoneInputOwnerState,
+  type PhoneCountrySelectorSlotProps,
+  type PhoneCountrySelectorSlots,
   muiPhoneInputClasses,
 } from '../../packages/mui-phone-input/src';
 
 describe('MuiPhoneInput MUI contract', () => {
   it('accepts default props, root/input overrides, and variants in the MUI theme', () => {
+    const selectorSlots = {
+      option: 'li',
+      searchInput: 'input',
+    } satisfies PhoneCountrySelectorSlots;
+    const selectorSlotProps = {
+      option: (ownerState) => ({
+        'data-country': ownerState.option.country,
+      }),
+      searchInput: { autoComplete: 'off' },
+    } satisfies PhoneCountrySelectorSlotProps;
     const theme = createTheme({
       components: {
         MuiPhoneInput: {
           defaultProps: {
             fullWidth: true,
             label: 'Theme phone',
+            slotProps: {
+              countrySelector: {
+                slotProps: selectorSlotProps,
+                slots: selectorSlots,
+              },
+            },
           },
           styleOverrides: {
+            countrySelectorCallingCode: {
+              fontVariantNumeric: 'tabular-nums',
+            },
+            countrySelectorOptionLabel: {
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+            },
             input: {
               fontVariantNumeric: 'tabular-nums',
             },
@@ -37,6 +62,9 @@ describe('MuiPhoneInput MUI contract', () => {
     expect(theme.components?.MuiPhoneInput?.defaultProps?.fullWidth).toBe(true);
     expect(theme.components?.MuiPhoneInput?.styleOverrides).toHaveProperty('root');
     expect(theme.components?.MuiPhoneInput?.styleOverrides).toHaveProperty('input');
+    expect(theme.components?.MuiPhoneInput?.styleOverrides).toHaveProperty(
+      'countrySelectorOptionLabel',
+    );
     expect(theme.components?.MuiPhoneInput?.variants).toHaveLength(1);
   });
 
@@ -49,6 +77,12 @@ describe('MuiPhoneInput MUI contract', () => {
     expect(muiPhoneInputClasses.countrySelector).toBe('MuiPhoneInput-countrySelector');
     expect(muiPhoneInputClasses.countrySelectorOption).toBe(
       'MuiPhoneInput-countrySelectorOption',
+    );
+    expect(muiPhoneInputClasses.countrySelectorCallingCode).toBe(
+      'MuiPhoneInput-countrySelectorCallingCode',
+    );
+    expect(muiPhoneInputClasses.countrySelectorOptionLabel).toBe(
+      'MuiPhoneInput-countrySelectorOptionLabel',
     );
     expect(getMuiPhoneInputUtilityClass('root')).toBe('MuiPhoneInput-root');
   });

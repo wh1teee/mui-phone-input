@@ -496,7 +496,17 @@ async function verifyPackedBrowser(destination, consumer) {
     await countryTrigger.click();
     const countrySearch = page.getByRole('combobox', { name: 'Search countries' });
     await countrySearch.fill('BY');
-    await page.locator('[role="option"][data-country="BY"]').waitFor();
+    const packedCountryOption = page.locator(
+      '[role="option"][data-country="BY"][data-packed-slot-country="BY"]',
+    );
+    await packedCountryOption.waitFor();
+    if (
+      (await packedCountryOption.getAttribute('data-testid')) !==
+        'packed-country-option-BY' ||
+      (await packedCountryOption.getAttribute('aria-label')) !== 'Belarus, BY, +375'
+    ) {
+      throw new Error('Packed semantic Country Selector option slot is invalid.');
+    }
     await countrySearch.press('Enter');
     if (
       (await input.inputValue()) !== '+375' ||

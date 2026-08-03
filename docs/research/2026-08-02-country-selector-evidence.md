@@ -79,14 +79,14 @@ Production Next.js and Vite consumers install the exact generated `.tgz` and
 exercise both the built-in selector and the composable selector primitive.
 Latest React 19.2/MUI 9.2 and minimum React 19.0/MUI 9.0 matrices pass.
 
-The source suites contain 62 Browser Mode tests per engine and 81 unit tests.
+The source suites contain 95 Browser Mode tests per engine and 86 unit tests.
 All Browser Mode tests pass in Chromium, Firefox, and WebKit.
 
 Current exact-artifact measurements remain within the established budgets:
 
-- main closure: 16,020 bytes gzip;
+- main closure: 17,846 bytes gzip;
 - server entry: 2,915 bytes gzip;
-- packed tarball: 61,189 bytes.
+- packed tarball: 70,245 bytes.
 
 No package was published. npm identity and publication remain behind the owner
 gate `mpi-g7a`.

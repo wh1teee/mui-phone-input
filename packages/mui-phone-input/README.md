@@ -134,6 +134,60 @@ supports constrained Dialog, Drawer, BottomSheet, and iOS VoiceOver layouts.
 The standard list is bounded and non-virtualized; optional virtualization is a
 later measured capability, not a runtime dependency.
 
+### Semantic Country Selector slots
+
+Customize one semantic part without replacing the selector state machine:
+
+```tsx
+import type {
+  PhoneCountrySelectorOptionOwnerState,
+  PhoneCountrySelectorSlots,
+} from '@whiteee/mui-phone-input';
+import type { ComponentPropsWithRef } from 'react';
+
+function CountryOption({
+  ownerState,
+  ...props
+}: ComponentPropsWithRef<'li'> & {
+  ownerState: PhoneCountrySelectorOptionOwnerState;
+}) {
+  return <li {...props} data-country={ownerState.option.country} />;
+}
+
+const selectorSlots = {
+  option: CountryOption,
+} satisfies PhoneCountrySelectorSlots;
+
+<MuiPhoneInput
+  slotProps={{
+    countrySelector: {
+      slots: selectorSlots,
+      slotProps: {
+        option: (ownerState) => ({
+          'data-selected': ownerState.selected,
+        }),
+      },
+    },
+  }}
+/>
+```
+
+The stable semantic slots are `trigger`, `popup`, `searchInput`, `listbox`,
+`group`, `groupLabel`, `option`, `optionLabel`, `countryCode`, `callingCode`,
+`empty`, and `closeButton`. Slot-prop callbacks receive typed owner state;
+prepared refs, event handlers, utility classes, state, and required
+accessibility props are composed by the library. The `popup` slot is the
+desktop popup surface. The responsive Popper/Dialog shells, Dialog title and
+content, click-away boundary, autocomplete anchor/hidden input, and nested
+group-options wrapper are implementation details rather than public slots.
+Flag and loading slots will be added only with those capabilities rather than
+published as empty speculative API.
+
+Custom component slots should forward the `ref` prop when they expose a DOM
+node so consumer refs continue to resolve. The desktop click-away boundary is
+owned by the library and does not depend on the custom `popup` forwarding that
+ref, so a plain function popup cannot disable dismissal accidentally.
+
 ## Numbering-plan resolution
 
 ```ts

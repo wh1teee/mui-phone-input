@@ -22,6 +22,14 @@ const countrySelectorSource = await readFile(
   'packages/mui-phone-input/src/PhoneInputCountrySelector.tsx',
   'utf8',
 );
+const clientIndexSource = await readFile(
+  'packages/mui-phone-input/src/index.ts',
+  'utf8',
+);
+const muiPhoneInputClassesSource = await readFile(
+  'packages/mui-phone-input/src/MuiPhoneInput/muiPhoneInputClasses.ts',
+  'utf8',
+);
 const packedConsumersVerifier = await readFile(
   'scripts/verify-packed-consumers.mjs',
   'utf8',
@@ -111,10 +119,50 @@ assert.match(controllerSource, /export function usePhoneInput/u);
 assert.match(primitivesSource, /export function PhoneInputProvider/u);
 assert.match(primitivesSource, /export function PhoneInputInput/u);
 assert.doesNotMatch(countrySelectorSource, /noSsr:\s*true/u);
+for (const semanticSlot of [
+  'callingCode',
+  'closeButton',
+  'countryCode',
+  'empty',
+  'group',
+  'groupLabel',
+  'listbox',
+  'option',
+  'optionLabel',
+  'popup',
+  'searchInput',
+  'trigger',
+]) {
+  assert.match(
+    countrySelectorSource,
+    new RegExp(`${semanticSlot}\\?: ElementType`, 'u'),
+  );
+}
+for (const publicSelectorType of [
+  'PhoneCountrySelectorGroupOwnerState',
+  'PhoneCountrySelectorIndicatorOwnerState',
+  'PhoneCountrySelectorOptionOwnerState',
+  'PhoneCountrySelectorOwnerState',
+  'PhoneCountrySelectorSlotProps',
+  'PhoneCountrySelectorSlots',
+]) {
+  assert.match(clientIndexSource, new RegExp(`type ${publicSelectorType}`, 'u'));
+}
+for (const semanticClass of [
+  'countrySelectorCallingCode',
+  'countrySelectorCloseButton',
+  'countrySelectorCountryCode',
+  'countrySelectorOptionLabel',
+]) {
+  assert.match(muiPhoneInputClassesSource, new RegExp(semanticClass, 'u'));
+}
+assert.match(packageReadme, /The stable semantic slots are/u);
+assert.match(packageReadme, /implementation details rather than public slots/u);
 assert.match(packedConsumersVerifier, /javaScriptEnabled:\s*false/u);
 assert.match(packedConsumersVerifier, /server-render-probe\.mjs/u);
 assert.match(packedConsumersVerifier, /hydration-marker/u);
 assert.match(packedConsumersVerifier, /responsive-country-selector-trigger/u);
+assert.match(packedConsumersVerifier, /data-packed-slot-country/u);
 assert.match(packedConsumersVerifier, /production-dependency-policy\.json/u);
 assert.match(packedConsumersVerifier, /audit['"],\s*['"]--prod/u);
 assert.match(

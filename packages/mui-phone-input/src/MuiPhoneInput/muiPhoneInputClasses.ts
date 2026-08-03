@@ -3,11 +3,15 @@ import generateUtilityClasses from '@mui/material/generateUtilityClasses';
 
 export interface MuiPhoneInputClasses {
   countrySelector: string;
+  countrySelectorCallingCode: string;
+  countrySelectorCloseButton: string;
+  countrySelectorCountryCode: string;
   countrySelectorEmpty: string;
   countrySelectorGroup: string;
   countrySelectorGroupLabel: string;
   countrySelectorListbox: string;
   countrySelectorOption: string;
+  countrySelectorOptionLabel: string;
   countrySelectorPopup: string;
   countrySelectorSearchInput: string;
   root: string;
@@ -28,10 +32,14 @@ export const muiPhoneInputClasses: MuiPhoneInputClasses = generateUtilityClasses
     'input',
     'validationMessage',
     'countrySelector',
+    'countrySelectorCallingCode',
+    'countrySelectorCloseButton',
+    'countrySelectorCountryCode',
     'countrySelectorPopup',
     'countrySelectorSearchInput',
     'countrySelectorListbox',
     'countrySelectorOption',
+    'countrySelectorOptionLabel',
     'countrySelectorGroup',
     'countrySelectorGroupLabel',
     'countrySelectorEmpty',

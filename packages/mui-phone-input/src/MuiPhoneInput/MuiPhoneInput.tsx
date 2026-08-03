@@ -130,11 +130,15 @@ function joinClassNames(...values: Array<string | undefined>): string | undefine
 
 const COUNTRY_SELECTOR_CLASS_KEYS = [
   'countrySelector',
+  'countrySelectorCallingCode',
+  'countrySelectorCloseButton',
+  'countrySelectorCountryCode',
   'countrySelectorEmpty',
   'countrySelectorGroup',
   'countrySelectorGroupLabel',
   'countrySelectorListbox',
   'countrySelectorOption',
+  'countrySelectorOptionLabel',
   'countrySelectorPopup',
   'countrySelectorSearchInput',
 ] as const satisfies readonly (keyof PhoneCountrySelectorClasses)[];
@@ -173,6 +177,21 @@ function useUtilityClasses(
     countrySelector:
       joinClassNames(muiPhoneInputClasses.countrySelector, classes?.countrySelector) ??
       '',
+    countrySelectorCallingCode:
+      joinClassNames(
+        muiPhoneInputClasses.countrySelectorCallingCode,
+        classes?.countrySelectorCallingCode,
+      ) ?? '',
+    countrySelectorCloseButton:
+      joinClassNames(
+        muiPhoneInputClasses.countrySelectorCloseButton,
+        classes?.countrySelectorCloseButton,
+      ) ?? '',
+    countrySelectorCountryCode:
+      joinClassNames(
+        muiPhoneInputClasses.countrySelectorCountryCode,
+        classes?.countrySelectorCountryCode,
+      ) ?? '',
     countrySelectorEmpty:
       joinClassNames(
         muiPhoneInputClasses.countrySelectorEmpty,
@@ -197,6 +216,11 @@ function useUtilityClasses(
       joinClassNames(
         muiPhoneInputClasses.countrySelectorOption,
         classes?.countrySelectorOption,
+      ) ?? '',
+    countrySelectorOptionLabel:
+      joinClassNames(
+        muiPhoneInputClasses.countrySelectorOptionLabel,
+        classes?.countrySelectorOptionLabel,
       ) ?? '',
     countrySelectorPopup:
       joinClassNames(

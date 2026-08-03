@@ -3,6 +3,7 @@
 import {
   MuiPhoneInput,
   type PhoneCountryChangeDetails,
+  type PhoneCountrySelectorOptionOwnerState,
   type PhoneCountrySelectionResult,
   type PhoneInputChangeDetails,
   PhoneInputCountrySelector,
@@ -13,9 +14,18 @@ import {
   type PhoneValue,
   usePhoneInput,
 } from '@whiteee/mui-phone-input';
-import { useRef, useState } from 'react';
+import { type ComponentPropsWithRef, useRef, useState } from 'react';
 
 import { SsrStateMatrix } from './ssr-state-matrix';
+
+function PackedCountryOption({
+  ownerState,
+  ...props
+}: ComponentPropsWithRef<'li'> & {
+  ownerState: PhoneCountrySelectorOptionOwnerState;
+}) {
+  return <li {...props} data-packed-slot-country={ownerState.option.country} />;
+}
 
 export function PhoneInputSmoke() {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -45,6 +55,12 @@ export function PhoneInputSmoke() {
               'data-testid': 'country-selector-trigger',
               mode: 'desktop',
               preferredCountries: ['BY', 'US'],
+              slotProps: {
+                option: (ownerState) => ({
+                  'data-testid': `packed-country-option-${ownerState.option.country}`,
+                }),
+              },
+              slots: { option: PackedCountryOption },
             },
             htmlInput: { 'data-testid': 'phone-input' },
           }}

@@ -1,21 +1,127 @@
 import Dialog from '@mui/material/Dialog';
 import DialogContent from '@mui/material/DialogContent';
 import Drawer from '@mui/material/Drawer';
+import { createTheme, ThemeProvider } from '@mui/material/styles';
 import axe from 'axe-core';
-import { useEffect, useState } from 'react';
+import { type ComponentPropsWithRef, useEffect, useState } from 'react';
 import { describe, expect, test } from 'vitest';
 import { page, userEvent } from 'vitest/browser';
 import { render } from 'vitest-browser-react';
 
 import {
   MuiPhoneInput,
+  type PhoneCountrySelectorGroupOwnerState,
+  type PhoneCountrySelectorIndicatorOwnerState,
   type PhoneCountrySelectorMode,
+  type PhoneCountrySelectorOptionOwnerState,
+  type PhoneCountrySelectorOwnerState,
+  type PhoneCountrySelectorSlots,
   PhoneInputCountrySelector,
   type PhoneInputCountrySelectorProps,
   PhoneInputProvider,
   usePhoneInput,
   usePhoneInputContext,
 } from '../../packages/mui-phone-input/src';
+
+function SemanticTriggerSlot({
+  ownerState,
+  ...props
+}: ComponentPropsWithRef<'button'> & {
+  ownerState: PhoneCountrySelectorOwnerState;
+}) {
+  return (
+    <button
+      {...props}
+      data-owner-disabled={String(ownerState.disabled)}
+      data-owner-open={String(ownerState.open)}
+    />
+  );
+}
+
+function SemanticPopupSlot({
+  ownerState,
+  ...props
+}: ComponentPropsWithRef<'section'> & {
+  ownerState: PhoneCountrySelectorOwnerState;
+}) {
+  return <section {...props} data-presentation={ownerState.presentation} />;
+}
+
+function PopupSlotWithoutRef({
+  ownerState,
+  ref: _ref,
+  ...props
+}: ComponentPropsWithRef<'section'> & {
+  ownerState: PhoneCountrySelectorOwnerState;
+}) {
+  return <section {...props} data-popup-open={String(ownerState.open)} />;
+}
+
+function SemanticGroupSlot({
+  ownerState,
+  ...props
+}: ComponentPropsWithRef<'li'> & {
+  ownerState: PhoneCountrySelectorGroupOwnerState;
+}) {
+  return <li {...props} data-group-label={ownerState.groupLabel} />;
+}
+
+function SemanticOptionSlot({
+  ownerState,
+  ...props
+}: ComponentPropsWithRef<'li'> & {
+  ownerState: PhoneCountrySelectorOptionOwnerState;
+}) {
+  return (
+    <li
+      {...props}
+      data-owner-country={ownerState.option.country}
+      data-owner-selected={String(ownerState.selected)}
+    />
+  );
+}
+
+function SemanticIndicatorSlot({
+  ownerState,
+  ...props
+}: ComponentPropsWithRef<'span'> & {
+  ownerState: PhoneCountrySelectorIndicatorOwnerState;
+}) {
+  return <span {...props} data-indicator-placement={ownerState.placement} />;
+}
+
+function SemanticCloseButtonSlot({
+  ownerState,
+  ...props
+}: ComponentPropsWithRef<'button'> & {
+  ownerState: PhoneCountrySelectorOwnerState;
+}) {
+  return <button {...props} data-owner-presentation={ownerState.presentation} />;
+}
+
+function SemanticEmptySlot({
+  ownerState,
+  ...props
+}: ComponentPropsWithRef<'div'> & {
+  ownerState: PhoneCountrySelectorOwnerState;
+}) {
+  return <div {...props} data-empty-query={ownerState.query} />;
+}
+
+const semanticSlots = {
+  callingCode: SemanticIndicatorSlot,
+  closeButton: SemanticCloseButtonSlot,
+  countryCode: SemanticIndicatorSlot,
+  empty: SemanticEmptySlot,
+  group: SemanticGroupSlot,
+  groupLabel: 'h3',
+  listbox: 'ol',
+  option: SemanticOptionSlot,
+  optionLabel: 'strong',
+  popup: SemanticPopupSlot,
+  searchInput: 'input',
+  trigger: SemanticTriggerSlot,
+} satisfies PhoneCountrySelectorSlots;
 
 const localizedName = (country: string, locale: string): string | undefined => {
   if (locale === 'be' && country === 'BY') {
@@ -538,6 +644,323 @@ describe('responsive country selector', () => {
     await expect.element(trigger).toHaveClass('MuiPhoneInput-countrySelector');
     await userEvent.click(trigger);
     await expect.element(page.getByTestId('custom-country-input')).toHaveValue('+375');
+  });
+
+  test('exposes semantic selector sub-slots without losing prepared behavior', async () => {
+    let triggerElement: HTMLButtonElement | null = null;
+    let searchElement: HTMLInputElement | null = null;
+    let optionClicks = 0;
+
+    render(
+      <MuiPhoneInput
+        defaultCountry="CA"
+        label="Semantic selector phone"
+        slotProps={{
+          countrySelector: {
+            mode: 'desktop',
+            slotProps: {
+              callingCode: { 'data-testid': 'semantic-calling-code' },
+              countryCode: { 'data-testid': 'semantic-country-code' },
+              empty: { 'data-testid': 'semantic-empty' },
+              group: (ownerState) => ({
+                'data-testid': `semantic-group-${ownerState.preferred ? 'preferred' : 'all'}`,
+              }),
+              groupLabel: { 'data-testid': 'semantic-group-label' },
+              listbox: {
+                'aria-labelledby': 'consumer-listbox-label',
+                'aria-label': 'Consumer listbox override',
+                'data-testid': 'semantic-listbox',
+                id: 'consumer-listbox-id',
+                role: 'presentation',
+              },
+              option: (ownerState) => ({
+                'aria-label': 'Consumer option override',
+                'aria-selected': true,
+                'data-option-index': 999,
+                'data-testid': `semantic-option-${ownerState.option.country}`,
+                id: 'consumer-option-id',
+                onClick: () => {
+                  optionClicks += 1;
+                },
+                role: 'button',
+              }),
+              optionLabel: { 'data-testid': 'semantic-option-label' },
+              popup: { 'data-testid': 'semantic-popup' },
+              searchInput: {
+                'aria-label': 'Consumer search override',
+                'data-country-selector-presentation': 'mobile',
+                'data-testid': 'semantic-search',
+                id: 'consumer-search-id',
+                ref: (input) => {
+                  searchElement = input;
+                },
+                role: 'button',
+              },
+              trigger: (ownerState) => ({
+                'aria-expanded': false,
+                'data-testid': 'semantic-trigger',
+                'data-validation-status': ownerState.validationStatus,
+                ref: (button) => {
+                  triggerElement = button;
+                },
+              }),
+            },
+            slots: semanticSlots,
+          },
+          htmlInput: { 'data-testid': 'semantic-phone-input' },
+        }}
+      />,
+    );
+
+    const trigger = page.getByTestId('semantic-trigger');
+    await expect.element(trigger).toBeInTheDocument();
+    expect(triggerElement).toBe(trigger.element());
+    await expect.element(trigger).toHaveAttribute('aria-expanded', 'false');
+    await expect.element(trigger).toHaveAttribute('data-owner-open', 'false');
+    await userEvent.click(trigger);
+
+    await expect.element(trigger).toHaveAttribute('aria-expanded', 'true');
+    await expect.element(trigger).toHaveAttribute('data-owner-open', 'true');
+    await expect
+      .element(page.getByTestId('semantic-popup'))
+      .toHaveAttribute('data-presentation', 'desktop');
+    const search = page.getByRole('combobox', { name: 'Search countries' });
+    expect(searchElement).toBe(search.element());
+    await expect.element(search).toHaveAttribute('data-testid', 'semantic-search');
+    await expect
+      .element(search)
+      .toHaveAttribute('data-country-selector-presentation', 'desktop');
+    const listbox = page.getByRole('listbox');
+    await expect.element(listbox).toHaveAttribute('data-testid', 'semantic-listbox');
+    expect(listbox.element().id).not.toBe('consumer-listbox-id');
+    expect(trigger.element().getAttribute('aria-controls')).toBe(listbox.element().id);
+
+    await userEvent.fill(search, 'Belarus');
+    const belarusOption = page.getByRole('option', {
+      name: 'Belarus, BY, +375',
+    });
+    await expect.element(belarusOption).toHaveAttribute('data-owner-country', 'BY');
+    await expect.element(belarusOption).toHaveAttribute('data-owner-selected', 'false');
+    await expect.element(belarusOption).toHaveAttribute('aria-selected', 'false');
+    expect(belarusOption.element().id).not.toBe('consumer-option-id');
+    expect(belarusOption.element().getAttribute('data-option-index')).not.toBe('999');
+    await expect
+      .element(belarusOption.getByTestId('semantic-option-label'))
+      .toHaveTextContent('Belarus');
+    await expect
+      .element(belarusOption.getByTestId('semantic-country-code'))
+      .toHaveAttribute('data-indicator-placement', 'option');
+    await expect
+      .element(belarusOption.getByTestId('semantic-calling-code'))
+      .toHaveAttribute('data-indicator-placement', 'option');
+    await userEvent.click(belarusOption);
+    expect(optionClicks).toBe(1);
+    await expect.element(page.getByTestId('semantic-phone-input')).toHaveValue('+375');
+
+    await userEvent.click(trigger);
+    await userEvent.fill(
+      page.getByRole('combobox', { name: 'Search countries' }),
+      'zzz',
+    );
+    await expect
+      .element(page.getByTestId('semantic-empty'))
+      .toHaveTextContent('No matching countries');
+    await expect
+      .element(page.getByTestId('semantic-empty'))
+      .toHaveAttribute('data-empty-query', 'zzz');
+  });
+
+  test('composes a custom mobile close-button slot with Dialog focus behavior', async () => {
+    let closeButtonElement: HTMLButtonElement | null = null;
+    let closeClicks = 0;
+    let preventedCloseTabs = 0;
+
+    render(
+      <MuiPhoneInput
+        defaultCountry="BY"
+        label="Mobile semantic selector phone"
+        slotProps={{
+          countrySelector: {
+            'data-testid': 'mobile-semantic-trigger',
+            mode: 'mobile',
+            slotProps: {
+              closeButton: {
+                'aria-label': 'Consumer close override',
+                'data-testid': 'mobile-semantic-close',
+                onClick: () => {
+                  closeClicks += 1;
+                },
+                onKeyDown: (event) => {
+                  if (event.key === 'Tab') {
+                    preventedCloseTabs += 1;
+                    event.preventDefault();
+                  }
+                },
+                ref: (button) => {
+                  closeButtonElement = button;
+                },
+              },
+            },
+            slots: { closeButton: semanticSlots.closeButton },
+          },
+        }}
+      />,
+    );
+
+    const trigger = page.getByTestId('mobile-semantic-trigger');
+    await userEvent.click(trigger);
+    const dialog = page.getByRole('dialog', { name: 'Select country' });
+    await expect.element(dialog).toBeInTheDocument();
+    const closeButton = page.getByRole('button', { name: 'Close country selector' });
+    await expect
+      .element(closeButton)
+      .toHaveClass('MuiPhoneInput-countrySelectorCloseButton');
+    await expect
+      .element(closeButton)
+      .toHaveAttribute('data-owner-presentation', 'mobile');
+    expect(closeButtonElement).toBe(closeButton.element());
+    closeButton.element().focus();
+    await userEvent.keyboard('{Tab}');
+    expect(preventedCloseTabs).toBe(1);
+    await expect.element(closeButton).toHaveFocus();
+    await userEvent.click(closeButton);
+    expect(closeClicks).toBe(1);
+    await expect.element(dialog).not.toBeInTheDocument();
+    await expect.element(trigger).toHaveFocus();
+  });
+
+  test('preserves selector and trigger-slot disabled props', async () => {
+    render(
+      <>
+        <MuiPhoneInput
+          defaultCountry="BY"
+          label="Disabled selector component"
+          slotProps={{
+            countrySelector: {
+              'data-testid': 'component-disabled-selector',
+              disabled: true,
+              mode: 'desktop',
+              slots: { trigger: SemanticTriggerSlot },
+            },
+          }}
+        />
+        <MuiPhoneInput
+          defaultCountry="BY"
+          label="Disabled selector trigger slot"
+          slotProps={{
+            countrySelector: {
+              'data-testid': 'slot-disabled-selector',
+              mode: 'desktop',
+              slotProps: { trigger: { disabled: true } },
+            },
+          }}
+        />
+      </>,
+    );
+
+    const componentDisabledTrigger = page.getByTestId('component-disabled-selector');
+    const slotDisabledTrigger = page.getByTestId('slot-disabled-selector');
+    await expect.element(componentDisabledTrigger).toBeDisabled();
+    await expect
+      .element(componentDisabledTrigger)
+      .toHaveAttribute('data-owner-disabled', 'true');
+    await expect.element(slotDisabledTrigger).toBeDisabled();
+    for (const trigger of [componentDisabledTrigger, slotDisabledTrigger]) {
+      const element = trigger.element();
+      expect(element).toBeInstanceOf(HTMLButtonElement);
+      if (!(element instanceof HTMLButtonElement)) {
+        throw new TypeError('Expected a disabled selector button.');
+      }
+      element.click();
+    }
+    await expect
+      .element(componentDisabledTrigger)
+      .toHaveAttribute('aria-expanded', 'false');
+    await expect.element(slotDisabledTrigger).toHaveAttribute('aria-expanded', 'false');
+    expect(page.getByRole('listbox').query()).toBeNull();
+  });
+
+  test('keeps click-away dismissal when a plain popup slot ignores its ref', async () => {
+    render(
+      <div>
+        <MuiPhoneInput
+          defaultCountry="BY"
+          label="Plain popup selector phone"
+          slotProps={{
+            countrySelector: {
+              'data-testid': 'plain-popup-trigger',
+              disablePortal: true,
+              mode: 'desktop',
+              slotProps: {
+                popup: { 'data-testid': 'plain-popup' },
+              },
+              slots: { popup: PopupSlotWithoutRef },
+            },
+          }}
+        />
+      </div>,
+    );
+
+    await userEvent.click(page.getByTestId('plain-popup-trigger'));
+    const popup = page.getByTestId('plain-popup');
+    await expect.element(popup).toHaveAttribute('data-popup-open', 'true');
+    document.body.dispatchEvent(
+      new MouseEvent('click', { bubbles: true, composed: true }),
+    );
+    await expect.element(popup).not.toBeInTheDocument();
+  });
+
+  test('applies MUI style overrides to default semantic selector slots', async () => {
+    const theme = createTheme({
+      components: {
+        MuiPhoneInput: {
+          styleOverrides: {
+            countrySelectorCallingCode: {
+              fontWeight: 700,
+            },
+            countrySelectorOptionLabel: {
+              letterSpacing: '3px',
+            },
+          },
+        },
+      },
+    });
+
+    render(
+      <ThemeProvider theme={theme}>
+        <MuiPhoneInput
+          defaultCountry="CA"
+          label="Themed semantic selector phone"
+          slotProps={{
+            countrySelector: {
+              'data-testid': 'themed-semantic-trigger',
+              mode: 'desktop',
+            },
+          }}
+        />
+      </ThemeProvider>,
+    );
+
+    await userEvent.click(page.getByTestId('themed-semantic-trigger'));
+    await userEvent.fill(
+      page.getByRole('combobox', { name: 'Search countries' }),
+      'BY',
+    );
+    const option = page.getByRole('option', { name: 'Belarus, BY, +375' });
+    await expect.element(option).toBeInTheDocument();
+    const optionLabelElement = option
+      .element()
+      .querySelector<HTMLElement>('.MuiPhoneInput-countrySelectorOptionLabel');
+    const callingCodeElement = option
+      .element()
+      .querySelector<HTMLElement>('.MuiPhoneInput-countrySelectorCallingCode');
+    expect(optionLabelElement).toBeInstanceOf(HTMLElement);
+    expect(callingCodeElement).toBeInstanceOf(HTMLElement);
+    if (!(optionLabelElement && callingCodeElement)) {
+      throw new TypeError('Themed semantic selector slots are missing.');
+    }
+    expect(getComputedStyle(optionLabelElement).letterSpacing).toBe('3px');
+    expect(getComputedStyle(callingCodeElement).fontWeight).toBe('700');
   });
 
   test('honors page, explicit container, Dialog, Drawer, and BottomSheet portal policies', async () => {
