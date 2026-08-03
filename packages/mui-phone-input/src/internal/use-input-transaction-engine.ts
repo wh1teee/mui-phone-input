@@ -53,6 +53,15 @@ export function useInputTransactionEngineBridge(): InputTransactionEngineBridge 
             'Input Transaction reconciliation selection is outside the display value.',
           );
         }
+
+        const input = inputRef.current;
+        if (
+          input &&
+          (input.selectionStart !== snapshot.selection[0] ||
+            input.selectionEnd !== snapshot.selection[1])
+        ) {
+          input.setSelectionRange(snapshot.selection[0], snapshot.selection[1]);
+        }
       },
       updateContext(context) {
         contextRef.current = context;

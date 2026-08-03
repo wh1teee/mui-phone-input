@@ -20,10 +20,16 @@ import {
 } from '../../packages/mui-phone-input/src';
 
 function ControlledHarness({
+  acceptChanges = true,
+  initialValue,
   selectedCountry,
-}: Readonly<{ selectedCountry?: CountryCode }> = {}) {
+}: Readonly<{
+  acceptChanges?: boolean;
+  initialValue?: PhoneValue;
+  selectedCountry?: CountryCode;
+}> = {}) {
   const inputRef = useRef<HTMLInputElement>(null);
-  const [value, setValue] = useState<PhoneValue>();
+  const [value, setValue] = useState<PhoneValue>(initialValue);
   const [callbackCount, setCallbackCount] = useState(0);
   const [details, setDetails] = useState<PhoneInputChangeDetails>();
 
@@ -32,7 +38,9 @@ function ControlledHarness({
       <MuiPhoneInput
         label="Controlled phone"
         onChange={(nextValue, nextDetails) => {
-          setValue(nextValue);
+          if (acceptChanges) {
+            setValue(nextValue);
+          }
           setDetails(nextDetails);
           setCallbackCount((count) => count + 1);
         }}
@@ -46,6 +54,14 @@ function ControlledHarness({
       <output data-testid="controlled-details">
         {details ? JSON.stringify(details) : ''}
       </output>
+      <button
+        onClick={() => {
+          setValue(details?.value);
+        }}
+        type="button"
+      >
+        Apply latest controlled value
+      </button>
       <button
         onClick={() => {
           setValue(undefined);
@@ -272,6 +288,55 @@ async function pasteText(inputTestId: string, text: string) {
   );
 }
 
+function setNativeInputValue(input: HTMLInputElement, value: string): void {
+  const nativeValueSetter = Object.getOwnPropertyDescriptor(
+    HTMLInputElement.prototype,
+    'value',
+  )?.set;
+  if (!nativeValueSetter) {
+    throw new Error('Missing native input value setter.');
+  }
+
+  nativeValueSetter.call(input, value);
+}
+
+function dispatchCompositionTransaction(
+  input: HTMLInputElement,
+  fullDisplayValue: string,
+  fragment: string,
+  selection: Readonly<{ after: number; beforeEnd?: number; beforeStart: number }>,
+): void {
+  input.focus();
+  input.setSelectionRange(
+    selection.beforeStart,
+    selection.beforeEnd ?? selection.beforeStart,
+  );
+  input.dispatchEvent(new CompositionEvent('compositionstart', { bubbles: true }));
+  setNativeInputValue(input, fullDisplayValue);
+  input.setSelectionRange(selection.after, selection.after);
+  input.dispatchEvent(
+    new InputEvent('input', {
+      bubbles: true,
+      data: fragment,
+      inputType: 'insertCompositionText',
+      isComposing: true,
+    }),
+  );
+  input.dispatchEvent(
+    new CompositionEvent('compositionend', {
+      bubbles: true,
+      data: fragment,
+    }),
+  );
+}
+
+function countDigitsBeforeCaret(input: HTMLInputElement): number {
+  const selectionStart = input.selectionStart ?? input.value.length;
+  return Array.from(input.value.slice(0, selectionStart)).filter((character) =>
+    /\d/u.test(character),
+  ).length;
+}
+
 describe('MuiPhoneInput tracer', () => {
   test('commits Unicode digits only after composition ends', async () => {
     render(<ControlledHarness />);
@@ -283,16 +348,8 @@ describe('MuiPhoneInput tracer', () => {
       throw new Error('Expected the native phone input.');
     }
 
-    const nativeValueSetter = Object.getOwnPropertyDescriptor(
-      HTMLInputElement.prototype,
-      'value',
-    )?.set;
-    if (!nativeValueSetter) {
-      throw new Error('Missing native input value setter.');
-    }
-
     input.dispatchEvent(new CompositionEvent('compositionstart', { bubbles: true }));
-    nativeValueSetter.call(input, '+١٢٣');
+    setNativeInputValue(input, '+١٢٣');
     input.dispatchEvent(
       new InputEvent('input', {
         bubbles: true,
@@ -324,6 +381,138 @@ describe('MuiPhoneInput tracer', () => {
       page.getByTestId('controlled-details').element().textContent ?? '',
     ) as PhoneInputChangeDetails;
     expect(details.reason).toBe('composition');
+  });
+
+  test('preserves an existing draft when compositionend data is only the inserted fragment', async () => {
+    render(<ControlledHarness initialValue="+375" />);
+    const locator = page.getByTestId('controlled-phone');
+    await expect.element(locator).toHaveValue('+375');
+    const input = locator.element();
+
+    if (!(input instanceof HTMLInputElement)) {
+      throw new Error('Expected the native phone input.');
+    }
+
+    dispatchCompositionTransaction(input, '+375١٢', '١٢', {
+      after: 6,
+      beforeStart: 4,
+    });
+
+    await expect
+      .element(page.getByTestId('controlled-value'))
+      .toHaveTextContent('+37512');
+    await expect
+      .element(page.getByTestId('controlled-callback-count'))
+      .toHaveTextContent('1');
+    const details = JSON.parse(
+      page.getByTestId('controlled-details').element().textContent ?? '',
+    ) as PhoneInputChangeDetails;
+    expect(details.previousValue).toBe('+375');
+    expect(details.reason).toBe('composition');
+    expect(details.value).toBe('+37512');
+  });
+
+  test.each([
+    {
+      expectedDigitsBeforeCaret: 2,
+      expectedValue: '+9837512' as const,
+      fragment: '٩٨',
+      fullDisplayValue: '+٩٨37512',
+      initialValue: '+37512' as const,
+      name: 'start insertion',
+      selection: { after: 3, beforeStart: 1 },
+    },
+    {
+      expectedDigitsBeforeCaret: 5,
+      expectedValue: '+3759812' as const,
+      fragment: '٩٨',
+      fullDisplayValue: '+375٩٨12',
+      initialValue: '+37512' as const,
+      name: 'middle insertion',
+      selection: { after: 6, beforeStart: 4 },
+    },
+    {
+      expectedDigitsBeforeCaret: 5,
+      expectedValue: '+3759834' as const,
+      fragment: '٩٨',
+      fullDisplayValue: '+375٩٨34',
+      initialValue: '+3751234' as const,
+      name: 'range replacement',
+      selection: { after: 6, beforeEnd: 6, beforeStart: 4 },
+    },
+  ])(
+    'preserves unaffected digits and logical caret for $name',
+    async ({
+      expectedDigitsBeforeCaret,
+      expectedValue,
+      fragment,
+      fullDisplayValue,
+      initialValue,
+      selection,
+    }) => {
+      render(<ControlledHarness initialValue={initialValue} />);
+      const locator = page.getByTestId('controlled-phone');
+      await expect.element(locator).toBeInTheDocument();
+      const input = locator.element();
+
+      if (!(input instanceof HTMLInputElement)) {
+        throw new Error('Expected the native phone input.');
+      }
+
+      dispatchCompositionTransaction(input, fullDisplayValue, fragment, selection);
+
+      await expect
+        .element(page.getByTestId('controlled-value'))
+        .toHaveTextContent(expectedValue);
+      await expect
+        .element(page.getByTestId('controlled-callback-count'))
+        .toHaveTextContent('1');
+      expect(countDigitsBeforeCaret(input)).toBe(expectedDigitsBeforeCaret);
+      expect(input.selectionStart).toBeLessThanOrEqual(input.value.length);
+      const details = JSON.parse(
+        page.getByTestId('controlled-details').element().textContent ?? '',
+      ) as PhoneInputChangeDetails;
+      expect(details.previousValue).toBe(initialValue);
+      expect(details.reason).toBe('composition');
+      expect(details.value).toBe(expectedValue);
+    },
+  );
+
+  test('discards a rejected composition caret before a later external update', async () => {
+    render(<ControlledHarness acceptChanges={false} initialValue="+37512" />);
+    const locator = page.getByTestId('controlled-phone');
+    await expect.element(locator).toHaveValue('+37512');
+    const input = locator.element();
+
+    if (!(input instanceof HTMLInputElement)) {
+      throw new Error('Expected the native phone input.');
+    }
+
+    dispatchCompositionTransaction(input, '+٩٨37512', '٩٨', {
+      after: 3,
+      beforeStart: 1,
+    });
+
+    await expect
+      .element(page.getByTestId('controlled-callback-count'))
+      .toHaveTextContent('1');
+    await expect
+      .element(page.getByTestId('controlled-value'))
+      .toHaveTextContent('+37512');
+
+    const applyButton = page
+      .getByRole('button', { name: 'Apply latest controlled value' })
+      .element();
+    if (!(applyButton instanceof HTMLButtonElement)) {
+      throw new Error('Expected the controlled apply button.');
+    }
+    applyButton.click();
+
+    await expect
+      .element(page.getByTestId('controlled-value'))
+      .toHaveTextContent('+9837512');
+    expect(input.selectionStart).toBe(input.value.length);
+    expect(input.selectionEnd).toBe(input.value.length);
   });
 
   test('controls a canonical incomplete Phone Value with serializable details', async () => {

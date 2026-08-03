@@ -35,7 +35,12 @@ import {
   type PhoneValidationResult,
   validatePhoneValue,
 } from './phone-validation';
-import { assertPhoneValue, type PhoneValue, parsePhoneValue } from './phone-value';
+import {
+  assertPhoneValue,
+  type PhoneValue,
+  normalizePhoneInputText,
+  parsePhoneValue,
+} from './phone-value';
 
 export type PhoneInputChangeReason =
   | 'input'
@@ -198,6 +203,11 @@ type PendingTransaction = Readonly<{
   reason: PhoneInputChangeReason;
 }>;
 
+type PendingCompositionSelection = Readonly<{
+  canonicalValue: PhoneValue;
+  digitOffset: number;
+}>;
+
 type CountryTransitionLedger = {
   initialized: boolean;
   numberingPlan: PhoneInputNumberingPlanState;
@@ -214,6 +224,30 @@ const E164_INPUT_CONTEXT: InputEngineContext = {
   formatStrategyKey: 'e164',
   locale: 'en',
 };
+
+function countDigitsBeforeOffset(value: string, offset: number): number {
+  return normalizePhoneInputText(value.slice(0, offset)).replace(/\D/gu, '').length;
+}
+
+function findOffsetAfterDigits(value: string, digitOffset: number): number {
+  if (digitOffset <= 0) {
+    return value.startsWith('+') ? 1 : 0;
+  }
+
+  let digits = 0;
+  let offset = 0;
+  for (const character of value) {
+    offset += character.length;
+    if (/\d/u.test(normalizePhoneInputText(character))) {
+      digits += 1;
+      if (digits === digitOffset) {
+        return offset;
+      }
+    }
+  }
+
+  return value.length;
+}
 
 declare const process:
   | {
@@ -374,11 +408,14 @@ function usePhoneInputInternal(
   const formCleanupRef = useRef<(() => void) | null>(null);
   const composingRef = useRef(false);
   const compositionTextRef = useRef('');
+  const compositionDigitOffsetRef = useRef<number | null>(null);
   const pendingTransactionRef = useRef<PendingTransaction | null>(null);
   const pendingCommitScheduledRef = useRef(false);
   const pasteTransactionRef = useRef(false);
   const pasteResetFrameRef = useRef<number | undefined>(undefined);
   const validationBlurFrameRef = useRef<number | undefined>(undefined);
+  const [pendingCompositionSelection, setPendingCompositionSelection] =
+    useState<PendingCompositionSelection | null>(null);
   const [validationBlurred, setValidationBlurred] = useState(false);
   const [uncontrolledValue, setUncontrolledValue] = useState<PhoneValue>(() => {
     assertPhoneValue(defaultValue);
@@ -643,7 +680,6 @@ function usePhoneInputInternal(
       const inputEvent = event.nativeEvent as InputEvent;
 
       if (composingRef.current || inputEvent.isComposing) {
-        compositionTextRef.current = inputEvent.data ?? event.currentTarget.value;
         return;
       }
 
@@ -660,20 +696,42 @@ function usePhoneInputInternal(
     },
     [scheduleCommit],
   );
+  const handleInputCapture = useCallback((event: FormEvent<HTMLInputElement>) => {
+    const inputEvent = event.nativeEvent as InputEvent;
+
+    if (composingRef.current || inputEvent.isComposing) {
+      compositionTextRef.current = event.currentTarget.value;
+      compositionDigitOffsetRef.current = countDigitsBeforeOffset(
+        event.currentTarget.value,
+        event.currentTarget.selectionStart ?? event.currentTarget.value.length,
+      );
+    }
+  }, []);
   const handleCompositionStart = useCallback(() => {
     pendingCommitScheduledRef.current = false;
     pendingTransactionRef.current = null;
     composingRef.current = true;
     compositionTextRef.current = '';
+    compositionDigitOffsetRef.current = null;
+    setPendingCompositionSelection(null);
   }, []);
   const handleCompositionEnd = useCallback(
     (event: CompositionEvent<HTMLInputElement>) => {
       composingRef.current = false;
-      commit(
-        event.data || compositionTextRef.current || event.currentTarget.value,
-        'composition',
+      const displayValue =
+        compositionTextRef.current || event.currentTarget.value || event.data;
+      const digitOffset = compositionDigitOffsetRef.current;
+      setPendingCompositionSelection(
+        digitOffset === null
+          ? null
+          : {
+              canonicalValue: parsePhoneValue(displayValue),
+              digitOffset,
+            },
       );
+      commit(displayValue, 'composition');
       compositionTextRef.current = '';
+      compositionDigitOffsetRef.current = null;
     },
     [commit],
   );
@@ -784,15 +842,29 @@ function usePhoneInputInternal(
   useEffect(() => {
     const input = inputElementRef.current;
     const displayValue = currentValue ?? '';
-    const selection = input
-      ? ([
-          input.selectionStart ?? displayValue.length,
-          input.selectionEnd ?? displayValue.length,
-        ] as const)
-      : ([displayValue.length, displayValue.length] as const);
+    const reconcilesCompositionSelection =
+      pendingCompositionSelection?.canonicalValue === currentValue;
+    let selection: readonly [number, number];
+    if (reconcilesCompositionSelection && pendingCompositionSelection) {
+      const offset = findOffsetAfterDigits(
+        displayValue,
+        pendingCompositionSelection.digitOffset,
+      );
+      selection = [offset, offset];
+    } else if (input) {
+      selection = [
+        input.selectionStart ?? displayValue.length,
+        input.selectionEnd ?? displayValue.length,
+      ];
+    } else {
+      selection = [displayValue.length, displayValue.length];
+    }
 
     engineBridge.reconcileExternal({ displayValue, selection }, inputContext);
-  }, [currentValue, engineBridge, inputContext]);
+    if (pendingCompositionSelection) {
+      setPendingCompositionSelection(null);
+    }
+  }, [currentValue, engineBridge, inputContext, pendingCompositionSelection]);
 
   useEffect(
     () => () => {
@@ -878,6 +950,7 @@ function usePhoneInputInternal(
         onCompositionEnd,
         onCompositionStart,
         onInput,
+        onInputCapture,
         onPaste,
         ...rest
       } = externalProps;
@@ -913,6 +986,10 @@ function usePhoneInputInternal(
           onInput?.(event);
           handleInput(event);
         },
+        onInputCapture: (event) => {
+          onInputCapture?.(event);
+          handleInputCapture(event);
+        },
         onPaste: (event) => {
           onPaste?.(event);
           handlePaste(event);
@@ -930,6 +1007,7 @@ function usePhoneInputInternal(
       handleCompositionEnd,
       handleCompositionStart,
       handleInput,
+      handleInputCapture,
       handlePaste,
       inputId,
       numberingPlan.kind,
