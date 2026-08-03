@@ -74,8 +74,8 @@ byte-identical repeated HTML. The Vite production smoke renders the same state
 matrix. Full details are recorded in
 `2026-08-02-ssr-packed-consumption-evidence.md`.
 
-The current combined source matrix contains 90 Browser Mode tests in Chromium
-and 89 in both Firefox and WebKit; all pass. The unit suite contains 86 tests.
+The current combined source matrix contains 90 Browser Mode tests per engine;
+all pass in Chromium, Firefox, and WebKit. The unit suite contains 86 tests.
 
 ## Package budgets
 
