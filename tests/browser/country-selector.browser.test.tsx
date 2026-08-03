@@ -18,6 +18,7 @@ import {
   type PhoneCountrySelectorSlots,
   PhoneInputCountrySelector,
   type PhoneInputCountrySelectorProps,
+  PhoneInputInput,
   PhoneInputProvider,
   usePhoneInput,
   usePhoneInputContext,
@@ -216,6 +217,132 @@ function KeyboardExitHarness({
   );
 }
 
+function NativeTabOrderHarness() {
+  const phone = usePhoneInput({ defaultCountry: 'BY' });
+
+  return (
+    <PhoneInputProvider value={phone}>
+      <div>
+        <button data-testid="native-tab-previous-button" type="button">
+          Previous button
+        </button>
+        <div
+          contentEditable
+          data-testid="native-tab-previous-editable"
+          suppressContentEditableWarning
+        >
+          Previous editable
+        </div>
+        <PhoneInputCountrySelector
+          data-testid="native-tab-trigger"
+          disablePortal
+          mode="desktop"
+        />
+        <PhoneInputInput data-testid="native-tab-phone-input" tabIndex={-1} />
+        <button data-testid="native-tab-hidden" hidden type="button">
+          Hidden button
+        </button>
+        <button data-testid="native-tab-disabled" disabled type="button">
+          Disabled button
+        </button>
+        <div inert>
+          <button data-testid="native-tab-inert" type="button">
+            Inert button
+          </button>
+        </div>
+        <span
+          data-testid="native-tab-shadow-host"
+          ref={(host) => {
+            if (host && !host.shadowRoot) {
+              const root = host.attachShadow({ mode: 'open' });
+              const button = document.createElement('button');
+              button.dataset.testid = 'native-tab-shadow-button';
+              button.textContent = 'Shadow button';
+              button.type = 'button';
+              root.append(button);
+            }
+          }}
+        />
+        <div
+          contentEditable
+          data-testid="native-tab-next-editable"
+          suppressContentEditableWarning
+        >
+          Next editable
+        </div>
+        <details>
+          <summary data-testid="native-tab-summary">More controls</summary>
+        </details>
+        <a data-testid="native-tab-link" href="#native-tab-target">
+          Next link
+        </a>
+        <button data-testid="native-tab-next-button" type="button">
+          Next button
+        </button>
+      </div>
+    </PhoneInputProvider>
+  );
+}
+
+function MediaTabOrderHarness({ kind }: Readonly<{ kind: 'audio' | 'video' }>) {
+  const phone = usePhoneInput({ defaultCountry: 'BY' });
+  const media =
+    kind === 'audio' ? (
+      <audio aria-label="Native audio controls" controls data-testid="media-tab-target">
+        <track kind="captions" />
+      </audio>
+    ) : (
+      <video aria-label="Native video controls" controls data-testid="media-tab-target">
+        <track kind="captions" />
+      </video>
+    );
+
+  return (
+    <PhoneInputProvider value={phone}>
+      <div>
+        <PhoneInputCountrySelector
+          data-testid="media-tab-trigger"
+          disablePortal
+          mode="desktop"
+        />
+        {media}
+        <button data-testid="media-tab-fallback" type="button">
+          Fallback target
+        </button>
+      </div>
+    </PhoneInputProvider>
+  );
+}
+
+function PositiveTabOrderHarness() {
+  const phone = usePhoneInput({ defaultCountry: 'BY' });
+
+  return (
+    <PhoneInputProvider value={phone}>
+      <div>
+        {/* biome-ignore lint/a11y/noPositiveTabindex: regression fixture for explicit browser tab order */}
+        <button data-testid="positive-tab-previous" tabIndex={1} type="button">
+          Previous positive target
+        </button>
+        {/* biome-ignore lint/a11y/noPositiveTabindex: regression fixture for explicit browser tab order */}
+        <PhoneInputCountrySelector
+          data-testid="positive-tab-trigger"
+          disablePortal
+          mode="desktop"
+          tabIndex={2}
+        />
+        {/* biome-ignore lint/a11y/noPositiveTabindex: regression fixture for explicit browser tab order */}
+        <button data-testid="positive-tab-next" tabIndex={3} type="button">
+          Next positive target
+        </button>
+        <button data-testid="positive-tab-regular" type="button">
+          Regular target
+        </button>
+      </div>
+    </PhoneInputProvider>
+  );
+}
+
 function DesktopKeyboardBoundaryHarness() {
   const phone = usePhoneInput({ defaultCountry: 'BY' });
   const [defaultPrevented, setDefaultPrevented] = useState<boolean | null>(null);
@@ -274,6 +401,18 @@ async function waitForOpaqueAncestors(element: Element): Promise<void> {
   }
 
   throw new Error('Country selector did not reach a stable opaque state.');
+}
+
+async function waitForShadowFocus(host: Element, testId: string): Promise<void> {
+  for (let frame = 0; frame < 120; frame += 1) {
+    if (host.shadowRoot?.activeElement?.getAttribute('data-testid') === testId) {
+      return;
+    }
+
+    await new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve()));
+  }
+
+  throw new Error(`Shadow focus did not reach ${testId}.`);
 }
 
 function CustomCountrySelector({
@@ -402,6 +541,106 @@ describe('responsive country selector', () => {
     await expect
       .element(page.getByRole('combobox', { name: 'Search countries' }))
       .not.toBeInTheDocument();
+    await view.unmount();
+  });
+
+  test('preserves native element and shadow-root order when leaving desktop search', async () => {
+    const view = await render(<NativeTabOrderHarness />);
+    const trigger = page.getByTestId('native-tab-trigger');
+
+    await userEvent.click(trigger);
+    await expect
+      .element(page.getByRole('combobox', { name: 'Search countries' }))
+      .toHaveFocus();
+    await userEvent.keyboard('{Tab}');
+    const shadowHost = page.getByTestId('native-tab-shadow-host').element();
+    await waitForShadowFocus(shadowHost, 'native-tab-shadow-button');
+    expect(shadowHost.shadowRoot?.activeElement).toHaveAttribute(
+      'data-testid',
+      'native-tab-shadow-button',
+    );
+    await userEvent.keyboard('{Tab}');
+    await expect.element(page.getByTestId('native-tab-next-editable')).toHaveFocus();
+    await expect.element(page.getByTestId('native-tab-next-button')).not.toHaveFocus();
+    await expect.element(page.getByTestId('native-tab-phone-input')).not.toHaveFocus();
+    await expect.element(page.getByTestId('native-tab-hidden')).not.toHaveFocus();
+    await expect.element(page.getByTestId('native-tab-disabled')).not.toHaveFocus();
+    await expect.element(page.getByTestId('native-tab-inert')).not.toHaveFocus();
+    await userEvent.keyboard('{Tab}');
+    await expect.element(page.getByTestId('native-tab-summary')).toHaveFocus();
+    await userEvent.keyboard('{Tab}');
+    await expect.element(page.getByTestId('native-tab-link')).toHaveFocus();
+
+    await userEvent.click(trigger);
+    await expect
+      .element(page.getByRole('combobox', { name: 'Search countries' }))
+      .toHaveFocus();
+    await userEvent.keyboard('{Shift>}{Tab}{/Shift}');
+    await expect
+      .element(page.getByTestId('native-tab-previous-editable'))
+      .toHaveFocus();
+    await expect
+      .element(page.getByTestId('native-tab-previous-button'))
+      .not.toHaveFocus();
+    await userEvent.keyboard('{Shift>}{Tab}{/Shift}');
+    await expect.element(page.getByTestId('native-tab-previous-button')).toHaveFocus();
+    await view.unmount();
+  });
+
+  test.each(['audio', 'video'] as const)(
+    'preserves native %s controls as the next desktop target',
+    async (kind) => {
+      const view = await render(<MediaTabOrderHarness kind={kind} />);
+
+      await userEvent.click(page.getByTestId('media-tab-trigger'));
+      await expect
+        .element(page.getByRole('combobox', { name: 'Search countries' }))
+        .toHaveFocus();
+      await userEvent.keyboard('{Tab}');
+      await expect.element(page.getByTestId('media-tab-target')).toHaveFocus();
+      await expect.element(page.getByTestId('media-tab-fallback')).not.toHaveFocus();
+      await view.unmount();
+    },
+  );
+
+  test('preserves explicit positive tabindex order around the desktop trigger', async () => {
+    const view = await render(<PositiveTabOrderHarness />);
+    const trigger = page.getByTestId('positive-tab-trigger');
+
+    await userEvent.click(trigger);
+    await expect
+      .element(page.getByRole('combobox', { name: 'Search countries' }))
+      .toHaveFocus();
+    await userEvent.keyboard('{Tab}');
+    await expect.element(page.getByTestId('positive-tab-next')).toHaveFocus();
+    await expect.element(page.getByTestId('positive-tab-regular')).not.toHaveFocus();
+
+    await userEvent.click(trigger);
+    await expect
+      .element(page.getByRole('combobox', { name: 'Search countries' }))
+      .toHaveFocus();
+    await userEvent.keyboard('{Shift>}{Tab}{/Shift}');
+    await expect.element(page.getByTestId('positive-tab-previous')).toHaveFocus();
+    await view.unmount();
+  });
+
+  test('preserves native Tab order from a portaled desktop selector', async () => {
+    const view = await render(<KeyboardExitHarness mode="desktop" />);
+    const trigger = page.getByTestId('desktop-keyboard-trigger');
+
+    await userEvent.click(trigger);
+    await expect
+      .element(page.getByRole('combobox', { name: 'Search countries' }))
+      .toHaveFocus();
+    await userEvent.keyboard('{Tab}');
+    await expect.element(page.getByTestId('desktop-next')).toHaveFocus();
+
+    await userEvent.click(trigger);
+    await expect
+      .element(page.getByRole('combobox', { name: 'Search countries' }))
+      .toHaveFocus();
+    await userEvent.keyboard('{Shift>}{Tab}{/Shift}');
+    await expect.element(page.getByTestId('desktop-previous')).toHaveFocus();
     await view.unmount();
   });
 

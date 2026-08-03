@@ -55,6 +55,12 @@ Drawer, and BottomSheet-shaped contexts. The same no-portal path passes WebKit
 automation; physical iOS VoiceOver proof remains the correctly recorded
 real-device gate rather than being inferred from headless WebKit.
 
+Desktop Tab dismissal delegates complete sequential focus ordering to reviewed
+`tabbable@6.5.0` rather than maintaining a package-owned selector. Portaled and
+no-portal flows resolve forward/reverse targets relative to the trigger while
+excluding only the open selector surface. Full evidence is recorded in
+`2026-08-03-native-tab-order-evidence.md`.
+
 ## Accessibility and MUI contract
 
 Automated browser evidence covers:
@@ -79,14 +85,14 @@ Production Next.js and Vite consumers install the exact generated `.tgz` and
 exercise both the built-in selector and the composable selector primitive.
 Latest React 19.2/MUI 9.2 and minimum React 19.0/MUI 9.0 matrices pass.
 
-The source suites contain 98 Browser Mode tests per engine and 86 unit tests.
+The source suites contain 112 Browser Mode tests per engine and 93 unit tests.
 All Browser Mode tests pass in Chromium, Firefox, and WebKit.
 
 Current exact-artifact measurements remain within the established budgets:
 
-- main closure: 18,692 bytes gzip;
-- server entry: 2,915 bytes gzip;
-- packed tarball: 72,958 bytes.
+- main closure: 22,281 bytes gzip;
+- server entry: 4,794 bytes gzip;
+- packed tarball: 85,194 bytes.
 
 No package was published. npm identity and publication remain behind the owner
 gate `mpi-g7a`.

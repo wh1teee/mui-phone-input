@@ -2,8 +2,8 @@ import { createTheme, ThemeProvider } from '@mui/material/styles';
 import {
   MuiPhoneInput,
   type PhoneCountryChangeDetails,
-  type PhoneCountrySelectorOptionOwnerState,
   type PhoneCountrySelectionResult,
+  type PhoneCountrySelectorOptionOwnerState,
   type PhoneInputChangeDetails,
   PhoneInputCountrySelector,
   PhoneInputInput,
@@ -158,6 +158,33 @@ function PackedUnmountLifecycle() {
   );
 }
 
+function PackedNativeTabOrder() {
+  const phone = usePhoneInput({ defaultCountry: 'BY' });
+
+  return (
+    <PhoneInputProvider value={phone}>
+      <section>
+        <div
+          contentEditable
+          data-testid="packed-tab-previous-editable"
+          suppressContentEditableWarning
+        >
+          Previous editable
+        </div>
+        <PhoneInputCountrySelector data-testid="packed-tab-trigger" mode="desktop" />
+        <PhoneInputInput data-testid="packed-tab-phone-input" tabIndex={-1} />
+        <div
+          contentEditable
+          data-testid="packed-tab-next-editable"
+          suppressContentEditableWarning
+        >
+          Next editable
+        </div>
+      </section>
+    </PhoneInputProvider>
+  );
+}
+
 function PackedComposablePhoneInput() {
   const [callbackCount, setCallbackCount] = useState(0);
   const phone = usePhoneInput({
@@ -236,6 +263,7 @@ createRoot(root).render(
         />
         <PackedControlledInitialCountry />
         <PackedUnmountLifecycle />
+        <PackedNativeTabOrder />
         <PackedComposablePhoneInput />
         <SsrStateMatrix />
       </main>

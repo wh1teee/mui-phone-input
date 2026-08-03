@@ -26,6 +26,7 @@ import {
   useRef,
   useState,
 } from 'react';
+import { tabbable } from 'tabbable';
 
 import {
   createPhoneCountryOptions,
@@ -347,14 +348,6 @@ const CountrySelectorGroupOptions = styled('ul')({
   padding: 0,
 });
 
-const TABBABLE_SELECTOR = [
-  'a[href]',
-  'button:not([disabled])',
-  'input:not([disabled]):not([type="hidden"])',
-  'select:not([disabled])',
-  'textarea:not([disabled])',
-  '[tabindex]:not([tabindex="-1"])',
-].join(',');
 const COUNTRY_SELECTOR_SURFACE_SELECTOR =
   '[data-phone-input-country-selector-surface="true"]';
 
@@ -375,6 +368,21 @@ function assignRef<T>(ref: Ref<T> | undefined, value: T | null): void {
   } else if (ref) {
     ref.current = value;
   }
+}
+
+function isInsideCountrySelectorSurface(element: Element): boolean {
+  let current: Element | null = element;
+
+  while (current) {
+    if (current.matches(COUNTRY_SELECTOR_SURFACE_SELECTOR)) {
+      return true;
+    }
+
+    const root = current.getRootNode();
+    current = current.parentElement ?? (root instanceof ShadowRoot ? root.host : null);
+  }
+
+  return false;
 }
 
 function resolveSlotProps<TOwnerState, TProps extends object>(
@@ -546,17 +554,11 @@ export function PhoneInputCountrySelector({
       return undefined;
     }
 
-    const tabbable = Array.from(
-      document.querySelectorAll<HTMLElement>(TABBABLE_SELECTOR),
-    ).filter(
-      (element) =>
-        !element.closest('[hidden], [aria-hidden="true"], [inert]') &&
-        !element.closest(COUNTRY_SELECTOR_SURFACE_SELECTOR) &&
-        element.tabIndex >= 0 &&
-        !element.hidden,
+    const documentTabOrder = tabbable(document.body, { getShadowRoot: true }).filter(
+      (element) => !isInsideCountrySelectorSurface(element),
     );
-    const triggerIndex = tabbable.indexOf(trigger);
-    return triggerIndex < 0 ? undefined : tabbable[triggerIndex + direction];
+    const triggerIndex = documentTabOrder.indexOf(trigger);
+    return triggerIndex < 0 ? undefined : documentTabOrder[triggerIndex + direction];
   }, []);
   const closeSelector = useCallback(
     (restoreFocus = true) => {
@@ -566,21 +568,6 @@ export function PhoneInputCountrySelector({
       }
     },
     [returnFocus],
-  );
-  const moveFocusFromTrigger = useCallback(
-    (direction: -1 | 1): boolean => {
-      const hasExternalTarget = resolveFocusTargetFromTrigger(direction) !== undefined;
-      closeSelector(false);
-      if (!hasExternalTarget) {
-        return false;
-      }
-
-      window.requestAnimationFrame(() => {
-        resolveFocusTargetFromTrigger(direction)?.focus();
-      });
-      return true;
-    },
-    [closeSelector, resolveFocusTargetFromTrigger],
   );
   const autocomplete = useAutocomplete<PhoneCountryOption>({
     autoHighlight: true,
@@ -734,13 +721,13 @@ export function PhoneInputCountrySelector({
             closeButtonRef.current.focus();
             return;
           }
-          if (
-            !mobile &&
-            !event.defaultPrevented &&
-            event.key === 'Tab' &&
-            moveFocusFromTrigger(event.shiftKey ? -1 : 1)
-          ) {
-            event.preventDefault();
+          if (!mobile && !event.defaultPrevented && event.key === 'Tab') {
+            const focusTarget = resolveFocusTargetFromTrigger(event.shiftKey ? -1 : 1);
+            closeSelector(false);
+            if (focusTarget) {
+              event.preventDefault();
+              window.requestAnimationFrame(() => focusTarget.focus());
+            }
           }
         },
         placeholder: messages.searchLabel,

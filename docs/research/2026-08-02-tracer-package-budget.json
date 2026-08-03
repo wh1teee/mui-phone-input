@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "methodology": {
-    "main": "Vite 8 Oxc-minified ESM closure of the packed main entry. Maskito runtime dependencies are bundled; React, React DOM, MUI, Emotion, RHF and Zod peers plus libphonenumber-js metadata are external because metadata has a separate budget.",
+    "main": "Vite 8 Oxc-minified ESM closure of the packed main entry. Maskito and tabbable runtime dependencies are bundled; React, React DOM, MUI, Emotion, RHF and Zod peers plus libphonenumber-js metadata are external because metadata has a separate budget.",
     "server": "Direct tsdown neutral-platform server entry, excluding metadata presets."
   },
   "budgets": {
@@ -9,10 +9,10 @@
     "serverGzipBytes": 10240
   },
   "main": {
-    "brotliBytes": 17739,
-    "gzipBytes": 20306,
-    "rawBytes": 72418,
-    "sha256": "8cc4649770efe1131ebb7c3514a46aa706d390a9d2e6b0036f995db476d58ccb"
+    "brotliBytes": 19508,
+    "gzipBytes": 22281,
+    "rawBytes": 78797,
+    "sha256": "da7052e6fb28a8946d1111d82d3c80fd1128d3877f531cb4bcafcffe412fc243"
   },
   "server": {
     "brotliBytes": 4202,
@@ -20,6 +20,6 @@
     "rawBytes": 18698,
     "sha256": "150816066ddf4db0ded06398ecc40a3a7c70cf5751691b670276cd9791c1a94a"
   },
-  "tarballBytes": 85051,
+  "tarballBytes": 85194,
   "status": "pass"
 }

@@ -32,6 +32,22 @@ MIT licence. Source inspected for the 1.0 authority contract:
 
 No manual country or calling-code table is maintained by this package.
 
+## tabbable
+
+The package uses `tabbable@6.5.0` to resolve the browser's sequential focus
+order when a portaled desktop Country Selector closes on Tab or Shift+Tab.
+The dependency covers native focus targets including contenteditable,
+details/summary, media controls, radio groups, positive tab order, inert
+subtrees, and open shadow roots.
+
+tabbable is Copyright © David Clark and contributors and is distributed under
+the MIT licence. Source inspected for the focus-navigation contract:
+
+- <https://github.com/focus-trap/tabbable>
+- revision `7dbb9e9bf1636b02c2fc6955f0719648bb465743`
+
+No tabbable source code is copied into this package.
+
 ## input-format and react-phone-number-input
 
 `input-format@0.3.14` and `react-phone-number-input@3.4.17` were inspected and

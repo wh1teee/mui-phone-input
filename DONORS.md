@@ -1,6 +1,6 @@
 # Donor baseline and capability ledger
 
-As of **2026-08-02**, this repository contains no copied donor production code.
+As of **2026-08-03**, this repository contains no copied donor production code.
 The executable source of truth is [`donors/manifest.json`](donors/manifest.json);
 `pnpm verify:donors` checks exact revisions, licences, inspected symbols/tests,
 capability decisions, and links to the local regression corpus.
@@ -14,6 +14,7 @@ capability decisions, and links to the local regression corpus.
 | 1 | react-phone-number-input | `3.4.17` / `0408b492e99ab81c0b667cb77b24b71b0f4d8c3b` | MIT | Bake-off candidate B behavior |
 | 1 | intl-tel-input | `29.1.2` / `a8ee885a28c940e1d7a2d6ca1f0f092aea0d8534` | MIT | Interaction/selector reference; globals rejected |
 | 1 | Material UI | `9.2.0` / `cb77df2fdf6b070cd3958af0ffba11e11454bf98` | MIT | Public MUI contract and selector primitives |
+| 1 | tabbable | `6.5.0` / `7dbb9e9bf1636b02c2fc6955f0719648bb465743` | MIT | Sequential focus-order runtime |
 | 1 | WAI-ARIA APG | `main@2026-08-02` / `7e4034b262bc0d25332e330d8a582aaf34113829` | W3C | Combobox/listbox/dialog semantics |
 | 2 | react-international-phone | `4.8.0` / `d5789f3512753d84fa271e275f33b138e151fd66` | MIT | Composition/mask reference |
 | 2 | mui-tel-input | `11.0.0` / `91f1df79c6147cd51329e8174a229c431d945b78` | MIT | MUI ergonomics reference |
@@ -85,8 +86,11 @@ copied. Physical Android/iOS input evidence remains correctly deferred to
 ### `cap-country-selector`
 
 Use MUI `useAutocomplete`/Popper/Dialog primitives and WAI-ARIA APG semantics.
-intl-tel-input and react-international-phone are pattern references only; their
-country data is not authority.
+Use reviewed `tabbable@6.5.0` as the runtime authority for complete sequential
+focus ordering across portals, inert subtrees, native controls, positive
+`tabIndex`, and open shadow roots. intl-tel-input and
+react-international-phone remain pattern references only; their country data is
+not authority.
 
 The implemented selector derives countries and calling codes from
 `libphonenumber-js`, names from `Intl.DisplayNames` or a typed resolver, and
@@ -96,6 +100,10 @@ before `mpi-oan.23` measurement. `tests/unit/country-selector.test.ts` and
 `tests/browser/country-selector.browser.test.tsx` retain localized/English,
 ISO/calling-code, preferred-order, keyboard, responsive, focus, and portal
 regressions without copying donor source.
+
+The selector excludes only its own open popup/dialog surface from the donor
+result, then resolves the next or previous target relative to its trigger. It
+does not maintain a package-owned list of tabbable element categories.
 
 ### `cap-mui-contract`
 

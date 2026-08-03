@@ -79,7 +79,7 @@ export async function measureTracerPackage() {
   return {
     schemaVersion: 1,
     methodology: {
-      main: 'Vite 8 Oxc-minified ESM closure of the packed main entry. Maskito runtime dependencies are bundled; React, React DOM, MUI, Emotion, RHF and Zod peers plus libphonenumber-js metadata are external because metadata has a separate budget.',
+      main: 'Vite 8 Oxc-minified ESM closure of the packed main entry. Maskito and tabbable runtime dependencies are bundled; React, React DOM, MUI, Emotion, RHF and Zod peers plus libphonenumber-js metadata are external because metadata has a separate budget.',
       server:
         'Direct tsdown neutral-platform server entry, excluding metadata presets.',
     },

@@ -370,6 +370,33 @@ async function verifyPackedBrowser(destination, consumer) {
         `Packed controlled initial country transition is invalid: ${JSON.stringify(initialControlledCountryEvents)}`,
       );
     }
+    const packedTabTrigger = page.getByTestId('packed-tab-trigger');
+    await packedTabTrigger.click();
+    let packedTabSearch = page.getByRole('combobox', { name: 'Search countries' });
+    await packedTabSearch.waitFor({ state: 'visible' });
+    await packedTabSearch.press('Tab');
+    await page.waitForFunction(
+      () =>
+        document.activeElement?.getAttribute('data-testid') ===
+        'packed-tab-next-editable',
+    );
+    if (
+      (await page.getByTestId('packed-tab-phone-input').getAttribute('tabindex')) !==
+      '-1'
+    ) {
+      throw new Error('Packed native Tab phone input did not preserve tabIndex=-1.');
+    }
+
+    await packedTabTrigger.click();
+    packedTabSearch = page.getByRole('combobox', { name: 'Search countries' });
+    await packedTabSearch.waitFor({ state: 'visible' });
+    await packedTabSearch.press('Shift+Tab');
+    await page.waitForFunction(
+      () =>
+        document.activeElement?.getAttribute('data-testid') ===
+        'packed-tab-previous-editable',
+    );
+
     const packedUnmountInput = page.getByTestId('packed-unmount-input');
     await packedUnmountInput.waitFor({ state: 'visible' });
     await page.getByRole('button', { name: 'Queue input and unmount' }).click();

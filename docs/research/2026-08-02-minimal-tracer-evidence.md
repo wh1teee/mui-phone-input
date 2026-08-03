@@ -53,6 +53,8 @@ Source Browser Mode tests cover:
 - Unicode digit composition lifecycle;
 - queued input, form-reset, paste and composition cancellation at unmount;
 - Strict Mode remount isolation and pre-passive layout-effect transactions;
+- complete Country Selector Tab order across portals, contenteditable, media,
+  details/summary, positive tab order and open shadow roots;
 - rejected ownership switching;
 - prevented-paste reason isolation;
 - runtime MUI default props and root/input style overrides;
@@ -78,7 +80,7 @@ byte-identical repeated HTML. The Vite production smoke renders the same state
 matrix. Full details are recorded in
 `2026-08-02-ssr-packed-consumption-evidence.md`.
 
-The current combined source matrix contains 107 Browser Mode tests per engine;
+The current combined source matrix contains 112 Browser Mode tests per engine;
 all pass in Chromium, Firefox, and WebKit. The unit suite contains 93 tests.
 
 ## Package budgets
@@ -92,9 +94,9 @@ externalizes declared peers.
 
 Current exact-artifact measurements are:
 
-- main closure: 20,306 bytes gzip;
+- main closure: 22,281 bytes gzip;
 - server entry: 4,794 bytes gzip;
-- packed tarball: 85,051 bytes.
+- packed tarball: 85,194 bytes.
 
 CI rebuilds the artifact and requires exact byte/hash equality with the
 committed measurement.

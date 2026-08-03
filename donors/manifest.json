@@ -176,6 +176,30 @@
       ]
     },
     {
+      "id": "tabbable",
+      "tier": 1,
+      "release": "6.5.0",
+      "revision": "7dbb9e9bf1636b02c2fc6955f0719648bb465743",
+      "source": "https://github.com/focus-trap/tabbable",
+      "license": "MIT",
+      "inspectedSymbols": [
+        "tabbable",
+        "getCandidatesIteratively",
+        "getTabIndex",
+        "isNodeMatchingSelectorTabbable",
+        "sortByOrder"
+      ],
+      "inspectedTests": [
+        "test/index.js",
+        "test/shadow-root-utils.js",
+        "test/fixtures/fixtures.js"
+      ],
+      "knownIssues": [
+        "The package must exclude its own open selector surface before choosing a target.",
+        "Closed shadow roots require a product-supplied getShadowRoot callback and are not traversable by default."
+      ]
+    },
+    {
       "id": "wai-aria-apg",
       "tier": 1,
       "release": "main@2026-08-02",
@@ -412,6 +436,7 @@
       "tier": 1,
       "donors": [
         "material-ui",
+        "tabbable",
         "wai-aria-apg",
         "intl-tel-input",
         "react-international-phone"
@@ -419,22 +444,28 @@
       "symbols": [
         "useAutocomplete",
         "Autocomplete",
+        "tabbable",
+        "getTabIndex",
         "combobox pattern",
         "CountrySelector"
       ],
       "knownIssues": [
-        "Desktop portal, mobile dialog, no-portal VoiceOver mode, and preferred-country ordering need separate proof."
+        "Desktop portal, mobile dialog, no-portal VoiceOver mode, and preferred-country ordering need separate proof.",
+        "The open selector surface must be excluded without replacing donor focus-order semantics."
       ],
-      "decision": "pattern-only",
-      "reason": "Compose MUI primitives with APG keyboard semantics while deriving country data from libphonenumber-js and package locales.",
+      "decision": "adapt",
+      "reason": "Compose MUI primitives with APG keyboard semantics, derive country data from libphonenumber-js, and delegate complete document focus-order calculation to reviewed tabbable runtime instead of maintaining a partial selector.",
       "localRegressionCoverage": [
         "selector.search.localized",
         "selector.search.calling-code",
         "selector.keyboard",
+        "selector.keyboard.native-tab-order",
+        "selector.keyboard.portal-tab-order",
+        "selector.keyboard.shadow-root",
         "selector.mobile-dialog",
         "selector.no-portal-voiceover"
       ],
-      "licenseAction": "No APG example code or donor country tables are copied; cite APG and donor revisions in design documentation."
+      "licenseAction": "Ship tabbable@6.5.0 as an MIT runtime dependency with THIRD_PARTY_NOTICES.md. No APG example code, tabbable source, or donor country tables are copied."
     },
     {
       "id": "cap-mui-contract",

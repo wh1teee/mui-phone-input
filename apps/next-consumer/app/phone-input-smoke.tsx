@@ -3,8 +3,8 @@
 import {
   MuiPhoneInput,
   type PhoneCountryChangeDetails,
-  type PhoneCountrySelectorOptionOwnerState,
   type PhoneCountrySelectionResult,
+  type PhoneCountrySelectorOptionOwnerState,
   type PhoneInputChangeDetails,
   PhoneInputCountrySelector,
   PhoneInputInput,
@@ -115,6 +115,7 @@ export function PhoneInputSmoke() {
       </section>
       <PackedControlledInitialCountry />
       <PackedUnmountLifecycle />
+      <PackedNativeTabOrder />
       <PackedComposablePhoneInput />
       <SsrStateMatrix />
     </>
@@ -140,6 +141,33 @@ function PackedControlledInitialCountry() {
         {JSON.stringify(events)}
       </output>
     </section>
+  );
+}
+
+function PackedNativeTabOrder() {
+  const phone = usePhoneInput({ defaultCountry: 'BY' });
+
+  return (
+    <PhoneInputProvider value={phone}>
+      <section>
+        <div
+          contentEditable
+          data-testid="packed-tab-previous-editable"
+          suppressContentEditableWarning
+        >
+          Previous editable
+        </div>
+        <PhoneInputCountrySelector data-testid="packed-tab-trigger" mode="desktop" />
+        <PhoneInputInput data-testid="packed-tab-phone-input" tabIndex={-1} />
+        <div
+          contentEditable
+          data-testid="packed-tab-next-editable"
+          suppressContentEditableWarning
+        >
+          Next editable
+        </div>
+      </section>
+    </PhoneInputProvider>
   );
 }
 

@@ -53,6 +53,11 @@ assert.doesNotMatch(
   JSON.stringify(packedManifest),
   /github\.com\/wh1teee\/mui-phone-input\/issues/u,
 );
+assert.equal(
+  packedManifest.dependencies?.tabbable,
+  '6.5.0',
+  'Published package metadata must pin the reviewed tabbable runtime.',
+);
 const packedReadme = execFileSync('tar', ['-xOf', tarball, 'package/README.md'], {
   cwd: repositoryRoot,
   encoding: 'utf8',
@@ -139,6 +144,8 @@ assert.doesNotMatch(serverBundle, /from\s+['"]node:/u);
 assert.doesNotMatch(clientBundle, /from\s+['"]node:/u);
 assert.match(serverBundle, /from\s+["']libphonenumber-js\/max["']/u);
 assert.match(clientBundle, /from\s+["']libphonenumber-js\/max["']/u);
+assert.doesNotMatch(serverBundle, /from\s+["']tabbable["']/u);
+assert.match(clientBundle, /from\s+["']tabbable["']/u);
 assert.match(
   clientTypes,
   /type PhoneCountryChangeReason = "default" \| "external-value" \| "input" \| "paste" \| "reset" \| "user";/u,
