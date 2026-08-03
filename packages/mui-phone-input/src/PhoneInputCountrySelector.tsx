@@ -113,6 +113,10 @@ type PhoneCountrySelectorDataAttributes = {
   [key: `data-${string}`]: boolean | number | string | undefined;
 };
 
+type MuiKeyboardEvent<T extends HTMLElement> = KeyboardEvent<T> & {
+  defaultMuiPrevented?: boolean;
+};
+
 export interface PhoneCountrySelectorSlotProps {
   callingCode?: SlotProps<
     'span',
@@ -717,7 +721,11 @@ export function PhoneInputCountrySelector({
         'aria-label': messages.searchLabel,
         className: classes.countrySelectorSearchInput,
         'data-country-selector-presentation': presentation,
-        onKeyDown: (event: KeyboardEvent<HTMLInputElement>) => {
+        onKeyDown: (event: MuiKeyboardEvent<HTMLInputElement>) => {
+          if (event.key === 'Enter' && event.nativeEvent.isComposing) {
+            event.defaultMuiPrevented = true;
+            return;
+          }
           inputProps.onKeyDown?.(event);
           if (
             mobile &&

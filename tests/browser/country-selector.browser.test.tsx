@@ -110,6 +110,15 @@ function SemanticEmptySlot({
   return <div {...props} data-empty-query={ownerState.query} />;
 }
 
+function ImeSearchInputSlot({
+  ownerState: _ownerState,
+  ...props
+}: ComponentPropsWithRef<'input'> & {
+  ownerState: PhoneCountrySelectorOwnerState;
+}) {
+  return <input {...props} data-custom-search-input="true" />;
+}
+
 const semanticSlots = {
   callingCode: SemanticIndicatorSlot,
   closeButton: SemanticCloseButtonSlot,
@@ -582,6 +591,81 @@ function FilteredActiveCountryHarness({
   );
 }
 
+function ImeCountrySelectorHarness({
+  customSearchInput,
+  disablePortal,
+  mode,
+}: Readonly<{
+  customSearchInput: boolean;
+  disablePortal: boolean;
+  mode: Exclude<PhoneCountrySelectorMode, 'auto'>;
+}>) {
+  const [changeCount, setChangeCount] = useState(0);
+  const [countryChangeCount, setCountryChangeCount] = useState(0);
+  const [countrySelectionCount, setCountrySelectionCount] = useState(0);
+  const [consumerKeyDownCount, setConsumerKeyDownCount] = useState(0);
+  const [lastKeyDown, setLastKeyDown] = useState<{
+    defaultMuiPrevented: boolean;
+    defaultPrevented: boolean;
+    isComposing: boolean;
+    key: string;
+  } | null>(null);
+  const phone = usePhoneInput({
+    defaultCountry: 'US',
+    onChange: () => setChangeCount((count) => count + 1),
+    onCountryChange: () => setCountryChangeCount((count) => count + 1),
+    onCountrySelection: () => setCountrySelectionCount((count) => count + 1),
+  });
+
+  return (
+    <fieldset
+      aria-label="IME selector harness"
+      onKeyDown={(event) => {
+        const muiEvent = event as typeof event & { defaultMuiPrevented?: boolean };
+        setLastKeyDown({
+          defaultMuiPrevented: muiEvent.defaultMuiPrevented === true,
+          defaultPrevented: event.defaultPrevented,
+          isComposing: event.nativeEvent.isComposing,
+          key: event.key,
+        });
+      }}
+    >
+      <PhoneInputProvider value={phone}>
+        <PhoneInputInput aria-label="IME phone" data-testid="ime-phone-input" />
+        <PhoneInputCountrySelector
+          data-testid="ime-country-trigger"
+          disablePortal={disablePortal}
+          mode={mode}
+          slotProps={{
+            searchInput: {
+              'data-testid': 'ime-country-search',
+              onKeyDown: () => setConsumerKeyDownCount((count) => count + 1),
+            },
+          }}
+          {...(customSearchInput ? { slots: { searchInput: ImeSearchInputSlot } } : {})}
+        />
+        <output data-testid="ime-controller-state">
+          {JSON.stringify({
+            detectedCountry: phone.state.numberingPlan.detectedCountry,
+            resolvedCountry: phone.state.numberingPlan.resolvedCountry,
+            selectedCountry: phone.state.selectedCountry,
+            value: phone.state.value ?? null,
+          })}
+        </output>
+        <output data-testid="ime-callback-counts">
+          {JSON.stringify({
+            change: changeCount,
+            countryChange: countryChangeCount,
+            countrySelection: countrySelectionCount,
+          })}
+        </output>
+        <output data-testid="ime-consumer-keydown-count">{consumerKeyDownCount}</output>
+        <output data-testid="ime-last-keydown">{JSON.stringify(lastKeyDown)}</output>
+      </PhoneInputProvider>
+    </fieldset>
+  );
+}
+
 describe('responsive country selector', () => {
   test('keeps a filtered uncontrolled default country visible and accurately named', async () => {
     const view = await render(
@@ -986,6 +1070,141 @@ describe('responsive country selector', () => {
 
       const violations = summarizeAxeViolations(results.violations);
       expect(violations, JSON.stringify(violations, null, 2)).toEqual([]);
+      await view.unmount();
+    },
+  );
+
+  test.each([
+    { customSearchInput: false, disablePortal: false, mode: 'desktop' as const },
+    { customSearchInput: true, disablePortal: true, mode: 'desktop' as const },
+    { customSearchInput: true, disablePortal: false, mode: 'mobile' as const },
+    { customSearchInput: false, disablePortal: true, mode: 'mobile' as const },
+  ])(
+    'blocks composing Enter in $mode mode with disablePortal=$disablePortal and customSearchInput=$customSearchInput',
+    async ({ customSearchInput, disablePortal, mode }) => {
+      const view = await render(
+        <ImeCountrySelectorHarness
+          customSearchInput={customSearchInput}
+          disablePortal={disablePortal}
+          mode={mode}
+        />,
+      );
+      const trigger = page.getByTestId('ime-country-trigger');
+      const phoneInput = page.getByTestId('ime-phone-input');
+      const state = page.getByTestId('ime-controller-state');
+      const callbackCounts = page.getByTestId('ime-callback-counts');
+      const consumerKeyDownCount = page.getByTestId('ime-consumer-keydown-count');
+      const lastKeyDown = page.getByTestId('ime-last-keydown');
+
+      await userEvent.click(trigger);
+      const search = page.getByTestId('ime-country-search');
+      await userEvent.fill(search, 'Japan');
+      const japan = document.querySelector<HTMLElement>(
+        '[role="option"][data-country="JP"]',
+      );
+      expect(japan).toBeInTheDocument();
+      await expect.element(search).toHaveAttribute('aria-activedescendant', japan?.id);
+      await expect.element(search).toHaveFocus();
+      if (customSearchInput) {
+        await expect
+          .element(search)
+          .toHaveAttribute('data-custom-search-input', 'true');
+      } else {
+        await expect.element(search).not.toHaveAttribute('data-custom-search-input');
+      }
+
+      const searchInput = search.element();
+      if (!(searchInput instanceof HTMLInputElement)) {
+        throw new TypeError('Expected the IME country search input.');
+      }
+      const stateBeforeComposedEnter = state.element().textContent;
+      const callbackCountsBeforeComposedEnter = callbackCounts.element().textContent;
+      const callbackBaseline = JSON.parse(callbackCountsBeforeComposedEnter ?? '') as {
+        change: number;
+        countryChange: number;
+        countrySelection: number;
+      };
+      const activeDescendantBeforeComposedEnter = searchInput.getAttribute(
+        'aria-activedescendant',
+      );
+      searchInput.dispatchEvent(
+        new CompositionEvent('compositionstart', {
+          bubbles: true,
+          composed: true,
+          data: 'Japan',
+        }),
+      );
+      const composedEnter = new KeyboardEvent('keydown', {
+        bubbles: true,
+        cancelable: true,
+        composed: true,
+        isComposing: true,
+        key: 'Enter',
+      });
+      const imeDefaultAllowed = searchInput.dispatchEvent(composedEnter);
+
+      await expect.element(lastKeyDown).toHaveTextContent(
+        JSON.stringify({
+          defaultMuiPrevented: true,
+          defaultPrevented: false,
+          isComposing: true,
+          key: 'Enter',
+        }),
+      );
+      await expect.element(consumerKeyDownCount).toHaveTextContent('1');
+      expect(imeDefaultAllowed).toBe(true);
+      expect(composedEnter.defaultPrevented).toBe(false);
+      expect(state.element().textContent).toBe(stateBeforeComposedEnter);
+      expect(callbackCounts.element().textContent).toBe(
+        callbackCountsBeforeComposedEnter,
+      );
+      await expect.element(phoneInput).toHaveValue('');
+      await expect.element(search).toHaveValue('Japan');
+      await expect.element(search).toHaveFocus();
+      await expect.element(trigger).toHaveAttribute('aria-expanded', 'true');
+      await expect
+        .element(search)
+        .toHaveAttribute('aria-activedescendant', activeDescendantBeforeComposedEnter);
+      expect(japan).toBeInTheDocument();
+
+      if (customSearchInput) {
+        await waitForOpaqueAncestors(searchInput);
+        const results = await axe.run(document.body, {
+          runOnly: {
+            type: 'tag',
+            values: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22a', 'wcag22aa'],
+          },
+        });
+        const violations = summarizeAxeViolations(results.violations);
+        expect(violations, JSON.stringify(violations, null, 2)).toEqual([]);
+      }
+
+      searchInput.dispatchEvent(
+        new CompositionEvent('compositionend', {
+          bubbles: true,
+          composed: true,
+          data: 'Japan',
+        }),
+      );
+      await userEvent.keyboard('{Enter}');
+
+      await expect.element(callbackCounts).toHaveTextContent(
+        JSON.stringify({
+          change: callbackBaseline.change + 1,
+          countryChange: callbackBaseline.countryChange + 1,
+          countrySelection: callbackBaseline.countrySelection + 1,
+        }),
+      );
+      await expect.element(consumerKeyDownCount).toHaveTextContent('2');
+      await expect.element(phoneInput).toHaveValue('+81');
+      await expect.element(trigger).toHaveFocus();
+      await expect.element(trigger).toHaveAttribute('aria-expanded', 'false');
+      await expect.element(search).not.toBeInTheDocument();
+      expect(JSON.parse(state.element().textContent ?? '')).toMatchObject({
+        resolvedCountry: 'JP',
+        selectedCountry: 'JP',
+        value: '+81',
+      });
       await view.unmount();
     },
   );
