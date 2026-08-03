@@ -116,6 +116,7 @@ assert.match(rootPackage.scripts['ci:pr'], /verify:package-concurrency/u);
 assert.match(packageArtifactSource, /mkdtemp\(join\(artifactsDirectory, ['"]run-/u);
 assert.doesNotMatch(packageArtifactSource, /rm\(artifactsDirectory/u);
 assert.match(packageArtifactConcurrencyVerifier, /assert\.notEqual/u);
+assert.match(packageArtifactConcurrencyVerifier, /siblingEvidencePath/u);
 assert.match(productionDependenciesVerifier, /audit\.error/u);
 assert.match(
   productionDependenciesVerifier,

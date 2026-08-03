@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
-import { mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 
@@ -9,6 +9,7 @@ import { artifactsDirectory, repositoryRoot } from './lib/package-artifact.mjs';
 const coordinationDirectory = await mkdtemp(
   join(tmpdir(), 'mui-phone-input-artifact-concurrency-'),
 );
+await mkdir(artifactsDirectory, { recursive: true });
 const siblingArtifactDirectory = await mkdtemp(
   join(artifactsDirectory, 'run-sibling-'),
 );
