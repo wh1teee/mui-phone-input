@@ -112,6 +112,11 @@ transaction. `selectPhoneCountryValue` remains a value-only wrapper. Compatible
 national digits are retained; an incompatible or non-geographic draft remains
 unchanged instead of collapsing to the target calling code.
 
+An unfinished international prefix is replaced rather than duplicated. For
+example, selecting Belarus from `+3` or `+37` produces `+375` with reason
+`partial-calling-code-replaced`. Complete calling codes and their national
+digits keep the normal preservation rules.
+
 The default `mode="auto"` uses a desktop Popper and a mobile full-screen Dialog
 with one shared search draft. Set `mode="desktop"` or `"mobile"` for an explicit
 presentation. `portalContainer` controls the portal target and `disablePortal`

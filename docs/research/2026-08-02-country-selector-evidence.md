@@ -84,9 +84,9 @@ All Browser Mode tests pass in Chromium, Firefox, and WebKit.
 
 Current exact-artifact measurements remain within the established budgets:
 
-- main closure: 15,921 bytes gzip;
+- main closure: 16,020 bytes gzip;
 - server entry: 2,915 bytes gzip;
-- packed tarball: 60,666 bytes.
+- packed tarball: 61,189 bytes.
 
 No package was published. npm identity and publication remain behind the owner
 gate `mpi-g7a`.

@@ -422,6 +422,14 @@ async function verifyPackedBrowser(destination, consumer) {
       throw new Error('Packed external reset emitted a callback loop.');
     }
 
+    await input.pressSequentially('37');
+    if (
+      (await input.inputValue()) !== '+37' ||
+      (await page.getByTestId('callback-count').textContent()) !== '31'
+    ) {
+      throw new Error('Packed partial international prefix is incoherent.');
+    }
+
     const countryTrigger = page.getByTestId('country-selector-trigger');
     await countryTrigger.click();
     const countrySearch = page.getByRole('combobox', { name: 'Search countries' });
@@ -430,7 +438,7 @@ async function verifyPackedBrowser(destination, consumer) {
     await countrySearch.press('Enter');
     if (
       (await input.inputValue()) !== '+375' ||
-      (await page.getByTestId('callback-count').textContent()) !== '30'
+      (await page.getByTestId('callback-count').textContent()) !== '32'
     ) {
       throw new Error('Packed MuiPhoneInput country selection is incoherent.');
     }
@@ -467,10 +475,10 @@ async function verifyPackedBrowser(destination, consumer) {
     );
     if (
       countrySelectionDetails.country !== 'BY' ||
-      countrySelectionDetails.previousValue !== undefined ||
+      countrySelectionDetails.previousValue !== '+37' ||
       countrySelectionDetails.candidateValue !== '+375' ||
       countrySelectionDetails.value !== '+375' ||
-      countrySelectionDetails.reason !== 'calling-code-initialized' ||
+      countrySelectionDetails.reason !== 'partial-calling-code-replaced' ||
       countrySelectionDetails.status !== 'applied' ||
       countrySelectionDetails.numberingPlan?.selectedCountry !== 'BY'
     ) {

@@ -4,6 +4,7 @@ import {
   getCountryCallingCode,
   isSupportedCountry,
 } from 'libphonenumber-js/max';
+import maxMetadata from 'libphonenumber-js/metadata.max.json';
 
 import { type NumberingPlanResolution, resolveNumberingPlan } from './numbering-plan';
 import { assertPhoneValue, type PhoneValue } from './phone-value';
@@ -40,7 +41,8 @@ export interface FilterPhoneCountryOptionsParameters {
 export type PhoneCountrySelectionAppliedReason =
   | 'calling-code-initialized'
   | 'calling-code-preserved'
-  | 'national-digits-preserved';
+  | 'national-digits-preserved'
+  | 'partial-calling-code-replaced';
 
 export type PhoneCountrySelectionConflictReason =
   | 'incompatible-draft'
@@ -72,6 +74,25 @@ export interface PhoneCountrySelectionConflictResult
 export type PhoneCountrySelectionResult =
   | PhoneCountrySelectionAppliedResult
   | PhoneCountrySelectionConflictResult;
+
+const AUTHORITY_CALLING_CODES = Object.freeze([
+  ...Object.keys(maxMetadata.country_calling_codes),
+  ...Object.keys(maxMetadata.nonGeographic),
+]);
+
+function isPartialInternationalCallingCode(
+  digits: string,
+  numberingPlan: NumberingPlanResolution,
+): boolean {
+  return (
+    numberingPlan.countryCallingCode === null &&
+    digits.length > 0 &&
+    AUTHORITY_CALLING_CODES.some(
+      (callingCode) =>
+        callingCode.length > digits.length && callingCode.startsWith(digits),
+    )
+  );
+}
 
 function createDisplayNames(locale: string): Intl.DisplayNames | null {
   try {
@@ -263,9 +284,15 @@ export function resolvePhoneCountrySelection(
   const callingCode = getCountryCallingCode(country);
   const currentDigits = value?.slice(1) ?? '';
   const previousNumberingPlan = resolveNumberingPlan(value);
-  const nationalDigits = previousNumberingPlan.countryCallingCode
-    ? currentDigits.slice(previousNumberingPlan.countryCallingCode.length)
-    : currentDigits;
+  const replacesPartialCallingCode = isPartialInternationalCallingCode(
+    currentDigits,
+    previousNumberingPlan,
+  );
+  const nationalDigits = replacesPartialCallingCode
+    ? ''
+    : previousNumberingPlan.countryCallingCode
+      ? currentDigits.slice(previousNumberingPlan.countryCallingCode.length)
+      : currentDigits;
   const candidate = `+${callingCode}${nationalDigits}` as Exclude<
     PhoneValue,
     undefined
@@ -294,8 +321,9 @@ export function resolvePhoneCountrySelection(
     });
   }
 
-  const reason: PhoneCountrySelectionAppliedReason =
-    nationalDigits.length === 0
+  const reason: PhoneCountrySelectionAppliedReason = replacesPartialCallingCode
+    ? 'partial-calling-code-replaced'
+    : nationalDigits.length === 0
       ? 'calling-code-initialized'
       : previousNumberingPlan.countryCallingCode === callingCode
         ? 'calling-code-preserved'

@@ -122,6 +122,10 @@ assert.match(
 );
 assert.match(
   clientTypes,
+  /type PhoneCountrySelectionAppliedReason = "calling-code-initialized" \| "calling-code-preserved" \| "national-digits-preserved" \| "partial-calling-code-replaced";/u,
+);
+assert.match(
+  clientTypes,
   /onCountrySelection\?: \(result: PhoneCountrySelectionResult\) => void;/u,
 );
 assert.match(
@@ -197,6 +201,40 @@ assert.equal(
   clientModule.selectPhoneCountryValue('+12025550123', 'CA'),
   '+12025550123',
 );
+assert.deepEqual(clientModule.resolvePhoneCountrySelection('+37', 'BY'), {
+  candidateNumberingPlan: {
+    countryCallingCode: '375',
+    detectedCountry: 'BY',
+    kind: 'geographic',
+    possibleCountries: ['BY'],
+    resolvedCountry: 'BY',
+    selectedCountry: 'BY',
+  },
+  candidateValue: '+375',
+  country: 'BY',
+  numberingPlan: {
+    countryCallingCode: '375',
+    detectedCountry: 'BY',
+    kind: 'geographic',
+    possibleCountries: ['BY'],
+    resolvedCountry: 'BY',
+    selectedCountry: 'BY',
+  },
+  previousNumberingPlan: {
+    countryCallingCode: null,
+    detectedCountry: null,
+    kind: 'unresolved',
+    possibleCountries: [],
+    resolvedCountry: null,
+    selectedCountry: null,
+  },
+  previousValue: '+37',
+  reason: 'partial-calling-code-replaced',
+  status: 'applied',
+  value: '+375',
+});
+assert.equal(clientModule.selectPhoneCountryValue('+3', 'BY'), '+375');
+assert.equal(clientModule.selectPhoneCountryValue('+37', 'BY'), '+375');
 const sharedPlan = serverModule.resolveNumberingPlan('+1');
 assert.deepEqual(sharedPlan, {
   countryCallingCode: '1',

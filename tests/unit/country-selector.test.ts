@@ -75,6 +75,24 @@ describe('country selection transaction', () => {
     expect(selectPhoneCountryValue('+', 'CA')).toBe('+1');
   });
 
+  it('replaces unfinished international calling-code prefixes', () => {
+    for (const value of ['+3', '+37', '+87'] as const) {
+      expect(resolvePhoneCountrySelection(value, 'BY')).toMatchObject({
+        candidateValue: '+375',
+        country: 'BY',
+        previousValue: value,
+        reason: 'partial-calling-code-replaced',
+        status: 'applied',
+        value: '+375',
+      });
+      expect(selectPhoneCountryValue(value, 'BY')).toBe('+375');
+    }
+
+    expect(selectPhoneCountryValue('+375', 'BY')).toBe('+375');
+    expect(selectPhoneCountryValue('+37529', 'BY')).toBe('+37529');
+    expect(selectPhoneCountryValue('+12', 'BY')).toBe('+3752');
+  });
+
   it('preserves compatible national digits when changing calling code', () => {
     expect(selectPhoneCountryValue('+12025550123', 'BY')).toBe('+3752025550123');
   });

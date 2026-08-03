@@ -6,6 +6,7 @@ import { render } from 'vitest-browser-react';
 import {
   type PhoneCountryChangeDetails,
   type PhoneCountryChangeReason,
+  type PhoneCountrySelectionAppliedReason,
   type PhoneCountrySelectionResult,
   PhoneInputInput,
   PhoneInputProvider,
@@ -311,6 +312,33 @@ function CountrySelectionAppliedHarness() {
         type="button"
       >
         Select compatible Belarus
+      </button>
+    </>
+  );
+}
+
+function PartialCountryPrefixHarness() {
+  const [changeCount, setChangeCount] = useState(0);
+  const [selectionEvents, setSelectionEvents] = useState<PhoneCountrySelectionResult[]>(
+    [],
+  );
+  const phone = usePhoneInput({
+    defaultValue: '+37',
+    onChange: () => setChangeCount((count) => count + 1),
+    onCountrySelection: (result) => setSelectionEvents((events) => [...events, result]),
+  });
+
+  return (
+    <>
+      <input
+        {...phone.getInputProps({ 'data-testid': 'partial-country-prefix-input' })}
+      />
+      <output data-testid="partial-country-prefix-change-count">{changeCount}</output>
+      <output data-testid="partial-country-prefix-events">
+        {JSON.stringify(selectionEvents)}
+      </output>
+      <button onClick={() => phone.actions.selectCountry('BY')} type="button">
+        Replace partial prefix with Belarus
       </button>
     </>
   );
@@ -680,6 +708,50 @@ describe('usePhoneInput and composable primitives', () => {
       status: 'applied',
       value: '+3752025550123',
     });
+  });
+
+  test('replaces a partial international prefix in one country transaction', async () => {
+    render(<PartialCountryPrefixHarness />);
+    const eventOutput = page.getByTestId('partial-country-prefix-events');
+
+    await userEvent.click(
+      page.getByRole('button', { name: 'Replace partial prefix with Belarus' }),
+    );
+    await expect
+      .element(page.getByTestId('partial-country-prefix-input'))
+      .toHaveValue('+375');
+    await expect
+      .element(page.getByTestId('partial-country-prefix-change-count'))
+      .toHaveTextContent('1');
+
+    const events = JSON.parse(
+      eventOutput.element().textContent ?? '',
+    ) as PhoneCountrySelectionResult[];
+    expect(events).toHaveLength(1);
+    expect(events[0]).toMatchObject({
+      candidateValue: '+375',
+      country: 'BY',
+      previousValue: '+37',
+      reason: 'partial-calling-code-replaced',
+      status: 'applied',
+      value: '+375',
+    });
+  });
+
+  test('exports the complete typed country-selection applied reasons', () => {
+    const reasonKeys: Record<PhoneCountrySelectionAppliedReason, true> = {
+      'calling-code-initialized': true,
+      'calling-code-preserved': true,
+      'national-digits-preserved': true,
+      'partial-calling-code-replaced': true,
+    };
+
+    expect(Object.keys(reasonKeys).sort()).toEqual([
+      'calling-code-initialized',
+      'calling-code-preserved',
+      'national-digits-preserved',
+      'partial-calling-code-replaced',
+    ]);
   });
 
   test('exports the complete typed country reason vocabulary', () => {
