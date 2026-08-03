@@ -1,46 +1,24 @@
 'use client';
 
+import type { CountryCode, PhoneNumberType } from 'libphonenumber-js/max';
 import {
-  type CountryCode,
-  isSupportedCountry,
-  type PhoneNumberType,
-} from 'libphonenumber-js/max';
-import {
-  type ClipboardEvent,
   type ComponentPropsWithoutRef,
-  type CompositionEvent,
-  type FocusEvent,
-  type FormEvent,
   type ReactNode,
   type RefCallback,
   type RefObject,
-  useCallback,
-  useEffect,
   useId,
   useMemo,
-  useRef,
-  useState,
 } from 'react';
 
-import {
-  type PhoneCountrySelectionResult,
-  resolvePhoneCountrySelection,
-} from './country-selector';
-import type { InputEngineContext } from './internal/input-transaction-engine';
-import { useInputTransactionEngineBridge } from './internal/use-input-transaction-engine';
-import { type NumberingPlanResolution, resolveNumberingPlan } from './numbering-plan';
-import {
-  type PhoneValidationMode,
-  type PhoneValidationOptions,
-  type PhoneValidationResult,
-  validatePhoneValue,
-} from './phone-validation';
-import {
-  assertPhoneValue,
-  type PhoneValue,
-  normalizePhoneInputText,
-  parsePhoneValue,
-} from './phone-value';
+import type { PhoneCountrySelectionResult } from './country-selector';
+import { usePhoneInputDerivedState } from './internal/phone-input-derived-state';
+import { usePhoneInputOwnership } from './internal/use-phone-input-ownership';
+import { usePhoneInputPropGetters } from './internal/use-phone-input-prop-getters';
+import { usePhoneInputTransactions } from './internal/use-phone-input-transactions';
+import { usePhoneInputValidationVisibility } from './internal/use-phone-input-validation-visibility';
+import type { NumberingPlanResolution } from './numbering-plan';
+import type { PhoneValidationMode, PhoneValidationResult } from './phone-validation';
+import type { PhoneValue } from './phone-value';
 
 export type PhoneInputChangeReason =
   | 'input'
@@ -198,172 +176,6 @@ export interface UsePhoneInputReturn {
   state: PhoneInputState;
 }
 
-type PendingTransaction = Readonly<{
-  displayValue: string;
-  reason: PhoneInputChangeReason;
-}>;
-
-type PendingCompositionSelection = Readonly<{
-  canonicalValue: PhoneValue;
-  digitOffset: number;
-}>;
-
-type CountryTransitionLedger = {
-  initialized: boolean;
-  numberingPlan: PhoneInputNumberingPlanState;
-  value: PhoneValue;
-};
-
-type PendingCountryReconciliation = Readonly<{
-  numberingPlan: PhoneInputNumberingPlanState;
-  value: PhoneValue;
-}>;
-
-const E164_INPUT_CONTEXT: InputEngineContext = {
-  fixedCallingCode: false,
-  formatStrategyKey: 'e164',
-  locale: 'en',
-};
-
-function countDigitsBeforeOffset(value: string, offset: number): number {
-  return normalizePhoneInputText(value.slice(0, offset)).replace(/\D/gu, '').length;
-}
-
-function findOffsetAfterDigits(value: string, digitOffset: number): number {
-  if (digitOffset <= 0) {
-    return value.startsWith('+') ? 1 : 0;
-  }
-
-  let digits = 0;
-  let offset = 0;
-  for (const character of value) {
-    offset += character.length;
-    if (/\d/u.test(normalizePhoneInputText(character))) {
-      digits += 1;
-      if (digits === digitOffset) {
-        return offset;
-      }
-    }
-  }
-
-  return value.length;
-}
-
-declare const process:
-  | {
-      env: {
-        NODE_ENV?: string;
-      };
-    }
-  | undefined;
-
-function shouldWarnInDevelopment(): boolean {
-  return typeof process === 'undefined' || process.env.NODE_ENV !== 'production';
-}
-
-function joinTokens(...values: Array<string | undefined>): string | undefined {
-  const joined = values.filter(Boolean).join(' ');
-  return joined || undefined;
-}
-
-function defaultValidationMessage(validation: PhoneInputValidationState): ReactNode {
-  switch (validation.reason) {
-    case 'required':
-      return 'Enter a phone number.';
-    case 'no-digits':
-    case 'too-short':
-      return 'Complete the phone number.';
-    case 'strict-validity-required':
-      return 'Enter a valid phone number.';
-    case 'unknown-number-type':
-    case 'disallowed-number-type':
-      return 'This phone number type is not accepted.';
-    case 'custom-rejected':
-      return 'This phone number is not accepted.';
-    default:
-      return 'Enter a structurally valid phone number.';
-  }
-}
-
-function resolveValidationMessage(
-  validationMessage:
-    | ReactNode
-    | ((validation: PhoneInputValidationState) => ReactNode)
-    | undefined,
-  validation: PhoneInputValidationState,
-): ReactNode {
-  return typeof validationMessage === 'function'
-    ? validationMessage(validation)
-    : (validationMessage ?? defaultValidationMessage(validation));
-}
-
-function resolveChangeReason(
-  inputType: string,
-  value: PhoneValue,
-  pasted: boolean,
-): PhoneInputChangeReason {
-  if (value === undefined) {
-    return 'clear';
-  }
-  if (pasted || inputType === 'insertFromPaste') {
-    return 'paste';
-  }
-  if (inputType === 'historyUndo') {
-    return 'history-undo';
-  }
-  if (inputType === 'historyRedo') {
-    return 'history-redo';
-  }
-  if (inputType === 'insertReplacementText') {
-    return 'replacement';
-  }
-  if (inputType.startsWith('delete')) {
-    return 'delete';
-  }
-  return 'input';
-}
-
-function booleanDataValue(value: boolean): 'false' | 'true' {
-  return value ? 'true' : 'false';
-}
-
-function countryReasonFromInputReason(
-  reason: PhoneInputChangeReason,
-): PhoneCountryChangeReason {
-  if (reason === 'country-selection') {
-    return 'user';
-  }
-  return reason === 'paste' ? 'paste' : 'input';
-}
-
-function hasCountryTransition(
-  previous: PhoneInputNumberingPlanState,
-  next: PhoneInputNumberingPlanState,
-): boolean {
-  return (
-    previous.kind !== next.kind ||
-    previous.selectedCountry !== next.selectedCountry ||
-    previous.detectedCountry !== next.detectedCountry ||
-    previous.resolvedCountry !== next.resolvedCountry
-  );
-}
-
-function resolvePlanForCountry(
-  value: PhoneValue,
-  country: CountryCode | null,
-): PhoneInputNumberingPlanState {
-  return resolveNumberingPlan(
-    value,
-    country == null ? {} : { selectedCountry: country },
-  );
-}
-
-function assertCountry(country: CountryCode | null | undefined, label: string): void {
-  if (country != null && !isSupportedCountry(country)) {
-    throw new TypeError(`Unsupported ${label} country: ${country}`);
-  }
-}
-
 function usePhoneInputInternal(
   parameters: UsePhoneInputParameters = {},
   diagnosticName: 'MuiPhoneInput' | 'usePhoneInput',
@@ -389,620 +201,103 @@ function usePhoneInputInternal(
   const generatedId = useId();
   const inputId = id ?? `mui-phone-input-${generatedId}`;
   const validationMessageId = `${inputId}-helper-text`;
-  const hasValueProp = Object.hasOwn(parameters, 'value');
-  const hasDefaultValueProp = Object.hasOwn(parameters, 'defaultValue');
-  const hasSelectedCountryProp = Object.hasOwn(parameters, 'selectedCountry');
-  const hasDefaultCountryProp = Object.hasOwn(parameters, 'defaultCountry');
-  const isControlledNow = hasValueProp;
-  const isCountryControlledNow = hasSelectedCountryProp;
-  const controlledRef = useRef(isControlledNow);
-  const countryControlledRef = useRef(isCountryControlledNow);
-  const warnedAboutModeRef = useRef(false);
-  const warnedAboutCountryModeRef = useRef(false);
-  const warnedAboutOwnershipConflictRef = useRef(false);
-  const warnedAboutCountryOwnershipConflictRef = useRef(false);
-  const initialDefaultValueRef = useRef(defaultValue);
-  const initialDefaultCountryRef = useRef(defaultCountry ?? null);
-  const inputElementRef = useRef<HTMLInputElement | null>(null);
-  const engineCleanupRef = useRef<(() => void) | null>(null);
-  const formCleanupRef = useRef<(() => void) | null>(null);
-  const composingRef = useRef(false);
-  const compositionTextRef = useRef('');
-  const compositionDigitOffsetRef = useRef<number | null>(null);
-  const pendingTransactionRef = useRef<PendingTransaction | null>(null);
-  const pendingCommitScheduledRef = useRef(false);
-  const pasteTransactionRef = useRef(false);
-  const pasteResetFrameRef = useRef<number | undefined>(undefined);
-  const validationBlurFrameRef = useRef<number | undefined>(undefined);
-  const [pendingCompositionSelection, setPendingCompositionSelection] =
-    useState<PendingCompositionSelection | null>(null);
-  const [validationBlurred, setValidationBlurred] = useState(false);
-  const [uncontrolledValue, setUncontrolledValue] = useState<PhoneValue>(() => {
-    assertPhoneValue(defaultValue);
-    return defaultValue;
+  const ownership = usePhoneInputOwnership(
+    {
+      ...(Object.hasOwn(parameters, 'defaultCountry') ? { defaultCountry } : {}),
+      ...(Object.hasOwn(parameters, 'defaultValue') ? { defaultValue } : {}),
+      ...(Object.hasOwn(parameters, 'selectedCountry') ? { selectedCountry } : {}),
+      ...(Object.hasOwn(parameters, 'value') ? { value } : {}),
+    },
+    diagnosticName,
+  );
+  const { handleBlur, resetValidationVisibility, validationVisible } =
+    usePhoneInputValidationVisibility(validationDisplay);
+  const derivedState = usePhoneInputDerivedState({
+    currentSelectedCountry: ownership.currentSelectedCountry,
+    currentValue: ownership.currentValue,
+    error,
+    required,
+    validationMode,
+    validationVisible,
+    ...(allowedNumberTypes === undefined ? {} : { allowedNumberTypes }),
+    ...(validationMessage === undefined ? {} : { validationMessage }),
   });
-  const [uncontrolledCountry, setUncontrolledCountry] = useState<CountryCode | null>(
-    () => {
-      assertCountry(defaultCountry, 'default');
-      return defaultCountry ?? null;
-    },
-  );
-
-  assertPhoneValue(value);
-  assertCountry(selectedCountry, 'selected');
-
-  const currentValue = controlledRef.current ? value : uncontrolledValue;
-  const currentValueRef = useRef(currentValue);
-  currentValueRef.current = currentValue;
-  const currentSelectedCountry = countryControlledRef.current
-    ? (selectedCountry ?? null)
-    : uncontrolledCountry;
-  const currentSelectedCountryRef = useRef(currentSelectedCountry);
-  currentSelectedCountryRef.current = currentSelectedCountry;
-  const numberingPlanOptions = useMemo(
-    () =>
-      currentSelectedCountry == null ? {} : { selectedCountry: currentSelectedCountry },
-    [currentSelectedCountry],
-  );
-  const validationOptions = useMemo<PhoneValidationOptions>(
-    () => ({
-      required,
-      validationMode,
-      ...(currentSelectedCountry == null
-        ? {}
-        : { selectedCountry: currentSelectedCountry }),
-      ...(allowedNumberTypes === undefined ? {} : { allowedNumberTypes }),
-    }),
-    [allowedNumberTypes, currentSelectedCountry, required, validationMode],
-  );
-  const numberingPlan = useMemo(
-    () => resolveNumberingPlan(currentValue, numberingPlanOptions),
-    [currentValue, numberingPlanOptions],
-  );
-  const validation = useMemo(
-    () => validatePhoneValue(currentValue, validationOptions),
-    [currentValue, validationOptions],
-  );
-  const validationVisible =
-    validationDisplay === 'always' ||
-    (validationDisplay === 'blur' && validationBlurred);
-  const validationError = validationVisible && !validation.accepted;
-  const resolvedError = error || validationError;
-  const resolvedValidationMessage = validationError
-    ? resolveValidationMessage(validationMessage, validation)
-    : null;
-  const inputContext = useMemo<InputEngineContext>(
-    () => ({
-      ...E164_INPUT_CONTEXT,
-      ...(numberingPlan.resolvedCountry
-        ? { country: numberingPlan.resolvedCountry }
-        : {}),
-    }),
-    [numberingPlan.resolvedCountry],
-  );
-  const engineBridge = useInputTransactionEngineBridge();
-  const countryTransitionLedgerRef = useRef<CountryTransitionLedger>({
-    initialized: false,
-    numberingPlan: resolveNumberingPlan(undefined),
-    value: undefined,
+  const {
+    clear,
+    focus,
+    handleCompositionEnd,
+    handleCompositionStart,
+    handleInput,
+    handleInputCapture,
+    handlePaste,
+    inputElementRef,
+    reset,
+    selectCountry,
+    setInputRef,
+  } = usePhoneInputTransactions({
+    inputContext: derivedState.inputContext,
+    numberingPlan: derivedState.numberingPlan,
+    ownership,
+    required,
+    resetValidationVisibility,
+    validationMode,
+    ...(allowedNumberTypes === undefined ? {} : { allowedNumberTypes }),
+    ...(onChange === undefined ? {} : { onChange }),
+    ...(onCountryChange === undefined ? {} : { onCountryChange }),
+    ...(onCountrySelection === undefined ? {} : { onCountrySelection }),
   });
-  const pendingCountryReconciliationRef = useRef<PendingCountryReconciliation | null>(
-    null,
-  );
-
-  const emitCountryTransition = useCallback(
-    (
-      previousNumberingPlan: PhoneInputNumberingPlanState,
-      nextNumberingPlan: PhoneInputNumberingPlanState,
-      previousValue: PhoneValue,
-      nextValue: PhoneValue,
-      reason: PhoneCountryChangeReason,
-    ) => {
-      countryTransitionLedgerRef.current = {
-        initialized: true,
-        numberingPlan: nextNumberingPlan,
-        value: nextValue,
-      };
-
-      if (!hasCountryTransition(previousNumberingPlan, nextNumberingPlan)) {
-        return;
-      }
-
-      onCountryChange?.(nextNumberingPlan.resolvedCountry, {
-        country: nextNumberingPlan.resolvedCountry,
-        numberingPlan: nextNumberingPlan,
-        previousCountry: previousNumberingPlan.resolvedCountry,
-        previousNumberingPlan,
-        previousValue,
-        reason,
-        value: nextValue,
-      });
-    },
-    [onCountryChange],
-  );
-
-  const cancelValidationBlurFrame = useCallback(() => {
-    if (validationBlurFrameRef.current !== undefined) {
-      window.cancelAnimationFrame(validationBlurFrameRef.current);
-      validationBlurFrameRef.current = undefined;
-    }
-  }, []);
-  const resetState = useCallback(() => {
-    cancelValidationBlurFrame();
-    const previousValue = currentValueRef.current;
-    const previousSelectedCountry = currentSelectedCountryRef.current;
-    const nextValue = controlledRef.current
-      ? previousValue
-      : initialDefaultValueRef.current;
-    const nextSelectedCountry = countryControlledRef.current
-      ? previousSelectedCountry
-      : initialDefaultCountryRef.current;
-
-    if (!controlledRef.current) {
-      currentValueRef.current = nextValue;
-      setUncontrolledValue(nextValue);
-    }
-    if (!countryControlledRef.current) {
-      currentSelectedCountryRef.current = nextSelectedCountry;
-      setUncontrolledCountry(nextSelectedCountry);
-    }
-    setValidationBlurred(false);
-    emitCountryTransition(
-      resolvePlanForCountry(previousValue, previousSelectedCountry),
-      resolvePlanForCountry(nextValue, nextSelectedCountry),
-      previousValue,
-      nextValue,
-      'reset',
-    );
-  }, [cancelValidationBlurFrame, emitCountryTransition]);
-  const setInputRef = useCallback<RefCallback<HTMLInputElement>>(
-    (input) => {
-      formCleanupRef.current?.();
-      formCleanupRef.current = null;
-      engineCleanupRef.current?.();
-      engineCleanupRef.current = input ? engineBridge.attach(input) : null;
-      inputElementRef.current = input;
-
-      const form = input?.form;
-      if (form) {
-        const handleReset = () => queueMicrotask(resetState);
-        form.addEventListener('reset', handleReset);
-        formCleanupRef.current = () => form.removeEventListener('reset', handleReset);
-      }
-    },
-    [engineBridge, resetState],
-  );
-  const commit = useCallback(
-    (
-      displayValue: string,
-      reason: PhoneInputChangeReason,
-      nextSelectedCountry: CountryCode | null = currentSelectedCountryRef.current,
-      previousSelectedCountry: CountryCode | null = currentSelectedCountryRef.current,
-    ) => {
-      const nextValue = parsePhoneValue(displayValue);
-      const previousValue = currentValueRef.current;
-      const valueChanged = nextValue !== previousValue;
-      const previousNumberingPlan = resolvePlanForCountry(
-        previousValue,
-        previousSelectedCountry,
-      );
-      const nextNumberingPlan = resolvePlanForCountry(nextValue, nextSelectedCountry);
-      const nextValidationOptions: PhoneValidationOptions = {
-        required,
-        validationMode,
-        ...(nextSelectedCountry == null
-          ? {}
-          : { selectedCountry: nextSelectedCountry }),
-        ...(allowedNumberTypes === undefined ? {} : { allowedNumberTypes }),
-      };
-
-      if (valueChanged) {
-        currentValueRef.current = nextValue;
-        if (!controlledRef.current) {
-          setUncontrolledValue(nextValue);
-        }
-
-        onChange?.(nextValue, {
-          numberingPlan: nextNumberingPlan,
-          previousValue,
-          reason,
-          validation: validatePhoneValue(nextValue, nextValidationOptions),
-          value: nextValue,
-        });
-      }
-
-      if (
-        (controlledRef.current || countryControlledRef.current) &&
-        hasCountryTransition(previousNumberingPlan, nextNumberingPlan)
-      ) {
-        pendingCountryReconciliationRef.current = {
-          numberingPlan: nextNumberingPlan,
-          value: nextValue,
-        };
-      }
-
-      emitCountryTransition(
-        previousNumberingPlan,
-        nextNumberingPlan,
-        previousValue,
-        nextValue,
-        countryReasonFromInputReason(reason),
-      );
-    },
-    [allowedNumberTypes, emitCountryTransition, onChange, required, validationMode],
-  );
-  const scheduleCommit = useCallback(
-    (displayValue: string, reason: PhoneInputChangeReason) => {
-      const pending = pendingTransactionRef.current;
-      const nextDisplayValue =
-        displayValue.length > 0 || pending === null || pending.displayValue.length === 0
-          ? displayValue
-          : pending.displayValue;
-      const nextReason = reason === 'input' && pending ? pending.reason : reason;
-
-      pendingTransactionRef.current = {
-        displayValue: nextDisplayValue,
-        reason: nextReason,
-      };
-
-      if (pendingCommitScheduledRef.current) {
-        return;
-      }
-
-      pendingCommitScheduledRef.current = true;
-      queueMicrotask(() => {
-        pendingCommitScheduledRef.current = false;
-        const transaction = pendingTransactionRef.current;
-        pendingTransactionRef.current = null;
-
-        if (!composingRef.current && transaction) {
-          commit(transaction.displayValue, transaction.reason);
-        }
-      });
-    },
-    [commit],
-  );
-  const handlePaste = useCallback((event: ClipboardEvent<HTMLInputElement>) => {
-    if (!event.defaultPrevented) {
-      pasteTransactionRef.current = true;
-
-      if (pasteResetFrameRef.current !== undefined) {
-        window.cancelAnimationFrame(pasteResetFrameRef.current);
-      }
-      pasteResetFrameRef.current = window.requestAnimationFrame(() => {
-        pasteTransactionRef.current = false;
-        pasteResetFrameRef.current = undefined;
-      });
-    }
-  }, []);
-  const handleInput = useCallback(
-    (event: FormEvent<HTMLInputElement>) => {
-      const inputEvent = event.nativeEvent as InputEvent;
-
-      if (composingRef.current || inputEvent.isComposing) {
-        return;
-      }
-
-      const displayValue = event.currentTarget.value;
-      const nextValue = parsePhoneValue(displayValue);
-      scheduleCommit(
-        displayValue,
-        resolveChangeReason(
-          inputEvent.inputType,
-          nextValue,
-          pasteTransactionRef.current,
-        ),
-      );
-    },
-    [scheduleCommit],
-  );
-  const handleInputCapture = useCallback((event: FormEvent<HTMLInputElement>) => {
-    const inputEvent = event.nativeEvent as InputEvent;
-
-    if (composingRef.current || inputEvent.isComposing) {
-      compositionTextRef.current = event.currentTarget.value;
-      compositionDigitOffsetRef.current = countDigitsBeforeOffset(
-        event.currentTarget.value,
-        event.currentTarget.selectionStart ?? event.currentTarget.value.length,
-      );
-    }
-  }, []);
-  const handleCompositionStart = useCallback(() => {
-    pendingCommitScheduledRef.current = false;
-    pendingTransactionRef.current = null;
-    composingRef.current = true;
-    compositionTextRef.current = '';
-    compositionDigitOffsetRef.current = null;
-    setPendingCompositionSelection(null);
-  }, []);
-  const handleCompositionEnd = useCallback(
-    (event: CompositionEvent<HTMLInputElement>) => {
-      composingRef.current = false;
-      const displayValue =
-        compositionTextRef.current || event.currentTarget.value || event.data;
-      const digitOffset = compositionDigitOffsetRef.current;
-      setPendingCompositionSelection(
-        digitOffset === null
-          ? null
-          : {
-              canonicalValue: parsePhoneValue(displayValue),
-              digitOffset,
-            },
-      );
-      commit(displayValue, 'composition');
-      compositionTextRef.current = '';
-      compositionDigitOffsetRef.current = null;
-    },
-    [commit],
-  );
-  const handleBlur = useCallback(
-    (_event: FocusEvent<HTMLInputElement>) => {
-      cancelValidationBlurFrame();
-      validationBlurFrameRef.current = window.requestAnimationFrame(() => {
-        validationBlurFrameRef.current = undefined;
-        setValidationBlurred(true);
-      });
-    },
-    [cancelValidationBlurFrame],
-  );
-
-  useEffect(() => {
-    if (
-      shouldWarnInDevelopment() &&
-      isControlledNow !== controlledRef.current &&
-      !warnedAboutModeRef.current
-    ) {
-      warnedAboutModeRef.current = true;
-      console.error(
-        `${diagnosticName} cannot switch between controlled and uncontrolled ownership after mount.`,
-      );
-    }
-  }, [diagnosticName, isControlledNow]);
-
-  useEffect(() => {
-    if (
-      shouldWarnInDevelopment() &&
-      isCountryControlledNow !== countryControlledRef.current &&
-      !warnedAboutCountryModeRef.current
-    ) {
-      warnedAboutCountryModeRef.current = true;
-      console.error(
-        `${diagnosticName} cannot switch selectedCountry between controlled and uncontrolled ownership after mount.`,
-      );
-    }
-  }, [diagnosticName, isCountryControlledNow]);
-
-  useEffect(() => {
-    if (
-      shouldWarnInDevelopment() &&
-      hasValueProp &&
-      hasDefaultValueProp &&
-      !warnedAboutOwnershipConflictRef.current
-    ) {
-      warnedAboutOwnershipConflictRef.current = true;
-      console.error(
-        `${diagnosticName} received both value and defaultValue; value controls ownership.`,
-      );
-    }
-  }, [diagnosticName, hasDefaultValueProp, hasValueProp]);
-
-  useEffect(() => {
-    if (
-      shouldWarnInDevelopment() &&
-      hasSelectedCountryProp &&
-      hasDefaultCountryProp &&
-      !warnedAboutCountryOwnershipConflictRef.current
-    ) {
-      warnedAboutCountryOwnershipConflictRef.current = true;
-      console.error(
-        `${diagnosticName} received both selectedCountry and defaultCountry; selectedCountry controls country ownership.`,
-      );
-    }
-  }, [diagnosticName, hasDefaultCountryProp, hasSelectedCountryProp]);
-
-  useEffect(() => {
-    const previous = countryTransitionLedgerRef.current;
-
-    if (!previous.initialized) {
-      emitCountryTransition(
-        previous.numberingPlan,
-        numberingPlan,
-        previous.value,
-        currentValue,
-        'default',
-      );
-      return;
-    }
-
-    const pendingReconciliation = pendingCountryReconciliationRef.current;
-    pendingCountryReconciliationRef.current = null;
-    const pendingValue = pendingReconciliation?.value;
-    if (
-      pendingReconciliation &&
-      pendingValue === currentValue &&
-      !hasCountryTransition(pendingReconciliation.numberingPlan, numberingPlan)
-    ) {
-      countryTransitionLedgerRef.current = {
-        initialized: true,
-        numberingPlan,
-        value: currentValue,
-      };
-      return;
-    }
-
-    emitCountryTransition(
-      previous.numberingPlan,
-      numberingPlan,
-      previous.value,
-      currentValue,
-      'external-value',
-    );
-  }, [currentValue, emitCountryTransition, numberingPlan]);
-
-  useEffect(() => {
-    const input = inputElementRef.current;
-    const displayValue = currentValue ?? '';
-    const reconcilesCompositionSelection =
-      pendingCompositionSelection?.canonicalValue === currentValue;
-    let selection: readonly [number, number];
-    if (reconcilesCompositionSelection && pendingCompositionSelection) {
-      const offset = findOffsetAfterDigits(
-        displayValue,
-        pendingCompositionSelection.digitOffset,
-      );
-      selection = [offset, offset];
-    } else if (input) {
-      selection = [
-        input.selectionStart ?? displayValue.length,
-        input.selectionEnd ?? displayValue.length,
-      ];
-    } else {
-      selection = [displayValue.length, displayValue.length];
-    }
-
-    engineBridge.reconcileExternal({ displayValue, selection }, inputContext);
-    if (pendingCompositionSelection) {
-      setPendingCompositionSelection(null);
-    }
-  }, [currentValue, engineBridge, inputContext, pendingCompositionSelection]);
-
-  useEffect(
-    () => () => {
-      formCleanupRef.current?.();
-      engineCleanupRef.current?.();
-      if (pasteResetFrameRef.current !== undefined) {
-        window.cancelAnimationFrame(pasteResetFrameRef.current);
-      }
-      cancelValidationBlurFrame();
-    },
-    [cancelValidationBlurFrame],
-  );
-
-  const focus = useCallback(() => inputElementRef.current?.focus(), []);
-  const clear = useCallback(() => commit('', 'clear'), [commit]);
-  const selectCountry = useCallback(
-    (country: CountryCode) => {
-      assertCountry(country, 'selected');
-      const previousCountry = currentSelectedCountryRef.current;
-      const previousValue = currentValueRef.current;
-      const selection = resolvePhoneCountrySelection(previousValue, country);
-
-      if (selection.status === 'applied') {
-        if (!countryControlledRef.current) {
-          currentSelectedCountryRef.current = country;
-          setUncontrolledCountry(country);
-        }
-
-        commit(selection.value, 'country-selection', country, previousCountry);
-      }
-
-      onCountrySelection?.(selection);
-      return selection;
-    },
-    [commit, onCountrySelection],
-  );
   const actions = useMemo<PhoneInputActions>(
-    () => ({ clear, focus, reset: resetState, selectCountry }),
-    [clear, focus, resetState, selectCountry],
+    () => ({
+      clear,
+      focus,
+      reset,
+      selectCountry,
+    }),
+    [clear, focus, reset, selectCountry],
   );
   const state = useMemo<PhoneInputState>(
     () => ({
-      controlled: controlledRef.current,
-      countryControlled: countryControlledRef.current,
+      controlled: ownership.controlledRef.current,
+      countryControlled: ownership.countryControlledRef.current,
       disabled,
-      displayValue: currentValue ?? '',
-      empty: currentValue === undefined,
-      error: resolvedError,
+      displayValue: ownership.currentValue ?? '',
+      empty: ownership.currentValue === undefined,
+      error: derivedState.resolvedError,
       inputId,
-      numberingPlan,
+      numberingPlan: derivedState.numberingPlan,
       readOnly,
       required,
-      selectedCountry: numberingPlan.selectedCountry,
-      validation,
-      validationError,
-      validationMessage: resolvedValidationMessage,
+      selectedCountry: derivedState.numberingPlan.selectedCountry,
+      validation: derivedState.validation,
+      validationError: derivedState.validationError,
+      validationMessage: derivedState.resolvedValidationMessage,
       validationMessageId,
       validationVisible,
-      value: currentValue,
+      value: ownership.currentValue,
     }),
     [
-      currentValue,
+      derivedState.numberingPlan,
+      derivedState.resolvedError,
+      derivedState.resolvedValidationMessage,
+      derivedState.validation,
+      derivedState.validationError,
       disabled,
       inputId,
-      numberingPlan,
+      ownership.controlledRef,
+      ownership.countryControlledRef,
+      ownership.currentValue,
       readOnly,
       required,
-      resolvedError,
-      resolvedValidationMessage,
-      validation,
-      validationError,
       validationMessageId,
       validationVisible,
     ],
   );
-  const getInputProps = useCallback(
-    (
-      externalProps: PhoneInputInputExternalProps = {},
-    ): PhoneInputResolvedInputProps => {
-      const {
-        'aria-describedby': externalDescribedBy,
-        onBlur,
-        onCompositionEnd,
-        onCompositionStart,
-        onInput,
-        onInputCapture,
-        onPaste,
-        ...rest
-      } = externalProps;
-
-      return {
-        ...rest,
-        'aria-describedby': validationError
-          ? joinTokens(externalDescribedBy, validationMessageId)
-          : externalDescribedBy,
-        'aria-errormessage': validationError ? validationMessageId : undefined,
-        'aria-invalid': state.error,
-        'data-phone-input-accepted': booleanDataValue(validation.accepted),
-        'data-phone-input-country': numberingPlan.selectedCountry ?? '',
-        'data-phone-input-plan': numberingPlan.kind,
-        'data-phone-input-status': validation.status,
-        autoComplete: externalProps.autoComplete ?? 'tel',
-        disabled,
-        id: inputId,
-        inputMode: externalProps.inputMode ?? 'tel',
-        onBlur: (event) => {
-          onBlur?.(event);
-          handleBlur(event);
-        },
-        onCompositionEnd: (event) => {
-          onCompositionEnd?.(event);
-          handleCompositionEnd(event);
-        },
-        onCompositionStart: (event) => {
-          onCompositionStart?.(event);
-          handleCompositionStart();
-        },
-        onInput: (event) => {
-          onInput?.(event);
-          handleInput(event);
-        },
-        onInputCapture: (event) => {
-          onInputCapture?.(event);
-          handleInputCapture(event);
-        },
-        onPaste: (event) => {
-          onPaste?.(event);
-          handlePaste(event);
-        },
-        readOnly,
-        ref: setInputRef,
-        required,
-        value: currentValue ?? '',
-      };
-    },
-    [
-      currentValue,
+  const { getInputProps, getRootProps, getValidationMessageProps } =
+    usePhoneInputPropGetters({
+      controlled: ownership.controlledRef.current,
+      currentValue: ownership.currentValue,
       disabled,
+      error: state.error,
       handleBlur,
       handleCompositionEnd,
       handleCompositionStart,
@@ -1010,44 +305,14 @@ function usePhoneInputInternal(
       handleInputCapture,
       handlePaste,
       inputId,
-      numberingPlan.kind,
-      numberingPlan.selectedCountry,
+      numberingPlan: derivedState.numberingPlan,
       readOnly,
       required,
       setInputRef,
-      state.error,
-      validationError,
-      validation.accepted,
-      validation.status,
+      validation: derivedState.validation,
+      validationError: derivedState.validationError,
       validationMessageId,
-    ],
-  );
-  const getRootProps = useCallback(
-    (externalProps: PhoneInputRootExternalProps = {}): PhoneInputResolvedRootProps => ({
-      ...externalProps,
-      'data-phone-input-accepted': booleanDataValue(validation.accepted),
-      'data-phone-input-country': numberingPlan.selectedCountry ?? '',
-      'data-phone-input-controlled': booleanDataValue(controlledRef.current),
-      'data-phone-input-plan': numberingPlan.kind,
-      'data-phone-input-status': validation.status,
-    }),
-    [
-      numberingPlan.kind,
-      numberingPlan.selectedCountry,
-      validation.accepted,
-      validation.status,
-    ],
-  );
-  const getValidationMessageProps = useCallback(
-    (
-      externalProps: PhoneInputValidationMessageExternalProps = {},
-    ): PhoneInputResolvedValidationMessageProps => ({
-      ...externalProps,
-      'aria-live': 'polite',
-      id: validationMessageId,
-    }),
-    [validationMessageId],
-  );
+    });
 
   return useMemo(
     () => ({
@@ -1064,6 +329,7 @@ function usePhoneInputInternal(
       getInputProps,
       getRootProps,
       getValidationMessageProps,
+      inputElementRef,
       setInputRef,
       state,
     ],

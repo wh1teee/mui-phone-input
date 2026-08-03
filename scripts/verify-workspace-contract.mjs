@@ -22,6 +22,10 @@ const countrySelectorSource = await readFile(
   'packages/mui-phone-input/src/PhoneInputCountrySelector.tsx',
   'utf8',
 );
+const usePhoneInputSource = await readFile(
+  'packages/mui-phone-input/src/usePhoneInput.ts',
+  'utf8',
+);
 const clientIndexSource = await readFile(
   'packages/mui-phone-input/src/index.ts',
   'utf8',
@@ -158,6 +162,19 @@ for (const semanticClass of [
 }
 assert.match(packageReadme, /The stable semantic slots are/u);
 assert.match(packageReadme, /implementation details rather than public slots/u);
+for (const internalBoundary of [
+  'phone-input-derived-state',
+  'use-phone-input-ownership',
+  'use-phone-input-prop-getters',
+  'use-phone-input-transactions',
+  'use-phone-input-validation-visibility',
+]) {
+  assert.match(usePhoneInputSource, new RegExp(`./internal/${internalBoundary}`, 'u'));
+}
+assert.ok(
+  usePhoneInputSource.split('\n').length <= 650,
+  'usePhoneInput.ts must remain a public orchestration shell below 650 lines.',
+);
 assert.match(packedConsumersVerifier, /javaScriptEnabled:\s*false/u);
 assert.match(packedConsumersVerifier, /server-render-probe\.mjs/u);
 assert.match(packedConsumersVerifier, /hydration-marker/u);

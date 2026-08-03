@@ -80,11 +80,11 @@ owner-state slot-prop callbacks, and stable style-override/class keys. Existing
 keyboard, responsive, portal, hydration, and axe suites continue to exercise
 the default implementation.
 
-The exact-tip source matrix contains 95 Browser Mode tests per engine and 86
+The exact-tip source matrix contains 98 Browser Mode tests per engine and 86
 unit/model tests. The selector file, including both semantic-slot cases, passes
 in Chromium, Firefox, and WebKit. Exact package measurements remain within the
 established budgets:
 
-- main closure: 17,846 bytes gzip;
+- main closure: 18,692 bytes gzip;
 - server entry: 2,915 bytes gzip;
-- packed tarball: 70,245 bytes.
+- packed tarball: 72,958 bytes.

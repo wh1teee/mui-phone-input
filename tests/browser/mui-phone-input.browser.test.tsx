@@ -412,6 +412,46 @@ describe('MuiPhoneInput tracer', () => {
     expect(details.value).toBe('+37512');
   });
 
+  test('commits an observed empty field instead of compositionend fragment data', async () => {
+    render(<ControlledHarness initialValue="+375" />);
+    const locator = page.getByTestId('controlled-phone');
+    await expect.element(locator).toHaveValue('+375');
+    const input = locator.element();
+
+    if (!(input instanceof HTMLInputElement)) {
+      throw new Error('Expected the native phone input.');
+    }
+
+    input.dispatchEvent(new CompositionEvent('compositionstart', { bubbles: true }));
+    setNativeInputValue(input, '');
+    input.setSelectionRange(0, 0);
+    input.dispatchEvent(
+      new InputEvent('input', {
+        bubbles: true,
+        data: '١٢',
+        inputType: 'insertCompositionText',
+        isComposing: true,
+      }),
+    );
+    input.dispatchEvent(
+      new CompositionEvent('compositionend', {
+        bubbles: true,
+        data: '١٢',
+      }),
+    );
+
+    await expect.element(locator).toHaveValue('');
+    await expect.element(page.getByTestId('controlled-value')).toHaveTextContent('');
+    await expect
+      .element(page.getByTestId('controlled-callback-count'))
+      .toHaveTextContent('1');
+    const details = JSON.parse(
+      page.getByTestId('controlled-details').element().textContent ?? '',
+    ) as PhoneInputChangeDetails;
+    expect(details.reason).toBe('composition');
+    expect(details.value).toBeUndefined();
+  });
+
   test.each([
     {
       expectedDigitsBeforeCaret: 2,
@@ -770,6 +810,90 @@ describe('MuiPhoneInput tracer', () => {
     ) as PhoneInputChangeDetails;
     expect(details.reason).toBe('input');
     expect(details.value).toBe('+1');
+  });
+
+  test('consumes the paste reason on the first authoritative input', async () => {
+    render(<ControlledHarness />);
+    const locator = page.getByTestId('controlled-phone');
+    await expect.element(locator).toBeInTheDocument();
+    const input = locator.element();
+
+    if (!(input instanceof HTMLInputElement)) {
+      throw new Error('Expected the native phone input.');
+    }
+
+    const transfer = new DataTransfer();
+    transfer.setData('text/plain', '+1');
+    input.dispatchEvent(
+      new ClipboardEvent('paste', {
+        bubbles: true,
+        cancelable: true,
+        clipboardData: transfer,
+      }),
+    );
+    setNativeInputValue(input, '+1');
+    input.dispatchEvent(
+      new InputEvent('input', {
+        bubbles: true,
+        data: '+1',
+        inputType: 'insertFromPaste',
+      }),
+    );
+    setNativeInputValue(input, '+12');
+    input.dispatchEvent(
+      new InputEvent('input', {
+        bubbles: true,
+        data: '2',
+        inputType: 'insertText',
+      }),
+    );
+
+    await expect
+      .element(page.getByTestId('controlled-callback-count'))
+      .toHaveTextContent('1');
+    const details = JSON.parse(
+      page.getByTestId('controlled-details').element().textContent ?? '',
+    ) as PhoneInputChangeDetails;
+    expect(details.reason).toBe('input');
+    expect(details.value).toBe('+12');
+  });
+
+  test('preserves a same-turn delete to the empty canonical value', async () => {
+    render(<ControlledHarness initialValue="+1" />);
+    const locator = page.getByTestId('controlled-phone');
+    await expect.element(locator).toHaveValue('+1');
+    const input = locator.element();
+
+    if (!(input instanceof HTMLInputElement)) {
+      throw new Error('Expected the native phone input.');
+    }
+
+    setNativeInputValue(input, '+12');
+    input.dispatchEvent(
+      new InputEvent('input', {
+        bubbles: true,
+        data: '2',
+        inputType: 'insertText',
+      }),
+    );
+    setNativeInputValue(input, '');
+    input.dispatchEvent(
+      new InputEvent('input', {
+        bubbles: true,
+        data: null,
+        inputType: 'deleteContentBackward',
+      }),
+    );
+
+    await expect.element(locator).toHaveValue('');
+    await expect
+      .element(page.getByTestId('controlled-callback-count'))
+      .toHaveTextContent('1');
+    const details = JSON.parse(
+      page.getByTestId('controlled-details').element().textContent ?? '',
+    ) as PhoneInputChangeDetails;
+    expect(details.reason).toBe('clear');
+    expect(details.value).toBeUndefined();
   });
 
   test('applies MuiPhoneInput default props and root/input style overrides', async () => {
