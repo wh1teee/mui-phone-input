@@ -57,6 +57,7 @@ export function useInputTransactionEngineBridge(): InputTransactionEngineBridge 
         const input = inputRef.current;
         if (
           input &&
+          input.matches(':focus') &&
           (input.selectionStart !== snapshot.selection[0] ||
             input.selectionEnd !== snapshot.selection[1])
         ) {
