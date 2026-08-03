@@ -88,9 +88,9 @@ externalizes declared peers.
 
 Current exact-artifact measurements are:
 
-- main closure: 16,283 bytes gzip;
+- main closure: 16,275 bytes gzip;
 - server entry: 2,915 bytes gzip;
-- packed tarball: 62,573 bytes.
+- packed tarball: 62,551 bytes.
 
 CI rebuilds the artifact and requires exact byte/hash equality with the
 committed measurement.

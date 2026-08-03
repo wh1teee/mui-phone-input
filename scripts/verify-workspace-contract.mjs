@@ -18,6 +18,10 @@ const primitivesSource = await readFile(
   'packages/mui-phone-input/src/PhoneInputPrimitives.tsx',
   'utf8',
 );
+const countrySelectorSource = await readFile(
+  'packages/mui-phone-input/src/PhoneInputCountrySelector.tsx',
+  'utf8',
+);
 const packedConsumersVerifier = await readFile(
   'scripts/verify-packed-consumers.mjs',
   'utf8',
@@ -75,9 +79,15 @@ for (const source of [controllerSource, primitivesSource]) {
 assert.match(controllerSource, /export function usePhoneInput/u);
 assert.match(primitivesSource, /export function PhoneInputProvider/u);
 assert.match(primitivesSource, /export function PhoneInputInput/u);
+assert.doesNotMatch(countrySelectorSource, /noSsr:\s*true/u);
 assert.match(packedConsumersVerifier, /javaScriptEnabled:\s*false/u);
 assert.match(packedConsumersVerifier, /server-render-probe\.mjs/u);
 assert.match(packedConsumersVerifier, /hydration-marker/u);
+assert.match(packedConsumersVerifier, /responsive-country-selector-trigger/u);
+assert.match(
+  packedConsumersVerifier,
+  /viewport:\s*\{\s*height:\s*844,\s*width:\s*390/u,
+);
 assert.match(
   packedConsumersVerifier,
   /Next\.js server HTML and hydrated phone states/u,

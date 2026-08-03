@@ -232,6 +232,13 @@ async function verifyPackedBrowser(destination, consumer) {
           await serverPage.getByTestId('hydration-marker').textContent(),
           'server',
         );
+        assert.equal(
+          await serverPage
+            .getByTestId('responsive-country-selector-trigger')
+            .getAttribute('aria-haspopup'),
+          'listbox',
+          'The server snapshot must use deterministic desktop selector semantics.',
+        );
         assert.deepEqual(
           JSON.parse(
             (await serverPage.getByTestId('server-plan-matrix').textContent()) || '{}',
@@ -247,6 +254,55 @@ async function verifyPackedBrowser(destination, consumer) {
       } finally {
         await serverContext.close();
       }
+    }
+
+    const mobileContext = await browser.newContext({
+      viewport: { height: 844, width: 390 },
+    });
+    try {
+      const mobilePage = await mobileContext.newPage();
+      const mobilePageErrors = [];
+      const mobileConsoleErrors = [];
+      mobilePage.on('pageerror', (error) => mobilePageErrors.push(error));
+      mobilePage.on('console', (message) => {
+        if (message.type() === 'error') {
+          mobileConsoleErrors.push(message.text());
+        }
+      });
+
+      await mobilePage.goto(url, { waitUntil: 'networkidle' });
+      await mobilePage.getByTestId('hydration-marker').waitFor({ state: 'visible' });
+      await mobilePage
+        .getByTestId('hydration-marker')
+        .filter({ hasText: 'hydrated' })
+        .waitFor();
+      const responsiveTrigger = mobilePage.getByTestId(
+        'responsive-country-selector-trigger',
+      );
+      await responsiveTrigger.waitFor({ state: 'visible' });
+      await mobilePage.waitForFunction(() => {
+        return (
+          document
+            .querySelector('[data-testid="responsive-country-selector-trigger"]')
+            ?.getAttribute('aria-haspopup') === 'dialog'
+        );
+      });
+      await responsiveTrigger.click();
+      await mobilePage
+        .getByRole('dialog', { name: 'Select country' })
+        .waitFor({ state: 'visible' });
+      if (mobilePageErrors.length > 0) {
+        throw new Error(
+          `Packed mobile consumer page errors: ${mobilePageErrors.join('\n')}`,
+        );
+      }
+      if (mobileConsoleErrors.length > 0) {
+        throw new Error(
+          `Packed mobile consumer console errors: ${mobileConsoleErrors.join('\n')}`,
+        );
+      }
+    } finally {
+      await mobileContext.close();
     }
 
     const page = await browser.newPage();

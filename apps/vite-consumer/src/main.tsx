@@ -134,6 +134,15 @@ createRoot(root).render(
         <h1>Packed Vite consumer</h1>
         <output data-testid="server-plan-matrix">{serverPlan.kind}</output>
         <PackedPhoneInput />
+        <MuiPhoneInput
+          defaultCountry="BY"
+          label="Responsive packed phone"
+          slotProps={{
+            countrySelector: {
+              'data-testid': 'responsive-country-selector-trigger',
+            },
+          }}
+        />
         <PackedComposablePhoneInput />
         <SsrStateMatrix />
       </main>

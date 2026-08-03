@@ -231,9 +231,7 @@ export function PhoneInputCountrySelector({
 }: PhoneInputCountrySelectorProps): ReactNode {
   const phone = usePhoneInputContext();
   const theme = useTheme();
-  const matchesMobile = useMediaQuery(theme.breakpoints.down(mobileBreakpoint), {
-    noSsr: true,
-  });
+  const matchesMobile = useMediaQuery(theme.breakpoints.down(mobileBreakpoint));
   const mobile = mode === 'mobile' || (mode === 'auto' && matchesMobile);
   const presentation = mobile ? 'mobile' : 'desktop';
   const messages = useMemo(

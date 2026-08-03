@@ -78,6 +78,17 @@ export function PhoneInputSmoke() {
           Reset phone input
         </button>
       </section>
+      <section>
+        <MuiPhoneInput
+          defaultCountry="BY"
+          label="Responsive packed phone"
+          slotProps={{
+            countrySelector: {
+              'data-testid': 'responsive-country-selector-trigger',
+            },
+          }}
+        />
+      </section>
       <PackedComposablePhoneInput />
       <SsrStateMatrix />
     </>
