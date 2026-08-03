@@ -147,6 +147,29 @@ function summarizeAxeViolations(
   }));
 }
 
+async function waitForOpaqueAncestors(element: Element): Promise<void> {
+  for (let frame = 0; frame < 120; frame += 1) {
+    let current: Element | null = element;
+    let opaque = true;
+
+    while (current) {
+      if (Number.parseFloat(getComputedStyle(current).opacity) < 1) {
+        opaque = false;
+        break;
+      }
+      current = current.parentElement;
+    }
+
+    if (opaque) {
+      return;
+    }
+
+    await new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve()));
+  }
+
+  throw new Error('Country selector did not reach a stable opaque state.');
+}
+
 function CustomCountrySelector({
   classes: _classes,
   className,
@@ -356,6 +379,9 @@ describe('responsive country selector', () => {
       await expect
         .element(page.getByRole('combobox', { name: 'Search countries' }))
         .toHaveFocus();
+      await waitForOpaqueAncestors(
+        page.getByRole('combobox', { name: 'Search countries' }).element(),
+      );
 
       const results = await axe.run(document.body, {
         runOnly: {
