@@ -59,10 +59,12 @@ Source Browser Mode tests cover:
 - prevented-paste reason isolation;
 - runtime MUI default props and root/input style overrides;
 - controller-owned MUI native-input value, identity, state and helper ARIA
-  across object/function slot props;
+  across object/function slot props, including falsey helper content;
+- exactly-once observational native change/input, capture, paste, composition
+  and blur handlers without duplicate semantic callbacks;
 - selected/detected/resolved country stability across shared calling codes;
 - non-geographic plans without fabricated country state;
-- external controlled-number reconciliation without callback loops.
+- external controlled-number reconciliation without callback loops;
 - possible-by-default validation and explicit strict/type policies;
 - blur-default error presentation and correction clearing.
 
@@ -82,7 +84,7 @@ byte-identical repeated HTML. The Vite production smoke renders the same state
 matrix. Full details are recorded in
 `2026-08-02-ssr-packed-consumption-evidence.md`.
 
-The current combined source matrix contains 126 Browser Mode tests per engine;
+The current combined source matrix contains 139 Browser Mode tests per engine;
 all pass in Chromium, Firefox, and WebKit. The unit suite contains 94 tests.
 Browser files run serially because focus-sensitive fixtures share
 `document.activeElement`; repeatability evidence is recorded in
@@ -99,9 +101,9 @@ externalizes declared peers.
 
 Current exact-artifact measurements are:
 
-- main closure: 22,542 bytes gzip;
+- main closure: 22,599 bytes gzip;
 - server entry: 4,794 bytes gzip;
-- packed tarball: 86,186 bytes.
+- packed tarball: 86,584 bytes.
 
 CI rebuilds the artifact and requires exact byte/hash equality with the
 committed measurement.

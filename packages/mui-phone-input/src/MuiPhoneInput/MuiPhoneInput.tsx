@@ -129,6 +129,25 @@ function joinClassNames(...values: Array<string | undefined>): string | undefine
   return className || undefined;
 }
 
+function joinAttributeTokens(...values: Array<string | undefined>): string | undefined {
+  const joined = [
+    ...new Set(values.flatMap((value) => value?.split(/\s+/u).filter(Boolean) ?? [])),
+  ].join(' ');
+  return joined || undefined;
+}
+
+function removeAttributeToken(
+  value: string | undefined,
+  token: string,
+): string | undefined {
+  return joinAttributeTokens(
+    value
+      ?.split(/\s+/u)
+      .filter((candidate) => candidate && candidate !== token)
+      .join(' '),
+  );
+}
+
 const COUNTRY_SELECTOR_CLASS_KEYS = [
   'countrySelector',
   'countrySelectorCallingCode',
@@ -337,26 +356,39 @@ export function MuiPhoneInput(inProps: MuiPhoneInputProps): ReactNode {
           : externalSlotProps) ?? {};
       const {
         defaultValue: _externalDefaultValue,
-        onChange: _externalOnChange,
+        onChange: externalOnChange,
         ref: externalRef,
         ...externalWithoutRef
       } = externalValue;
       const externalInputProps = externalWithoutRef as PhoneInputInputExternalProps;
-      const describedBy = [externalInputProps['aria-describedby'], renderedHelperTextId]
-        .filter(Boolean)
-        .join(' ');
       const resolved = phone.getInputProps({
         ...externalInputProps,
-        ...(describedBy ? { 'aria-describedby': describedBy } : {}),
         className: joinClassNames(classes.input, externalInputProps.className),
         ...(externalInputProps.autoComplete === undefined && autoComplete !== undefined
           ? { autoComplete }
           : {}),
       });
-      const { ref: _resolvedRef, ...resolvedWithoutRef } = resolved;
+      const {
+        'aria-describedby': _resolvedDescribedBy,
+        'aria-errormessage': _resolvedErrorMessage,
+        ref: _resolvedRef,
+        ...resolvedWithoutOwnedRelationships
+      } = resolved;
+      const describedBy = joinAttributeTokens(
+        removeAttributeToken(
+          externalInputProps['aria-describedby'],
+          phone.state.validationMessageId,
+        ),
+        renderedHelperTextId,
+      );
 
       return {
-        ...resolvedWithoutRef,
+        ...resolvedWithoutOwnedRelationships,
+        ...(describedBy ? { 'aria-describedby': describedBy } : {}),
+        ...(phone.state.validationError && renderedHelperTextId
+          ? { 'aria-errormessage': renderedHelperTextId }
+          : {}),
+        ...(externalOnChange === undefined ? {} : { onChange: externalOnChange }),
         ...(externalRef === undefined ? {} : { ref: externalRef }),
       };
     };

@@ -2,6 +2,7 @@ import { createTheme, ThemeProvider } from '@mui/material/styles';
 import axe from 'axe-core';
 import type { CountryCode, PhoneNumberType } from 'libphonenumber-js/max';
 import {
+  type ChangeEvent,
   type ClipboardEvent,
   type ComponentProps,
   StrictMode,
@@ -1397,6 +1398,237 @@ describe('MuiPhoneInput tracer', () => {
     expect(violations, JSON.stringify(violations, null, 2)).toEqual([]);
   });
 
+  test.each([
+    { helperText: null, name: 'null' },
+    { helperText: false, name: 'false' },
+    { helperText: '', name: 'an empty string' },
+    { helperText: 0, name: 'zero' },
+  ])(
+    'does not expose helper IDREFs when helperText is $name',
+    async ({ helperText }) => {
+      render(
+        <>
+          <span id="falsey-helper-description">Consumer description</span>
+          <MuiPhoneInput
+            helperText={helperText}
+            id="falsey-helper-phone"
+            required
+            slotProps={{
+              htmlInput: {
+                'aria-describedby':
+                  'falsey-helper-description falsey-helper-phone-helper-text',
+                'data-testid': 'falsey-helper-input',
+              },
+            }}
+            validationDisplay="always"
+          />
+        </>,
+      );
+
+      const input = page.getByTestId('falsey-helper-input');
+      await expect.element(input).toHaveAttribute('aria-invalid', 'true');
+      await expect
+        .element(input)
+        .toHaveAttribute('aria-describedby', 'falsey-helper-description');
+      await expect.element(input).not.toHaveAttribute('aria-errormessage');
+      expect(document.getElementById('falsey-helper-phone-helper-text')).toBeNull();
+    },
+  );
+
+  test('composes observational htmlInput change and input handlers exactly once', async () => {
+    const semanticChange = vi.fn();
+    const nativeChange = vi.fn();
+    const nativeInput = vi.fn();
+    const nativeInputCapture = vi.fn();
+
+    render(
+      <MuiPhoneInput
+        defaultValue="+1"
+        onChange={semanticChange}
+        slotProps={{
+          htmlInput: {
+            'data-testid': 'native-change-input',
+            onChange: (event: ChangeEvent<HTMLInputElement>) => {
+              nativeChange(event);
+              event.preventDefault();
+            },
+            onInput: nativeInput,
+            onInputCapture: nativeInputCapture,
+          },
+        }}
+      />,
+    );
+
+    const input = page.getByTestId('native-change-input');
+    await userEvent.type(input, '2');
+
+    await expect.element(input).toHaveValue('+12');
+    expect(nativeInputCapture).toHaveBeenCalledTimes(1);
+    expect(nativeInput).toHaveBeenCalledTimes(1);
+    expect(nativeChange).toHaveBeenCalledTimes(1);
+    expect(semanticChange).toHaveBeenCalledTimes(1);
+    expect(semanticChange).toHaveBeenLastCalledWith(
+      '+12',
+      expect.objectContaining({ reason: 'input', value: '+12' }),
+    );
+  });
+
+  test('composes handlers from function-valued htmlInput slot props', async () => {
+    const semanticChange = vi.fn();
+    const nativeChange = vi.fn();
+    const nativeInput = vi.fn();
+    const slotPropsFactory = vi.fn((preparedOwnerState: unknown) => {
+      const preparedInputProps = preparedOwnerState as Readonly<{ value?: string }>;
+
+      return {
+        'data-prepared-value': preparedInputProps.value ?? '',
+        'data-testid': 'function-native-change-input',
+        onChange: nativeChange,
+        onInput: nativeInput,
+      };
+    });
+
+    render(
+      <MuiPhoneInput
+        defaultValue="+1"
+        id="function-handler-phone"
+        onChange={semanticChange}
+        slotProps={{ htmlInput: slotPropsFactory }}
+      />,
+    );
+
+    const input = page.getByTestId('function-native-change-input');
+    await expect.element(input).toHaveAttribute('data-prepared-value', '+1');
+    await userEvent.type(input, '2');
+
+    await expect.element(input).toHaveValue('+12');
+    await expect.element(input).toHaveAttribute('data-prepared-value', '+12');
+    expect(slotPropsFactory).toHaveBeenCalled();
+    expect(nativeInput).toHaveBeenCalledTimes(1);
+    expect(nativeChange).toHaveBeenCalledTimes(1);
+    expect(semanticChange).toHaveBeenCalledTimes(1);
+  });
+
+  test('composes paste and blur slot handlers without duplicating the transaction', async () => {
+    const semanticChange = vi.fn();
+    const nativeBlur = vi.fn();
+    const nativeChange = vi.fn();
+    const nativeInput = vi.fn();
+    const nativeInputCapture = vi.fn();
+    const nativePaste = vi.fn();
+
+    render(
+      <MuiPhoneInput
+        defaultValue="+1"
+        onChange={semanticChange}
+        slotProps={{
+          htmlInput: {
+            'data-testid': 'native-paste-input',
+            onBlur: nativeBlur,
+            onChange: nativeChange,
+            onInput: nativeInput,
+            onInputCapture: nativeInputCapture,
+            onPaste: nativePaste,
+          },
+        }}
+      />,
+    );
+
+    const input = page.getByTestId('native-paste-input');
+    await pasteText('native-paste-input', '+375291234567');
+    input.element().blur();
+
+    await expect.element(input).toHaveValue('+375291234567');
+    expect(nativePaste).toHaveBeenCalledTimes(1);
+    expect(nativeInputCapture).toHaveBeenCalledTimes(1);
+    expect(nativeInput).toHaveBeenCalledTimes(1);
+    expect(nativeChange).toHaveBeenCalledTimes(1);
+    expect(nativeBlur).toHaveBeenCalledTimes(1);
+    expect(semanticChange).toHaveBeenCalledTimes(1);
+    expect(semanticChange).toHaveBeenLastCalledWith(
+      '+375291234567',
+      expect.objectContaining({ reason: 'paste', value: '+375291234567' }),
+    );
+  });
+
+  test('composes composition slot handlers without duplicating the transaction', async () => {
+    const semanticChange = vi.fn();
+    const nativeChange = vi.fn();
+    const nativeCompositionEnd = vi.fn();
+    const nativeCompositionStart = vi.fn();
+    const nativeInput = vi.fn();
+    const nativeInputCapture = vi.fn();
+
+    render(
+      <MuiPhoneInput
+        defaultValue="+375"
+        onChange={semanticChange}
+        slotProps={{
+          htmlInput: {
+            'data-testid': 'native-composition-input',
+            onChange: nativeChange,
+            onCompositionEnd: nativeCompositionEnd,
+            onCompositionStart: nativeCompositionStart,
+            onInput: nativeInput,
+            onInputCapture: nativeInputCapture,
+          },
+        }}
+      />,
+    );
+
+    const input = page.getByTestId('native-composition-input');
+    await expect.element(input).toBeInTheDocument();
+    const inputElement = input.element();
+    if (!(inputElement instanceof HTMLInputElement)) {
+      throw new Error('Expected the native phone input.');
+    }
+
+    dispatchCompositionTransaction(inputElement, '+375١٢', '١٢', {
+      after: 6,
+      beforeStart: 4,
+    });
+
+    await expect.element(input).toHaveValue('+37512');
+    expect(nativeCompositionStart).toHaveBeenCalledTimes(1);
+    expect(nativeInputCapture).toHaveBeenCalledTimes(1);
+    expect(nativeInput).toHaveBeenCalledTimes(1);
+    expect(nativeChange).toHaveBeenCalledTimes(1);
+    expect(nativeCompositionEnd).toHaveBeenCalledTimes(1);
+    expect(semanticChange).toHaveBeenCalledTimes(1);
+    expect(semanticChange).toHaveBeenLastCalledWith(
+      '+37512',
+      expect.objectContaining({ reason: 'composition', value: '+37512' }),
+    );
+  });
+
+  test('respects a prevented paste while calling the slot handler exactly once', async () => {
+    const semanticChange = vi.fn();
+    const nativePaste = vi.fn();
+
+    render(
+      <MuiPhoneInput
+        defaultValue="+1"
+        onChange={semanticChange}
+        slotProps={{
+          htmlInput: {
+            'data-testid': 'prevented-native-paste-input',
+            onPaste: (event: ClipboardEvent<HTMLInputElement>) => {
+              nativePaste(event);
+              event.preventDefault();
+            },
+          },
+        }}
+      />,
+    );
+
+    const input = page.getByTestId('prevented-native-paste-input');
+    await pasteText('prevented-native-paste-input', '+375291234567');
+
+    await expect.element(input).toHaveValue('+1');
+    expect(nativePaste).toHaveBeenCalledTimes(1);
+    expect(semanticChange).not.toHaveBeenCalled();
+  });
+
   test('protects controlled value and state props from function-valued slot overrides', async () => {
     const onChange = vi.fn();
 
@@ -1451,6 +1683,7 @@ describe('MuiPhoneInput tracer', () => {
           helperText="Persistent phone help"
           id="persistent-helper-phone"
           label="Persistent helper phone"
+          required
           slotProps={{
             formHelperText: { id: 'consumer-persistent-helper' },
             htmlInput: {
@@ -1458,6 +1691,7 @@ describe('MuiPhoneInput tracer', () => {
               'data-testid': 'persistent-helper-input',
             },
           }}
+          validationDisplay="always"
         />
       </>,
     );
@@ -1469,6 +1703,9 @@ describe('MuiPhoneInput tracer', () => {
         'aria-describedby',
         'persistent-consumer-description persistent-helper-phone-helper-text',
       );
+    await expect
+      .element(input)
+      .toHaveAttribute('aria-errormessage', 'persistent-helper-phone-helper-text');
     const helper = document.getElementById('persistent-helper-phone-helper-text');
     expect(helper).toHaveTextContent('Persistent phone help');
     expect(document.getElementById('consumer-persistent-helper')).toBeNull();
