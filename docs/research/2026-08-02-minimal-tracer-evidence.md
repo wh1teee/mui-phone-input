@@ -83,7 +83,10 @@ matrix. Full details are recorded in
 `2026-08-02-ssr-packed-consumption-evidence.md`.
 
 The current combined source matrix contains 115 Browser Mode tests per engine;
-all pass in Chromium, Firefox, and WebKit. The unit suite contains 93 tests.
+all pass in Chromium, Firefox, and WebKit. The unit suite contains 94 tests.
+Browser files run serially because focus-sensitive fixtures share
+`document.activeElement`; repeatability evidence is recorded in
+`2026-08-03-browser-focus-serialization-evidence.md`.
 
 ## Package budgets
 

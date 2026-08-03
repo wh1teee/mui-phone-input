@@ -65,6 +65,8 @@ export default defineConfig({
   test: {
     browser: {
       enabled: true,
+      // Focus-sensitive files share document.activeElement inside one browser instance.
+      fileParallelism: false,
       headless: true,
       instances: [{ browser }],
       provider: playwright(),
