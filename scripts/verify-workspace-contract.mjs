@@ -26,6 +26,10 @@ const packedConsumersVerifier = await readFile(
   'scripts/verify-packed-consumers.mjs',
   'utf8',
 );
+const productionDependenciesVerifier = await readFile(
+  'scripts/verify-production-dependencies.mjs',
+  'utf8',
+);
 
 assert.equal(rootPackage.private, true);
 assert.match(rootPackage.packageManager, /^pnpm@11\./u);
@@ -100,5 +104,10 @@ assert.match(ciWorkflow, /node-version:\s*26/u);
 assert.match(ciWorkflow, /continue-on-error:\s*true/u);
 assert.match(rootPackage.scripts['ci:pr'], /verify:production-dependencies/u);
 assert.match(rootPackage.scripts['ci:forward'], /verify:production-dependencies/u);
+assert.match(productionDependenciesVerifier, /audit\.error/u);
+assert.match(
+  productionDependenciesVerifier,
+  /auditResult\.status\s*===\s*0\s*\|\|\s*advisories\.length\s*>\s*0/u,
+);
 
 console.log('Workspace contract verified.');

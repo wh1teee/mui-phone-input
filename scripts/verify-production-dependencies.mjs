@@ -150,6 +150,15 @@ for (const [packageName, minimumVersion] of Object.entries(policy.minimumVersion
 const auditResult = runPnpm(['audit', '--prod', '--json'], { allowFailure: true });
 const audit = JSON.parse(auditResult.output);
 const advisories = normalizeAdvisories(audit);
+assert.equal(
+  audit.error,
+  undefined,
+  `Production dependency audit failed: ${JSON.stringify(audit.error)}`,
+);
+assert.ok(
+  auditResult.status === 0 || advisories.length > 0,
+  `Production dependency audit exited with status ${auditResult.status} without an advisory report.`,
+);
 const allowedIds = new Set(policy.allowedAdvisories.map((entry) => String(entry.id)));
 const forbidden = advisories.filter(
   (advisory) =>
