@@ -11,8 +11,8 @@
   "scripts": {
     "build": "pnpm --filter @whiteee/mui-phone-input build",
     "check": "biome check .",
-    "ci:forward": "pnpm verify:workspace && pnpm verify:donors && pnpm verify:input-engine && pnpm typecheck && pnpm test:unit && pnpm build && pnpm verify:tracer-package",
-    "ci:pr": "pnpm format:check && pnpm lint && pnpm verify:workspace && pnpm verify:donors && pnpm verify:input-engine && pnpm typecheck && pnpm test:unit && pnpm test:browser && pnpm verify:package && pnpm verify:tracer-package && pnpm verify:consumers",
+    "ci:forward": "pnpm verify:workspace && pnpm verify:donors && pnpm verify:input-engine && pnpm verify:production-dependencies && pnpm typecheck && pnpm test:unit && pnpm build && pnpm verify:tracer-package",
+    "ci:pr": "pnpm format:check && pnpm lint && pnpm verify:workspace && pnpm verify:donors && pnpm verify:input-engine && pnpm verify:production-dependencies && pnpm typecheck && pnpm test:unit && pnpm test:browser && pnpm verify:package && pnpm verify:tracer-package && pnpm verify:consumers",
     "format": "biome format --write .",
     "format:check": "biome format .",
     "lint": "biome lint .",
@@ -28,6 +28,7 @@
     "verify:npm-identity": "node scripts/check-npm-identity.mjs",
     "verify:npm-identity:gate": "node scripts/check-npm-identity.mjs --allow-human-gate",
     "verify:package": "node scripts/verify-package.mjs",
+    "verify:production-dependencies": "node scripts/verify-production-dependencies.mjs",
     "verify:publish-dry-run": "pnpm --dir packages/mui-phone-input publish --dry-run --no-git-checks",
     "verify:tracer-package": "node scripts/verify-tracer-package.mjs",
     "verify:workspace": "node scripts/verify-workspace-contract.mjs"

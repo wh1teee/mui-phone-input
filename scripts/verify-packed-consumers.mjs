@@ -9,6 +9,12 @@ import { chromium } from '@playwright/test';
 import { createPackageArtifact, run } from './lib/package-artifact.mjs';
 
 const supportMatrix = process.env.SUPPORT_MATRIX ?? 'latest';
+const productionDependencyPolicy = JSON.parse(
+  await readFile(
+    new URL('../docs/security/production-dependency-policy.json', import.meta.url),
+    'utf8',
+  ),
+);
 const matrices = {
   latest: {
     '@emotion/react': '11.14.0',
@@ -707,23 +713,38 @@ try {
       );
     }
     await writeFile(packagePath, `${JSON.stringify(packageManifest, null, 2)}\n`);
+    const consumerWorkspacePolicy = [
+      'packages:',
+      '  - .',
+      '',
+      'allowBuilds:',
+      '  sharp: true',
+      'autoInstallPeers: false',
+      'minimumReleaseAge: 1440',
+    ];
+    if (consumer === 'next-consumer') {
+      consumerWorkspacePolicy.push(
+        'overrides:',
+        `  "next@16.2.12>postcss": ${productionDependencyPolicy.overrides.postcss}`,
+        `  "next@16.2.12>sharp": ${productionDependencyPolicy.overrides.sharp}`,
+      );
+    }
+    consumerWorkspacePolicy.push('strictPeerDependencies: true', '');
     await writeFile(
       join(destination, 'pnpm-workspace.yaml'),
-      [
-        'packages:',
-        '  - .',
-        '',
-        'allowBuilds:',
-        '  sharp: true',
-        'autoInstallPeers: false',
-        'minimumReleaseAge: 1440',
-        'strictPeerDependencies: true',
-        '',
-      ].join('\n'),
+      consumerWorkspacePolicy.join('\n'),
     );
 
     run('pnpm', ['--dir', destination, 'install', '--frozen-lockfile=false']);
     if (consumer === 'next-consumer') {
+      run('pnpm', [
+        '--dir',
+        destination,
+        'audit',
+        '--prod',
+        '--audit-level',
+        'moderate',
+      ]);
       run('pnpm', ['--dir', destination, 'exec', 'node', 'server-render-probe.mjs']);
     }
     run('pnpm', ['--dir', destination, 'build']);
