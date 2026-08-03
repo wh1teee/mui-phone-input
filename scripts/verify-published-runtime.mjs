@@ -47,27 +47,29 @@ function run(command, args, cwd) {
 
 let releaseOwnedArtifact = async () => undefined;
 let tarball;
-if (artifactArgument) {
-  tarball = resolve(artifactArgument.split('=', 2)[1] ?? '');
-} else {
-  const { createPackageArtifact, releasePackageArtifact } = await import(
-    './lib/package-artifact.mjs'
-  );
-  tarball = await createPackageArtifact();
-  releaseOwnedArtifact = () => releasePackageArtifact(tarball);
-}
-assert.equal(typeof tarball, 'string');
-assert.ok(tarball.endsWith('.tgz'), 'Expected an exact package tarball.');
-await readFile(tarball);
-
-const rootPackage = JSON.parse(
-  await readFile(join(repositoryRoot, 'package.json'), 'utf8'),
-);
-const consumerDirectory = await mkdtemp(
-  join(tmpdir(), `mui-phone-input-node-${expectedMajor}-`),
-);
+let consumerDirectory;
 
 try {
+  if (artifactArgument) {
+    tarball = resolve(artifactArgument.split('=', 2)[1] ?? '');
+  } else {
+    const { createPackageArtifact, releasePackageArtifact } = await import(
+      './lib/package-artifact.mjs'
+    );
+    tarball = await createPackageArtifact();
+    releaseOwnedArtifact = () => releasePackageArtifact(tarball);
+  }
+  assert.equal(typeof tarball, 'string');
+  assert.ok(tarball.endsWith('.tgz'), 'Expected an exact package tarball.');
+  await readFile(tarball);
+
+  const rootPackage = JSON.parse(
+    await readFile(join(repositoryRoot, 'package.json'), 'utf8'),
+  );
+  consumerDirectory = await mkdtemp(
+    join(tmpdir(), `mui-phone-input-node-${expectedMajor}-`),
+  );
+
   await writeFile(
     join(consumerDirectory, 'package.json'),
     `${JSON.stringify(
@@ -133,8 +135,13 @@ console.log(JSON.stringify({ node: process.version, package: manifest.name }));
   run('pnpm', ['install', '--frozen-lockfile=false'], consumerDirectory);
   run(process.execPath, ['probe.mjs'], consumerDirectory);
 } finally {
-  await rm(consumerDirectory, { force: true, recursive: true });
-  await releaseOwnedArtifact();
+  try {
+    if (consumerDirectory) {
+      await rm(consumerDirectory, { force: true, recursive: true });
+    }
+  } finally {
+    await releaseOwnedArtifact();
+  }
 }
 
 console.log(`Published package runtime verified on ${process.version}.`);
