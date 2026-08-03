@@ -1,6 +1,7 @@
 import Dialog from '@mui/material/Dialog';
 import DialogContent from '@mui/material/DialogContent';
 import Drawer from '@mui/material/Drawer';
+import axe from 'axe-core';
 import { useEffect, useState } from 'react';
 import { describe, expect, test } from 'vitest';
 import { page, userEvent } from 'vitest/browser';
@@ -9,7 +10,10 @@ import { render } from 'vitest-browser-react';
 import {
   MuiPhoneInput,
   type PhoneCountrySelectorMode,
+  PhoneInputCountrySelector,
   type PhoneInputCountrySelectorProps,
+  PhoneInputProvider,
+  usePhoneInput,
   usePhoneInputContext,
 } from '../../packages/mui-phone-input/src';
 
@@ -71,6 +75,76 @@ function ResponsiveSelectorHarness() {
       }}
     />
   );
+}
+
+function KeyboardExitHarness({
+  disablePortal = false,
+  mode,
+  resultLimit,
+}: Readonly<{
+  disablePortal?: boolean;
+  mode: Exclude<PhoneCountrySelectorMode, 'auto'>;
+  resultLimit?: number;
+}>) {
+  const phone = usePhoneInput({ defaultCountry: 'BY' });
+  const resultLimitProps: Pick<PhoneInputCountrySelectorProps, 'resultLimit'> =
+    resultLimit === undefined ? {} : { resultLimit };
+
+  return (
+    <PhoneInputProvider value={phone}>
+      <div data-testid={`${mode}-keyboard-harness`}>
+        <button data-testid={`${mode}-previous`} type="button">
+          Previous control
+        </button>
+        <PhoneInputCountrySelector
+          data-testid={`${mode}-keyboard-trigger`}
+          disablePortal={disablePortal}
+          mode={mode}
+          {...resultLimitProps}
+        />
+        <button data-testid={`${mode}-next`} type="button">
+          Next control
+        </button>
+      </div>
+    </PhoneInputProvider>
+  );
+}
+
+function DesktopKeyboardBoundaryHarness() {
+  const phone = usePhoneInput({ defaultCountry: 'BY' });
+  const [defaultPrevented, setDefaultPrevented] = useState<boolean | null>(null);
+
+  return (
+    <PhoneInputProvider value={phone}>
+      <fieldset
+        onKeyDown={(event) => {
+          if (event.key === 'Tab') {
+            setDefaultPrevented(event.defaultPrevented);
+          }
+        }}
+      >
+        <legend>Desktop keyboard boundary</legend>
+        <PhoneInputCountrySelector
+          data-testid="desktop-boundary-trigger"
+          disablePortal
+          mode="desktop"
+        />
+        <output data-testid="desktop-boundary-default-prevented">
+          {defaultPrevented === null ? 'unset' : String(defaultPrevented)}
+        </output>
+      </fieldset>
+    </PhoneInputProvider>
+  );
+}
+
+function summarizeAxeViolations(
+  violations: axe.Result[],
+): ReadonlyArray<Readonly<{ help: string; id: string; targets: string[] }>> {
+  return violations.map((violation) => ({
+    help: violation.help,
+    id: violation.id,
+    targets: violation.nodes.map((node) => JSON.stringify(node.target)),
+  }));
 }
 
 function CustomCountrySelector({
@@ -171,6 +245,131 @@ function EmbeddedPortalPolicyHarness({
 }
 
 describe('responsive country selector', () => {
+  test('lets forward and reverse Tab leave the desktop selector', async () => {
+    const view = await render(<KeyboardExitHarness disablePortal mode="desktop" />);
+    const trigger = page.getByTestId('desktop-keyboard-trigger');
+
+    await userEvent.click(trigger);
+    await expect
+      .element(page.getByRole('combobox', { name: 'Search countries' }))
+      .toHaveFocus();
+    expect(
+      Array.from(document.querySelectorAll<HTMLElement>('[role="option"]')).every(
+        (option) => option.tabIndex === -1,
+      ),
+    ).toBe(true);
+    await userEvent.keyboard('{Tab}');
+    await expect.element(page.getByTestId('desktop-next')).toHaveFocus();
+    await expect
+      .element(page.getByRole('combobox', { name: 'Search countries' }))
+      .not.toBeInTheDocument();
+
+    await userEvent.click(trigger);
+    await expect
+      .element(page.getByRole('combobox', { name: 'Search countries' }))
+      .toHaveFocus();
+    await userEvent.keyboard('{Shift>}{Tab}{/Shift}');
+    await expect.element(page.getByTestId('desktop-previous')).toHaveFocus();
+    await expect
+      .element(page.getByRole('combobox', { name: 'Search countries' }))
+      .not.toBeInTheDocument();
+    await view.unmount();
+  });
+
+  test('keeps forward and reverse Tab inside the mobile Dialog', async () => {
+    const view = await render(<KeyboardExitHarness mode="mobile" />);
+    const trigger = page.getByTestId('mobile-keyboard-trigger');
+
+    await userEvent.click(trigger);
+    const search = page.getByRole('combobox', { name: 'Search countries' });
+    await expect.element(search).toHaveFocus();
+    const close = page.getByRole('button', { name: 'Close country selector' });
+    await userEvent.keyboard('{Shift>}{Tab}{/Shift}');
+    await expect.element(close).toHaveFocus();
+    await expect
+      .element(page.getByRole('dialog', { name: 'Select country' }))
+      .toBeInTheDocument();
+
+    await userEvent.keyboard('{Tab}');
+    await expect.element(search).toHaveFocus();
+    await expect
+      .element(page.getByRole('dialog', { name: 'Select country' }))
+      .toBeInTheDocument();
+    await view.unmount();
+  });
+
+  test('does not suppress desktop Tab when no following focus target exists', async () => {
+    const view = await render(<DesktopKeyboardBoundaryHarness />);
+
+    await userEvent.click(page.getByTestId('desktop-boundary-trigger'));
+    await expect
+      .element(page.getByRole('combobox', { name: 'Search countries' }))
+      .toHaveFocus();
+    await userEvent.keyboard('{Tab}');
+
+    await expect
+      .element(page.getByTestId('desktop-boundary-default-prevented'))
+      .toHaveTextContent('false');
+    await expect
+      .element(page.getByRole('combobox', { name: 'Search countries' }))
+      .not.toBeInTheDocument();
+    await view.unmount();
+  });
+
+  test.each(['desktop', 'mobile'] as const)(
+    'restores the %s trigger on Escape',
+    async (mode) => {
+      const view = await render(<KeyboardExitHarness mode={mode} />);
+      const trigger = page.getByTestId(`${mode}-keyboard-trigger`);
+
+      await userEvent.click(trigger);
+      await userEvent.keyboard('{Escape}');
+
+      await expect.element(trigger).toHaveFocus();
+      await expect
+        .element(page.getByRole('combobox', { name: 'Search countries' }))
+        .not.toBeInTheDocument();
+      await view.unmount();
+    },
+  );
+
+  test('restores the mobile trigger from the explicit close button', async () => {
+    const view = await render(<KeyboardExitHarness mode="mobile" />);
+    const trigger = page.getByTestId('mobile-keyboard-trigger');
+
+    await userEvent.click(trigger);
+    await userEvent.click(page.getByRole('button', { name: 'Close country selector' }));
+
+    await expect.element(trigger).toHaveFocus();
+    await expect
+      .element(page.getByRole('dialog', { name: 'Select country' }))
+      .not.toBeInTheDocument();
+    await view.unmount();
+  });
+
+  test.each(['desktop', 'mobile'] as const)(
+    'has no automated WCAG 2.2 A/AA violations in the open %s selector',
+    async (mode) => {
+      const view = await render(<KeyboardExitHarness mode={mode} resultLimit={5} />);
+
+      await userEvent.click(page.getByTestId(`${mode}-keyboard-trigger`));
+      await expect
+        .element(page.getByRole('combobox', { name: 'Search countries' }))
+        .toHaveFocus();
+
+      const results = await axe.run(document.body, {
+        runOnly: {
+          type: 'tag',
+          values: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22a', 'wcag22aa'],
+        },
+      });
+
+      const violations = summarizeAxeViolations(results.violations);
+      expect(violations, JSON.stringify(violations, null, 2)).toEqual([]);
+      await view.unmount();
+    },
+  );
+
   test('searches localized names, orders preferred countries once, and commits by keyboard', async () => {
     render(<DesktopSelectorHarness />);
     const trigger = page.getByTestId('desktop-trigger');

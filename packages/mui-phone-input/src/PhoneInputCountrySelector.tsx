@@ -194,6 +194,17 @@ const VisuallyHidden = styled('span')({
   whiteSpace: 'nowrap',
 });
 
+const TABBABLE_SELECTOR = [
+  'a[href]',
+  'button:not([disabled])',
+  'input:not([disabled]):not([type="hidden"])',
+  'select:not([disabled])',
+  'textarea:not([disabled])',
+  '[tabindex]:not([tabindex="-1"])',
+].join(',');
+const COUNTRY_SELECTOR_SURFACE_SELECTOR =
+  '[data-phone-input-country-selector-surface="true"]';
+
 function joinClassNames(...values: Array<string | undefined>): string | undefined {
   const joined = [...new Set(values.flatMap((value) => value?.split(/\s+/u) ?? []))]
     .filter(Boolean)
@@ -321,6 +332,24 @@ export function PhoneInputCountrySelector({
   const returnFocus = useCallback(() => {
     window.requestAnimationFrame(() => triggerRef.current?.focus());
   }, []);
+  const resolveFocusTargetFromTrigger = useCallback((direction: -1 | 1) => {
+    const trigger = triggerRef.current;
+    if (!trigger) {
+      return undefined;
+    }
+
+    const tabbable = Array.from(
+      document.querySelectorAll<HTMLElement>(TABBABLE_SELECTOR),
+    ).filter(
+      (element) =>
+        !element.closest('[hidden], [aria-hidden="true"], [inert]') &&
+        !element.closest(COUNTRY_SELECTOR_SURFACE_SELECTOR) &&
+        element.tabIndex >= 0 &&
+        !element.hidden,
+    );
+    const triggerIndex = tabbable.indexOf(trigger);
+    return triggerIndex < 0 ? undefined : tabbable[triggerIndex + direction];
+  }, []);
   const closeSelector = useCallback(
     (restoreFocus = true) => {
       setOpen(false);
@@ -329,6 +358,21 @@ export function PhoneInputCountrySelector({
       }
     },
     [returnFocus],
+  );
+  const moveFocusFromTrigger = useCallback(
+    (direction: -1 | 1): boolean => {
+      const hasExternalTarget = resolveFocusTargetFromTrigger(direction) !== undefined;
+      closeSelector(false);
+      if (!hasExternalTarget) {
+        return false;
+      }
+
+      window.requestAnimationFrame(() => {
+        resolveFocusTargetFromTrigger(direction)?.focus();
+      });
+      return true;
+    },
+    [closeSelector, resolveFocusTargetFromTrigger],
   );
   const autocomplete = useAutocomplete<PhoneCountryOption>({
     autoHighlight: true,
@@ -357,7 +401,10 @@ export function PhoneInputCountrySelector({
     },
     onClose: (_event, reason) => {
       if (reason !== 'selectOption') {
-        closeSelector();
+        if (reason === 'blur' && mobile) {
+          return;
+        }
+        closeSelector(reason !== 'blur');
       }
     },
     onInputChange: (_event, value, reason) => {
@@ -378,6 +425,7 @@ export function PhoneInputCountrySelector({
   const { ref: autocompleteInputRef, ...inputProps } = autocomplete.getInputProps();
   const hiddenInputRef = useRef<HTMLInputElement | null>(null);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
+  const closeButtonRef = useRef<HTMLButtonElement | null>(null);
   const setHiddenInputRef = useCallback(
     (input: HTMLInputElement | null) => {
       hiddenInputRef.current = input;
@@ -481,6 +529,27 @@ export function PhoneInputCountrySelector({
         aria-label={messages.searchLabel}
         className={classes.countrySelectorSearchInput}
         data-country-selector-presentation={presentation}
+        onKeyDown={(event) => {
+          inputProps.onKeyDown?.(event);
+          if (
+            mobile &&
+            !event.defaultPrevented &&
+            event.key === 'Tab' &&
+            closeButtonRef.current
+          ) {
+            event.preventDefault();
+            closeButtonRef.current.focus();
+            return;
+          }
+          if (
+            !mobile &&
+            !event.defaultPrevented &&
+            event.key === 'Tab' &&
+            moveFocusFromTrigger(event.shiftKey ? -1 : 1)
+          ) {
+            event.preventDefault();
+          }
+        }}
         ownerState={ownerState}
         placeholder={messages.searchLabel}
         ref={setSearchInputRef}
@@ -521,6 +590,7 @@ export function PhoneInputCountrySelector({
           aria-labelledby={dialogTitleId}
           container={portalContainer}
           disablePortal={disablePortal}
+          disableRestoreFocus
           fullScreen
           onClose={() => closeSelector()}
           open={open}
@@ -531,6 +601,13 @@ export function PhoneInputCountrySelector({
             <ButtonBase
               aria-label={messages.close}
               onClick={() => closeSelector()}
+              onKeyDown={(event) => {
+                if (event.key === 'Tab' && searchInputRef.current) {
+                  event.preventDefault();
+                  searchInputRef.current.focus();
+                }
+              }}
+              ref={closeButtonRef}
               sx={{ float: 'inline-end', minHeight: 32, minWidth: 32 }}
               type="button"
             >
@@ -554,6 +631,7 @@ export function PhoneInputCountrySelector({
           <ClickAwayListener onClickAway={() => closeSelector(false)}>
             <CountrySelectorPaper
               className={classes.countrySelectorPopup}
+              data-phone-input-country-selector-surface="true"
               elevation={8}
               ownerState={ownerState}
             >

@@ -49,6 +49,7 @@
     "@types/react-dom": "19.2.4",
     "@vitejs/plugin-react": "6.0.5",
     "@vitest/browser-playwright": "4.1.10",
+    "axe-core": "4.12.1",
     "fast-check": "4.9.0",
     "input-format": "0.3.14",
     "libphonenumber-js": "1.13.10",
