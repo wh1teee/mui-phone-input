@@ -908,6 +908,101 @@ describe('MuiPhoneInput tracer', () => {
     expect(serializedDetails).not.toMatch(/nativeEvent|synthetic|target/u);
   });
 
+  test.each([
+    {
+      createEvent: () => new Event('input', { bubbles: true }),
+      expectedReason: 'input',
+      initialValue: undefined,
+      name: 'plain input without InputEvent metadata',
+      nextValue: '+1202',
+    },
+    {
+      createEvent: () =>
+        new InputEvent('input', {
+          bubbles: true,
+          data: '+1202',
+          inputType: 'insertFromPaste',
+        }),
+      expectedReason: 'paste',
+      initialValue: undefined,
+      name: 'paste',
+      nextValue: '+1202',
+    },
+    {
+      createEvent: () =>
+        new InputEvent('input', {
+          bubbles: true,
+          data: '3',
+          inputType: 'insertReplacementText',
+        }),
+      expectedReason: 'replacement',
+      initialValue: '+1202' as const,
+      name: 'replacement',
+      nextValue: '+1203',
+    },
+    {
+      createEvent: () =>
+        new InputEvent('input', {
+          bubbles: true,
+          data: null,
+          inputType: 'deleteContentBackward',
+        }),
+      expectedReason: 'delete',
+      initialValue: '+1202' as const,
+      name: 'deletion',
+      nextValue: '+120',
+    },
+    {
+      createEvent: () =>
+        new InputEvent('input', {
+          bubbles: true,
+          data: null,
+          inputType: 'historyUndo',
+        }),
+      expectedReason: 'history-undo',
+      initialValue: '+1202' as const,
+      name: 'undo',
+      nextValue: '+1203',
+    },
+    {
+      createEvent: () =>
+        new InputEvent('input', {
+          bubbles: true,
+          data: null,
+          inputType: 'historyRedo',
+        }),
+      expectedReason: 'history-redo',
+      initialValue: '+1202' as const,
+      name: 'redo',
+      nextValue: '+1203',
+    },
+  ])(
+    'classifies $name as one authoritative input commit',
+    async ({ createEvent, expectedReason, initialValue, nextValue }) => {
+      render(<ControlledHarness initialValue={initialValue} />);
+      const locator = page.getByTestId('controlled-phone');
+      await expect.element(locator).toBeInTheDocument();
+      const input = locator.element();
+
+      if (!(input instanceof HTMLInputElement)) {
+        throw new Error('Expected the native phone input.');
+      }
+
+      setNativeInputValue(input, nextValue);
+      input.dispatchEvent(createEvent());
+
+      await expect.element(locator).toHaveValue(nextValue);
+      await expect
+        .element(page.getByTestId('controlled-callback-count'))
+        .toHaveTextContent('1');
+      const details = JSON.parse(
+        page.getByTestId('controlled-details').element().textContent ?? '',
+      ) as PhoneInputChangeDetails;
+      expect(details.reason).toBe(expectedReason);
+      expect(details.value).toBe(nextValue);
+    },
+  );
+
   test('clears, focuses, and externally resets without duplicate callbacks', async () => {
     render(<ControlledHarness />);
     const input = page.getByTestId('controlled-phone');

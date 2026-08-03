@@ -24,8 +24,8 @@ import {
   validatePhoneValue,
 } from '../phone-validation';
 import {
-  type PhoneValue,
   normalizePhoneInputText,
+  type PhoneValue,
   parsePhoneValue,
 } from '../phone-value';
 import type {
@@ -111,6 +111,19 @@ function findOffsetAfterDigits(value: string, digitOffset: number): number {
   }
 
   return value.length;
+}
+
+function resolveInputEventMetadata(event: Event): Readonly<{
+  inputType: string;
+  isComposing: boolean;
+}> {
+  const inputType = 'inputType' in event ? event.inputType : undefined;
+  const isComposing = 'isComposing' in event ? event.isComposing : undefined;
+
+  return {
+    inputType: typeof inputType === 'string' ? inputType : '',
+    isComposing: isComposing === true,
+  };
 }
 
 function resolveChangeReason(
@@ -462,7 +475,7 @@ export function usePhoneInputTransactions(
 
   const handleInput = useCallback(
     (event: FormEvent<HTMLInputElement>) => {
-      const inputEvent = event.nativeEvent as InputEvent;
+      const inputEvent = resolveInputEventMetadata(event.nativeEvent);
 
       if (composingRef.current || inputEvent.isComposing) {
         return;
@@ -485,7 +498,7 @@ export function usePhoneInputTransactions(
   );
 
   const handleInputCapture = useCallback((event: FormEvent<HTMLInputElement>) => {
-    const inputEvent = event.nativeEvent as InputEvent;
+    const inputEvent = resolveInputEventMetadata(event.nativeEvent);
 
     if (composingRef.current || inputEvent.isComposing) {
       compositionTextRef.current = event.currentTarget.value;
