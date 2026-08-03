@@ -74,7 +74,7 @@ byte-identical repeated HTML. The Vite production smoke renders the same state
 matrix. Full details are recorded in
 `2026-08-02-ssr-packed-consumption-evidence.md`.
 
-The current combined source matrix contains 100 Browser Mode tests per engine;
+The current combined source matrix contains 101 Browser Mode tests per engine;
 all pass in Chromium, Firefox, and WebKit. The unit suite contains 93 tests.
 
 ## Package budgets
@@ -88,9 +88,9 @@ externalizes declared peers.
 
 Current exact-artifact measurements are:
 
-- main closure: 20,150 bytes gzip;
+- main closure: 20,172 bytes gzip;
 - server entry: 4,794 bytes gzip;
-- packed tarball: 84,544 bytes.
+- packed tarball: 84,617 bytes.
 
 CI rebuilds the artifact and requires exact byte/hash equality with the
 committed measurement.

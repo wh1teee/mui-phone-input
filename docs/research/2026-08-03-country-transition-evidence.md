@@ -18,6 +18,23 @@ resolved country or `null`. `PhoneCountryChangeDetails` contains:
 The reason vocabulary is `default`, `user`, `input`, `paste`,
 `external-value`, and `reset`.
 
+## Initial ownership provenance
+
+The first transition reason is derived from the same ownership refs that govern
+the canonical value and selected country:
+
+- a controlled `value` and/or controlled `selectedCountry` is
+  `external-value`;
+- an uncontrolled `defaultValue` and/or `defaultCountry` is `default`;
+- an empty initial state updates the internal ledger but emits no spurious
+  country event;
+- when controlled and default props conflict, the existing controlled-ownership
+  diagnostic remains and the emitted transition follows the controlled source.
+
+The implementation does not infer `default` merely because a transition is the
+first effect. Ownership is fixed at mount, so the initial reason remains stable
+through Strict Mode and later renders.
+
 ## Cardinality
 
 The hook maintains one country-transition ledger. User commits update the
@@ -38,6 +55,9 @@ event.
 
 Real-browser tests cover:
 
+- initial controlled value and selected-country ownership;
+- initial value/defaultValue and selectedCountry/defaultCountry conflicts;
+- empty initialization without a callback;
 - default-country initialization;
 - explicit user selection;
 - reset to the initial country;
@@ -49,6 +69,20 @@ Real-browser tests cover:
 - controlled rejection producing one explicit external correction;
 - deterministic serializable previous/next numbering-plan details.
 
-Exact packed Next.js and Vite consumers verify the `user` event through the
-published component surface. The generated declaration is checked for the full
-reason union and nullable callback signature.
+Exact packed Next.js and Vite consumers verify both an initial controlled
+`external-value` event and the later `user` event through the published
+component surface under latest and minimum React 19 / MUI 9 peer matrices. The
+generated declaration is checked for the full reason union and nullable
+callback signature.
+
+The current source matrix contains 93 unit tests and 101 Browser Mode tests in
+each of Chromium, Firefox, and WebKit. Package, SSR/hydration, callback, and
+consumer gates use the exact generated tarball.
+
+Current package measurements remain within budget:
+
+- main closure: 20,172 bytes gzip against 25,600;
+- neutral server entry: 4,794 bytes gzip against 10,240;
+- packed tarball: 84,617 bytes.
+
+No npm publication occurred.

@@ -113,9 +113,32 @@ export function PhoneInputSmoke() {
           }}
         />
       </section>
+      <PackedControlledInitialCountry />
       <PackedComposablePhoneInput />
       <SsrStateMatrix />
     </>
+  );
+}
+
+function PackedControlledInitialCountry() {
+  const [events, setEvents] = useState<PhoneCountryChangeDetails[]>([]);
+
+  return (
+    <section>
+      <MuiPhoneInput
+        label="Controlled initial country"
+        onCountryChange={(_country, details) =>
+          setEvents((current) => [...current, details])
+        }
+        slotProps={{
+          htmlInput: { 'data-testid': 'controlled-initial-country-input' },
+        }}
+        value="+375291234567"
+      />
+      <output data-testid="controlled-initial-country-events">
+        {JSON.stringify(events)}
+      </output>
+    </section>
   );
 }
 

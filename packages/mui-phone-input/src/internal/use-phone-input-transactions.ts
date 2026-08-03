@@ -217,6 +217,10 @@ export function usePhoneInputTransactions(
   const pendingCountryReconciliationRef = useRef<PendingCountryReconciliation | null>(
     null,
   );
+  const initialCountryTransitionReason: PhoneCountryChangeReason =
+    controlledRef.current || countryControlledRef.current
+      ? 'external-value'
+      : 'default';
 
   const emitCountryTransition = useCallback(
     (
@@ -502,7 +506,7 @@ export function usePhoneInputTransactions(
         numberingPlan,
         previous.value,
         currentValue,
-        'default',
+        initialCountryTransitionReason,
       );
       return;
     }
@@ -530,7 +534,12 @@ export function usePhoneInputTransactions(
       currentValue,
       'external-value',
     );
-  }, [currentValue, emitCountryTransition, numberingPlan]);
+  }, [
+    currentValue,
+    emitCountryTransition,
+    initialCountryTransitionReason,
+    numberingPlan,
+  ]);
 
   useEffect(() => {
     const input = inputElementRef.current;

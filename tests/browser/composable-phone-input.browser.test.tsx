@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test, vi } from 'vitest';
 import { page, userEvent } from 'vitest/browser';
 import { render } from 'vitest-browser-react';
 
@@ -13,9 +13,37 @@ import {
   PhoneInputRoot,
   PhoneInputValidationMessage,
   type PhoneValue,
+  type UsePhoneInputParameters,
   usePhoneInput,
   usePhoneInputContext,
 } from '../../packages/mui-phone-input/src';
+
+type InitialCountryReasonParameters = Pick<
+  UsePhoneInputParameters,
+  'defaultCountry' | 'defaultValue' | 'selectedCountry' | 'value'
+>;
+
+function InitialCountryReasonHarness({
+  parameters,
+  testId,
+}: {
+  parameters: InitialCountryReasonParameters;
+  testId: string;
+}) {
+  const [events, setEvents] = useState<PhoneCountryChangeDetails[]>([]);
+  const phone = usePhoneInput({
+    ...parameters,
+    onCountryChange: (_country, details) =>
+      setEvents((current) => [...current, details]),
+  });
+
+  return (
+    <>
+      <input {...phone.getInputProps({ 'data-testid': `${testId}-input` })} />
+      <output data-testid={`${testId}-events`}>{JSON.stringify(events)}</output>
+    </>
+  );
+}
 
 function HeadlessHarness() {
   const [callbackCount, setCallbackCount] = useState(0);
@@ -514,6 +542,95 @@ describe('usePhoneInput and composable primitives', () => {
     await expect.element(input).not.toHaveAttribute('aria-errormessage');
   });
 
+  test('classifies initial country transitions by ownership source', async () => {
+    const controlledValue = await render(
+      <InitialCountryReasonHarness
+        parameters={{ value: '+375291234567' }}
+        testId="initial-controlled-value"
+      />,
+    );
+    await expect
+      .element(page.getByTestId('initial-controlled-value-events'))
+      .toHaveTextContent('"reason":"external-value"');
+    expect(
+      JSON.parse(
+        page.getByTestId('initial-controlled-value-events').element().textContent ?? '',
+      ),
+    ).toMatchObject([{ country: 'BY', reason: 'external-value' }]);
+    await controlledValue.unmount();
+
+    const controlledCountry = await render(
+      <InitialCountryReasonHarness
+        parameters={{ selectedCountry: 'BY' }}
+        testId="initial-controlled-country"
+      />,
+    );
+    await expect
+      .element(page.getByTestId('initial-controlled-country-events'))
+      .toHaveTextContent('"reason":"external-value"');
+    expect(
+      JSON.parse(
+        page.getByTestId('initial-controlled-country-events').element().textContent ??
+          '',
+      ),
+    ).toMatchObject([{ country: 'BY', reason: 'external-value' }]);
+    await controlledCountry.unmount();
+
+    const defaultCountry = await render(
+      <InitialCountryReasonHarness
+        parameters={{ defaultCountry: 'BY' }}
+        testId="initial-default-country"
+      />,
+    );
+    await expect
+      .element(page.getByTestId('initial-default-country-events'))
+      .toHaveTextContent('"reason":"default"');
+    expect(
+      JSON.parse(
+        page.getByTestId('initial-default-country-events').element().textContent ?? '',
+      ),
+    ).toMatchObject([{ country: 'BY', reason: 'default' }]);
+    await defaultCountry.unmount();
+
+    const empty = await render(
+      <InitialCountryReasonHarness parameters={{}} testId="initial-empty" />,
+    );
+    await expect
+      .element(page.getByTestId('initial-empty-events'))
+      .toHaveTextContent('[]');
+    await empty.unmount();
+
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const mixed = await render(
+      <InitialCountryReasonHarness
+        parameters={{ defaultValue: '+1', value: '+375291234567' }}
+        testId="initial-mixed-value"
+      />,
+    );
+    await expect
+      .element(page.getByTestId('initial-mixed-value-events'))
+      .toHaveTextContent('"reason":"external-value"');
+    expect(consoleError).toHaveBeenCalledWith(
+      'usePhoneInput received both value and defaultValue; value controls ownership.',
+    );
+    await mixed.unmount();
+
+    const mixedCountry = await render(
+      <InitialCountryReasonHarness
+        parameters={{ defaultCountry: 'CA', selectedCountry: 'BY' }}
+        testId="initial-mixed-country"
+      />,
+    );
+    await expect
+      .element(page.getByTestId('initial-mixed-country-events'))
+      .toHaveTextContent('"reason":"external-value"');
+    expect(consoleError).toHaveBeenCalledWith(
+      'usePhoneInput received both selectedCountry and defaultCountry; selectedCountry controls country ownership.',
+    );
+    await mixedCountry.unmount();
+    consoleError.mockRestore();
+  });
+
   test('commits country selection through the shared transaction state', async () => {
     render(<CountryActionHarness />);
     const input = page.getByTestId('country-action-input');
@@ -641,7 +758,7 @@ describe('usePhoneInput and composable primitives', () => {
     render(<ControlledCountrySelectionHarness />);
     const eventOutput = page.getByTestId('controlled-country-events');
 
-    await expect.element(eventOutput).toHaveTextContent('"reason":"default"');
+    await expect.element(eventOutput).toHaveTextContent('"reason":"external-value"');
     await userEvent.click(
       page.getByRole('button', { name: 'Select controlled Belarus' }),
     );
@@ -652,14 +769,14 @@ describe('usePhoneInput and composable primitives', () => {
     const events = JSON.parse(
       eventOutput.element().textContent ?? '',
     ) as PhoneCountryChangeDetails[];
-    expect(events.map(({ reason }) => reason)).toEqual(['default', 'user']);
+    expect(events.map(({ reason }) => reason)).toEqual(['external-value', 'user']);
   });
 
   test('reports a distinct external correction when controlled country is rejected', async () => {
     render(<RejectedControlledCountrySelectionHarness />);
     const eventOutput = page.getByTestId('rejected-country-events');
 
-    await expect.element(eventOutput).toHaveTextContent('"reason":"default"');
+    await expect.element(eventOutput).toHaveTextContent('"reason":"external-value"');
     await userEvent.click(
       page.getByRole('button', { name: 'Reject controlled Belarus' }),
     );
@@ -672,7 +789,7 @@ describe('usePhoneInput and composable primitives', () => {
       eventOutput.element().textContent ?? '',
     ) as PhoneCountryChangeDetails[];
     expect(events.map(({ reason }) => reason)).toEqual([
-      'default',
+      'external-value',
       'user',
       'external-value',
     ]);

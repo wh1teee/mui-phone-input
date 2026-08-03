@@ -348,6 +348,28 @@ async function verifyPackedBrowser(destination, consumer) {
         'non-geographic',
       );
     }
+    await page.waitForFunction(() =>
+      document
+        .querySelector('[data-testid="controlled-initial-country-events"]')
+        ?.textContent?.includes('"reason":"external-value"'),
+    );
+    const initialControlledCountryEvents = JSON.parse(
+      (await page.getByTestId('controlled-initial-country-events').textContent()) ||
+        '[]',
+    );
+    if (
+      initialControlledCountryEvents.length !== 1 ||
+      initialControlledCountryEvents[0]?.country !== 'BY' ||
+      initialControlledCountryEvents[0]?.previousCountry !== null ||
+      initialControlledCountryEvents[0]?.reason !== 'external-value' ||
+      initialControlledCountryEvents[0]?.value !== '+375291234567' ||
+      (await page.getByTestId('controlled-initial-country-input').inputValue()) !==
+        '+375291234567'
+    ) {
+      throw new Error(
+        `Packed controlled initial country transition is invalid: ${JSON.stringify(initialControlledCountryEvents)}`,
+      );
+    }
     const input = page.getByTestId('phone-input');
     await input.pressSequentially('37529');
     await input.waitFor({ state: 'visible' });
