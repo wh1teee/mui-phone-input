@@ -7,6 +7,7 @@ describe('numbering-plan entrypoint parity', () => {
   it.each([
     [undefined, 'CA'],
     ['+1', 'CA'],
+    ['+12015550', 'US'],
     ['+12025550123', 'CA'],
     ['+7', 'CA'],
     ['+77071234567', 'CA'],
@@ -15,6 +16,7 @@ describe('numbering-plan entrypoint parity', () => {
     ['+375291234567', 'CA'],
     ['+80012345678', 'CA'],
     ['+358412345678', 'AX'],
+    ['+35841234', 'AX'],
   ] as const)(
     'returns the same serializable resolution for %s with %s selected',
     (value, selectedCountry) => {

@@ -40,8 +40,9 @@ draft as a conflict.
 - `PhoneNumber.getPossibleCountries()` narrows resolved shared-code candidates.
 - `getCountries()` and `getCountryCallingCode()` provide the broad unresolved
   fallback directly from pinned metadata.
-- a selected-country-only view of the same max metadata distinguishes a valid
-  explicit territory from a positively conflicting parent-country detection;
+- selected-country number-type patterns from the same max metadata prove
+  whether an incomplete draft can still become valid without treating
+  temporary length narrowing as incompatibility;
 - `isSupportedCountry()` validates explicit configuration.
 
 The package contains no handwritten country/calling-code table and no
@@ -51,17 +52,20 @@ is represented as a non-geographic plan.
 ## Shared-code policy
 
 An explicit selected country remains authoritative while compatible with the
-current calling code. A differing detected label clears it only when the full
-E.164 value is not valid in the explicitly selected country's pinned metadata.
-This preserves authority aliases without a handwritten territory table while
-still clearing positively conflicting digits.
+current calling code and at least one selected-country authority number-type
+pattern can accept the current national digits as a prefix. A generic decimal
+pattern automaton provides exact prefix closure over the pinned metadata; it
+does not introduce a country table or a second numbering authority. Details and
+the complete corpus are recorded in
+`2026-08-03-explicit-country-draft-authority-evidence.md`.
 
 Regression evidence includes:
 
 - NANP `+1`, CA selection, and US/CA detection;
 - `+7`, KZ selection, and RU/KZ detection;
 - `+44`, GB/GG/IM/JE Possible Countries and territory detection;
-- all 245 available mobile examples with their explicit country selected,
+- all 2,348 prefixes of all 245 available mobile examples with their explicit
+  country selected,
   including AX, BL, CC, CX, EH, IM, MF, SJ and VA where general detection
   reports FI, GP, AU, MA, GB, NO or IT;
 - Belarus `+375` as a single-country plan;

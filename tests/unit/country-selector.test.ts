@@ -94,7 +94,7 @@ describe('country selection transaction', () => {
   });
 
   it('preserves compatible national digits when changing calling code', () => {
-    expect(selectPhoneCountryValue('+12025550123', 'BY')).toBe('+3752025550123');
+    expect(selectPhoneCountryValue('+24740123', 'DE')).toBe('+4940123');
   });
 
   it('preserves the draft and exposes a typed shared-code conflict', () => {
@@ -155,7 +155,7 @@ describe('country selection transaction', () => {
     }
 
     expect(pairCount).toBe(59_780);
-    expect(appliedCount).toBe(57_018);
-    expect(conflictCount).toBe(2_762);
+    expect(appliedCount).toBe(10_210);
+    expect(conflictCount).toBe(49_570);
   }, 15_000);
 });

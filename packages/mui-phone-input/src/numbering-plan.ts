@@ -1,4 +1,4 @@
-import { isValidPhoneNumber, type MetadataJson } from 'libphonenumber-js/core';
+import { Metadata, type MetadataJson } from 'libphonenumber-js/core';
 import {
   AsYouType,
   type CountryCode,
@@ -8,6 +8,7 @@ import {
 } from 'libphonenumber-js/max';
 import maxMetadata from 'libphonenumber-js/metadata.max.json';
 
+import { canDigitPatternMatchPrefix } from './digit-pattern-prefix';
 import { assertPhoneValue, type PhoneValue } from './phone-value';
 
 export interface NumberingPlanResolutionOptions {
@@ -46,9 +47,22 @@ export type NumberingPlanResolution =
   | UnresolvedNumberingPlanResolution;
 
 const EMPTY_COUNTRIES = Object.freeze([]) as readonly [];
+const PHONE_NUMBER_TYPES = [
+  'FIXED_LINE',
+  'MOBILE',
+  'TOLL_FREE',
+  'PREMIUM_RATE',
+  'SHARED_COST',
+  'VOIP',
+  'PERSONAL_NUMBER',
+  'PAGER',
+  'UAN',
+  'VOICEMAIL',
+] as const;
 
 const countriesByCallingCode = new Map<string, readonly CountryCode[]>();
 const metadataBySelectedCountry = new Map<CountryCode, MetadataJson>();
+const validPatternsBySelectedCountry = new Map<CountryCode, readonly string[]>();
 
 for (const country of getCountries()) {
   const callingCode = getCountryCallingCode(country);
@@ -78,11 +92,74 @@ function metadataForSelectedCountry(country: CountryCode): MetadataJson {
   return metadata;
 }
 
-function isValidForSelectedCountry(value: PhoneValue, country: CountryCode): boolean {
-  return (
-    value !== undefined &&
-    isValidPhoneNumber(value, metadataForSelectedCountry(country))
+interface AuthorityNumberType {
+  pattern(): string;
+}
+
+interface AuthorityNumberingPlan {
+  hasTypes(): boolean;
+  nationalNumberPattern(): string;
+  type(type: (typeof PHONE_NUMBER_TYPES)[number]): AuthorityNumberType | undefined;
+}
+
+function validPatternsForSelectedCountry(country: CountryCode): readonly string[] {
+  const cached = validPatternsBySelectedCountry.get(country);
+  if (cached) {
+    return cached;
+  }
+
+  const metadata = new Metadata(metadataForSelectedCountry(country));
+  metadata.selectNumberingPlan(country);
+  const numberingPlan = metadata.numberingPlan as
+    | (NonNullable<typeof metadata.numberingPlan> & AuthorityNumberingPlan)
+    | undefined;
+  if (!numberingPlan) {
+    throw new TypeError(`Missing numbering plan for selected country: ${country}`);
+  }
+
+  // libphonenumber-js uses region-specific number-type patterns to distinguish
+  // countries that share one calling code. The pinned runtime exposes those
+  // patterns through Metadata even though the public NumberingPlan type omits them.
+  const typePatterns = numberingPlan.hasTypes()
+    ? PHONE_NUMBER_TYPES.flatMap((type) => {
+        const pattern = numberingPlan.type(type)?.pattern();
+        return pattern ? [pattern] : [];
+      })
+    : [];
+  const patterns =
+    typePatterns.length > 0 ? typePatterns : [numberingPlan.nationalNumberPattern()];
+  for (const pattern of patterns) {
+    canDigitPatternMatchPrefix(pattern, '');
+  }
+  const frozenPatterns = Object.freeze(patterns);
+  validPatternsBySelectedCountry.set(country, frozenPatterns);
+  return frozenPatterns;
+}
+
+function canStillBecomeValidForSelectedCountry(
+  value: PhoneValue,
+  country: CountryCode,
+  countryCallingCode: string,
+): boolean {
+  if (value === undefined) {
+    return true;
+  }
+
+  const nationalNumber = value.slice(countryCallingCode.length + 1);
+  return validPatternsForSelectedCountry(country).some((pattern) =>
+    canDigitPatternMatchPrefix(pattern, nationalNumber),
   );
+}
+
+function includeCountry(
+  countries: readonly CountryCode[],
+  country: CountryCode | null,
+): readonly CountryCode[] {
+  if (!country || countries.includes(country)) {
+    return countries;
+  }
+
+  return Object.freeze([...countries, country]);
 }
 
 function validateSelectedCountry(
@@ -102,9 +179,7 @@ function validateSelectedCountry(
 function resolveCompatibleSelection(
   value: PhoneValue,
   selectedCountry: CountryCode | null,
-  detectedCountry: CountryCode | null,
   countryCallingCode: string | null,
-  narrowedPossibleCountries: readonly CountryCode[],
 ): CountryCode | null {
   if (!selectedCountry) {
     return null;
@@ -117,25 +192,13 @@ function resolveCompatibleSelection(
       return null;
     }
 
-    const selectedCountryIsValid = isValidForSelectedCountry(value, selectedCountry);
-
-    if (
-      detectedCountry &&
-      detectedCountry !== selectedCountry &&
-      !selectedCountryIsValid
-    ) {
-      return null;
-    }
-
-    if (
-      narrowedPossibleCountries.length > 0 &&
-      !narrowedPossibleCountries.includes(selectedCountry) &&
-      !selectedCountryIsValid
-    ) {
-      return null;
-    }
-
-    return selectedCountry;
+    return canStillBecomeValidForSelectedCountry(
+      value,
+      selectedCountry,
+      selectedCallingCode,
+    )
+      ? selectedCountry
+      : null;
   }
 
   const inputDigits = value?.slice(1) ?? '';
@@ -185,19 +248,18 @@ export function resolveNumberingPlan(
   const selectedCountry = resolveCompatibleSelection(
     value,
     requestedSelection,
-    detectedCountry,
     detectedCallingCode,
-    narrowedPossibleCountries,
   );
   const selectedCallingCode = selectedCountry
     ? getCountryCallingCode(selectedCountry)
     : null;
   const countryCallingCode = detectedCallingCode ?? selectedCallingCode;
-  const possibleCountries = countryCallingCode
+  const authorityCountries = countryCallingCode
     ? narrowedPossibleCountries.length > 0
       ? narrowedPossibleCountries
       : (countriesByCallingCode.get(countryCallingCode) ?? EMPTY_COUNTRIES)
     : EMPTY_COUNTRIES;
+  const possibleCountries = includeCountry(authorityCountries, selectedCountry);
   const resolvedCountry =
     selectedCountry ??
     detectedCountry ??

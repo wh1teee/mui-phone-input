@@ -292,7 +292,7 @@ function CountrySelectionAppliedHarness() {
     [],
   );
   const phone = usePhoneInput({
-    defaultValue: '+12025550123',
+    defaultValue: '+24740123',
     onChange: () => setChangeCount((count) => count + 1),
     onCountrySelection: (result) => setSelectionEvents((events) => [...events, result]),
   });
@@ -308,10 +308,10 @@ function CountrySelectionAppliedHarness() {
         {actionResult ? JSON.stringify(actionResult) : ''}
       </output>
       <button
-        onClick={() => setActionResult(phone.actions.selectCountry('BY'))}
+        onClick={() => setActionResult(phone.actions.selectCountry('DE'))}
         type="button"
       >
-        Select compatible Belarus
+        Select compatible Germany
       </button>
     </>
   );
@@ -684,11 +684,11 @@ describe('usePhoneInput and composable primitives', () => {
     const eventOutput = page.getByTestId('country-applied-events');
 
     await userEvent.click(
-      page.getByRole('button', { name: 'Select compatible Belarus' }),
+      page.getByRole('button', { name: 'Select compatible Germany' }),
     );
     await expect
       .element(page.getByTestId('country-applied-input'))
-      .toHaveValue('+3752025550123');
+      .toHaveValue('+4940123');
     await expect
       .element(page.getByTestId('country-applied-change-count'))
       .toHaveTextContent('1');
@@ -703,10 +703,10 @@ describe('usePhoneInput and composable primitives', () => {
       ),
     ).toEqual(events[0]);
     expect(events[0]).toMatchObject({
-      country: 'BY',
+      country: 'DE',
       reason: 'national-digits-preserved',
       status: 'applied',
-      value: '+3752025550123',
+      value: '+4940123',
     });
   });
 

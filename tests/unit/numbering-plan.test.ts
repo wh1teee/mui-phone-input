@@ -58,9 +58,25 @@ describe('resolveNumberingPlan', () => {
       resolvedCountry: 'GG',
       selectedCountry: 'GG',
     });
+    expect(resolveNumberingPlan('+12015550', { selectedCountry: 'US' })).toEqual({
+      countryCallingCode: '1',
+      detectedCountry: null,
+      kind: 'geographic',
+      possibleCountries: ['CA', 'US'],
+      resolvedCountry: 'US',
+      selectedCountry: 'US',
+    });
   });
 
   it('drops an incompatible selection when the digits detect another country', () => {
+    expect(resolveNumberingPlan('+70', { selectedCountry: 'KZ' })).toEqual({
+      countryCallingCode: '7',
+      detectedCountry: null,
+      kind: 'unresolved',
+      possibleCountries: ['KZ', 'RU'],
+      resolvedCountry: null,
+      selectedCountry: null,
+    });
     expect(resolveNumberingPlan('+12025550123', { selectedCountry: 'CA' })).toEqual({
       countryCallingCode: '1',
       detectedCountry: 'US',
@@ -104,6 +120,64 @@ describe('resolveNumberingPlan', () => {
         resolvedCountry: country,
         selectedCountry: country,
       });
+    }
+  });
+
+  it('preserves every compatible explicit country throughout every authority example prefix', () => {
+    const countriesWithExamples = getCountries().filter((country) =>
+      Boolean(getExampleNumber(country, mobileExamples)),
+    );
+    let prefixCount = 0;
+
+    expect(countriesWithExamples).toHaveLength(245);
+
+    for (const country of countriesWithExamples) {
+      const example = getExampleNumber(country, mobileExamples);
+      expect(example).toBeDefined();
+
+      const firstPrefixLength = getCountryCallingCode(country).length + 1;
+      for (
+        let length = firstPrefixLength;
+        length <= example!.number.length;
+        length += 1
+      ) {
+        const value = example!.number.slice(0, length) as PhoneValue;
+        const resolution = resolveNumberingPlan(value, { selectedCountry: country });
+        prefixCount += 1;
+
+        expect(
+          resolution.selectedCountry,
+          `${country} selection was lost for compatible prefix ${value}`,
+        ).toBe(country);
+        expect(
+          resolution.resolvedCountry,
+          `${country} resolution was lost for compatible prefix ${value}`,
+        ).toBe(country);
+        expect(
+          resolution.possibleCountries,
+          `${country} was missing from possibleCountries for compatible prefix ${value}`,
+        ).toContain(country);
+      }
+    }
+
+    expect(prefixCount).toBe(2_348);
+  });
+
+  it('keeps every claimed geographic country inside possibleCountries', () => {
+    const countriesWithExamples = getCountries().filter((country) =>
+      Boolean(getExampleNumber(country, mobileExamples)),
+    );
+
+    for (const country of countriesWithExamples) {
+      const example = getExampleNumber(country, mobileExamples);
+      expect(example).toBeDefined();
+      const resolution = resolveNumberingPlan(example!.number as PhoneValue, {
+        selectedCountry: country,
+      });
+
+      expect(resolution.kind).toBe('geographic');
+      expect(resolution.possibleCountries).toContain(resolution.resolvedCountry);
+      expect(resolution.possibleCountries).toContain(resolution.selectedCountry);
     }
   });
 

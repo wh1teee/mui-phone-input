@@ -113,6 +113,14 @@ const SSR_STATE_EXPECTATIONS = {
     status: 'empty',
     value: '',
   },
+  'explicit-draft': {
+    accepted: 'false',
+    country: 'US',
+    plan: 'geographic',
+    placeholder: 'Explicit draft phone',
+    status: 'incomplete',
+    value: '+12015550',
+  },
   geographic: {
     accepted: 'true',
     country: '',

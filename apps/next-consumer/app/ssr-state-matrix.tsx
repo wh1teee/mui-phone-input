@@ -23,6 +23,12 @@ const SSR_STATES: readonly SsrState[] = [
     selectedCountry: 'AX',
     value: '+358412345678',
   },
+  {
+    kind: 'explicit-draft',
+    placeholder: 'Explicit draft phone',
+    selectedCountry: 'US',
+    value: '+12015550',
+  },
   { kind: 'unresolved', placeholder: 'Unresolved phone', value: '+1' },
   {
     kind: 'non-geographic',

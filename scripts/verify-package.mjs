@@ -88,6 +88,7 @@ for (const requiredClientSource of [
   );
 }
 assert.deepEqual(packedServerSourceMap.sources, [
+  '../src/digit-pattern-prefix.ts',
   '../src/phone-value.ts',
   '../src/numbering-plan.ts',
   '../src/phone-validation.ts',
@@ -191,10 +192,7 @@ assert.equal(
   clientModule.filterPhoneCountryOptions(countryOptions, '+375')[0]?.country,
   'BY',
 );
-assert.equal(
-  clientModule.selectPhoneCountryValue('+12025550123', 'BY'),
-  '+3752025550123',
-);
+assert.equal(clientModule.selectPhoneCountryValue('+24740123', 'DE'), '+4940123');
 assert.deepEqual(clientModule.resolvePhoneCountrySelection('+12025550123', 'CA'), {
   candidateNumberingPlan: {
     countryCallingCode: '1',
@@ -277,6 +275,22 @@ assert.deepEqual(sharedPlan, {
 assert.equal(sharedPlan.possibleCountries.length, 25);
 assert.ok(sharedPlan.possibleCountries.includes('CA'));
 assert.ok(sharedPlan.possibleCountries.includes('US'));
+const selectedUsDraft = {
+  countryCallingCode: '1',
+  detectedCountry: null,
+  kind: 'geographic',
+  possibleCountries: ['CA', 'US'],
+  resolvedCountry: 'US',
+  selectedCountry: 'US',
+};
+assert.deepEqual(
+  clientModule.resolveNumberingPlan('+12015550', { selectedCountry: 'US' }),
+  selectedUsDraft,
+);
+assert.deepEqual(
+  serverModule.resolveNumberingPlan('+12015550', { selectedCountry: 'US' }),
+  selectedUsDraft,
+);
 assert.deepEqual(serverModule.resolveNumberingPlan('+12025550123'), {
   countryCallingCode: '1',
   detectedCountry: 'US',
@@ -289,7 +303,7 @@ const alandPlan = {
   countryCallingCode: '358',
   detectedCountry: 'FI',
   kind: 'geographic',
-  possibleCountries: ['FI'],
+  possibleCountries: ['FI', 'AX'],
   resolvedCountry: 'AX',
   selectedCountry: 'AX',
 };

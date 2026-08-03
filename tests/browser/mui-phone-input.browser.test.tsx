@@ -725,6 +725,26 @@ describe('MuiPhoneInput tracer', () => {
     });
   });
 
+  test('preserves an explicit country through compatible authority narrowing', async () => {
+    render(<ControlledHarness selectedCountry="US" />);
+    const input = page.getByTestId('controlled-phone');
+
+    await userEvent.type(input, '12015550');
+    await expect.element(input).toHaveAttribute('data-phone-input-country', 'US');
+
+    const details = JSON.parse(
+      page.getByTestId('controlled-details').element().textContent ?? '',
+    ) as PhoneInputChangeDetails;
+    expect(details.numberingPlan).toEqual({
+      countryCallingCode: '1',
+      detectedCountry: null,
+      kind: 'geographic',
+      possibleCountries: ['CA', 'US'],
+      resolvedCountry: 'US',
+      selectedCountry: 'US',
+    });
+  });
+
   test('clears incompatible selection for a non-geographic plan', async () => {
     render(<ControlledHarness selectedCountry="US" />);
     const input = page.getByTestId('controlled-phone');

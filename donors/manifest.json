@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "asOf": "2026-08-02",
+  "asOf": "2026-08-03",
   "policy": "Capability-level donor decisions only; no copied production code is present at this baseline.",
   "inputEngineDecision": {
     "bead": "mpi-oan.22",
@@ -22,7 +22,8 @@
       "tests/unit/numbering-plan.test.ts",
       "tests/unit/numbering-plan-entrypoints.test.ts",
       "tests/browser/mui-phone-input.browser.test.tsx",
-      "docs/research/2026-08-02-numbering-plan-authority-evidence.md"
+      "docs/research/2026-08-02-numbering-plan-authority-evidence.md",
+      "docs/research/2026-08-03-explicit-country-draft-authority-evidence.md"
     ]
   },
   "validationDecision": {
@@ -55,6 +56,10 @@
         "PhoneNumber.isPossible",
         "PhoneNumber.isValid",
         "PhoneNumber.getType",
+        "Metadata.selectNumberingPlan",
+        "NumberingPlan.hasTypes",
+        "NumberingPlan.type",
+        "Type.pattern",
         "validatePhoneNumberLength"
       ],
       "inspectedTests": [
@@ -64,6 +69,7 @@
       ],
       "knownIssues": [
         "It is a numbering authority, not an input-selection or country-selector engine.",
+        "PhoneNumber.getPossibleCountries narrows shared plans by current length and is not proof that an explicit compatible draft became impossible.",
         "Metadata variants intentionally provide different validation precision."
       ]
     },
@@ -345,10 +351,14 @@
         "PhoneNumber.isPossible",
         "PhoneNumber.isValid",
         "PhoneNumber.getType",
+        "Metadata.selectNumberingPlan",
+        "NumberingPlan.type",
+        "Type.pattern",
         "validatePhoneNumberLength"
       ],
       "knownIssues": [
-        "UI state must distinguish selected, detected, resolved, and possible countries without inventing country data."
+        "UI state must distinguish selected, detected, resolved, and possible countries without inventing country data.",
+        "Length-only Possible Countries narrowing cannot by itself clear a compatible explicit-country draft."
       ],
       "decision": "adapt",
       "reason": "Use the public library API as the sole phone authority and build package state around its outputs.",
