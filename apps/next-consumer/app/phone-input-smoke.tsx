@@ -114,6 +114,7 @@ export function PhoneInputSmoke() {
         />
       </section>
       <PackedControlledInitialCountry />
+      <PackedOwnedSlotBoundary />
       <PackedUnmountLifecycle />
       <PackedNativeTabOrder />
       <PackedComposablePhoneInput />
@@ -168,6 +169,39 @@ function PackedNativeTabOrder() {
         </div>
       </section>
     </PhoneInputProvider>
+  );
+}
+
+function PackedOwnedSlotBoundary() {
+  const [consumerInputCount, setConsumerInputCount] = useState(0);
+
+  return (
+    <section>
+      <span id="packed-owned-description">Packed consumer description</span>
+      <MuiPhoneInput
+        defaultValue="+1"
+        id="packed-owned-phone"
+        label="Packed owned phone"
+        required
+        slotProps={{
+          formHelperText: { id: 'packed-consumer-helper' },
+          htmlInput: {
+            'aria-describedby': 'packed-owned-description',
+            'aria-errormessage': 'packed-consumer-error',
+            'aria-invalid': false,
+            'data-testid': 'packed-owned-input',
+            id: 'packed-consumer-input',
+            onInput: () => setConsumerInputCount((count) => count + 1),
+            required: false,
+            value: '+44',
+          },
+        }}
+        validationDisplay="always"
+      />
+      <output data-testid="packed-owned-consumer-input-count">
+        {consumerInputCount}
+      </output>
+    </section>
   );
 }
 

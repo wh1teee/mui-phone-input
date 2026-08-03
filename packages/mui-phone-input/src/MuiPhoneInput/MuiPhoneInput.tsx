@@ -32,6 +32,7 @@ import {
   type PhoneCountryChangeReason,
   type PhoneInputChangeDetails,
   type PhoneInputChangeReason,
+  type PhoneInputInputExternalProps,
   type PhoneInputNumberingPlanState,
   type PhoneInputValidationState,
   type PhoneValidationDisplay,
@@ -302,6 +303,15 @@ export function MuiPhoneInput(inProps: MuiPhoneInputProps): ReactNode {
     selectedCountry: phone.state.selectedCountry,
     validationStatus: phone.state.validation.status,
   };
+  const resolvedHelperText =
+    helperText !== undefined
+      ? helperText
+      : phone.state.validationError
+        ? phone.state.validationMessage
+        : undefined;
+  const renderedHelperTextId = resolvedHelperText
+    ? phone.state.validationMessageId
+    : undefined;
   const setInputRef = useCallback(
     (input: HTMLInputElement | null) => {
       phone.setInputRef(input);
@@ -310,14 +320,47 @@ export function MuiPhoneInput(inProps: MuiPhoneInputProps): ReactNode {
     [inputRefProp, phone.setInputRef],
   );
   const htmlInputSlotProps = useMemo(() => {
-    const preparedInputProps = phone.getInputProps({
-      className: classes.input,
-      ...(autoComplete === undefined ? {} : { autoComplete }),
-    });
-    const { ref: _preparedRef, ...preparedWithoutRef } = preparedInputProps;
+    const externalSlotProps = slotProps?.htmlInput;
 
-    return mergeSlotProps(slotProps?.htmlInput, preparedWithoutRef);
-  }, [autoComplete, classes.input, phone, slotProps?.htmlInput]);
+    return (ownerState: unknown) => {
+      const preparedInputProps = phone.getInputProps({
+        className: classes.input,
+        ...(autoComplete === undefined ? {} : { autoComplete }),
+      });
+      const { ref: _preparedRef, ...preparedWithoutRef } = preparedInputProps;
+      const externalValue =
+        (typeof externalSlotProps === 'function'
+          ? externalSlotProps({
+              ...(ownerState as object),
+              ...preparedWithoutRef,
+            } as never)
+          : externalSlotProps) ?? {};
+      const {
+        defaultValue: _externalDefaultValue,
+        onChange: _externalOnChange,
+        ref: externalRef,
+        ...externalWithoutRef
+      } = externalValue;
+      const externalInputProps = externalWithoutRef as PhoneInputInputExternalProps;
+      const describedBy = [externalInputProps['aria-describedby'], renderedHelperTextId]
+        .filter(Boolean)
+        .join(' ');
+      const resolved = phone.getInputProps({
+        ...externalInputProps,
+        ...(describedBy ? { 'aria-describedby': describedBy } : {}),
+        className: joinClassNames(classes.input, externalInputProps.className),
+        ...(externalInputProps.autoComplete === undefined && autoComplete !== undefined
+          ? { autoComplete }
+          : {}),
+      });
+      const { ref: _resolvedRef, ...resolvedWithoutRef } = resolved;
+
+      return {
+        ...resolvedWithoutRef,
+        ...(externalRef === undefined ? {} : { ref: externalRef }),
+      };
+    };
+  }, [autoComplete, classes.input, phone, renderedHelperTextId, slotProps?.htmlInput]);
   const CountrySelectorSlot = slots?.countrySelector ?? PhoneInputCountrySelector;
   const countrySelectorClasses = useMemo(
     () => mergeCountrySelectorClasses(classesProp, slotProps?.countrySelector?.classes),
@@ -339,26 +382,35 @@ export function MuiPhoneInput(inProps: MuiPhoneInputProps): ReactNode {
     () => mergeSlotProps(slotProps?.input, { startAdornment: countrySelector }),
     [countrySelector, slotProps?.input],
   );
-  const formHelperTextSlotProps = useMemo(
-    () =>
-      mergeSlotProps(slotProps?.formHelperText, {
+  const formHelperTextSlotProps = useMemo(() => {
+    const externalSlotProps = slotProps?.formHelperText;
+
+    return (ownerState: unknown) => {
+      const prepared = {
         'aria-live': 'polite',
         className: classes.validationMessage,
         id: phone.state.validationMessageId,
-      }),
-    [
-      classes.validationMessage,
-      phone.state.validationMessageId,
-      slotProps?.formHelperText,
-    ],
-  );
-  const resolvedHelperText =
-    helperText !== undefined
-      ? helperText
-      : phone.state.validationError
-        ? phone.state.validationMessage
-        : undefined;
+      } as const;
+      const externalValue =
+        (typeof externalSlotProps === 'function'
+          ? externalSlotProps({
+              ...(ownerState as object),
+              ...prepared,
+            } as never)
+          : externalSlotProps) ?? {};
+      const merged = mergeSlotProps(externalValue, prepared);
 
+      return {
+        ...merged,
+        'aria-live': 'polite' as const,
+        id: phone.state.validationMessageId,
+      };
+    };
+  }, [
+    classes.validationMessage,
+    phone.state.validationMessageId,
+    slotProps?.formHelperText,
+  ]);
   const { countrySelector: _countrySelectorSlotProps, ...textFieldSlotProps } =
     slotProps ?? {};
   const { countrySelector: _countrySelectorSlot, ...textFieldSlots } = slots ?? {};

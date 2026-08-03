@@ -370,6 +370,54 @@ async function verifyPackedBrowser(destination, consumer) {
         `Packed controlled initial country transition is invalid: ${JSON.stringify(initialControlledCountryEvents)}`,
       );
     }
+    const ownedInput = page.getByTestId('packed-owned-input');
+    if (
+      (await ownedInput.inputValue()) !== '+1' ||
+      (await ownedInput.getAttribute('id')) !== 'packed-owned-phone' ||
+      (await ownedInput.getAttribute('required')) === null ||
+      (await ownedInput.getAttribute('aria-invalid')) !== 'true' ||
+      (await ownedInput.getAttribute('aria-errormessage')) !==
+        'packed-owned-phone-helper-text'
+    ) {
+      throw new Error('Packed controller-owned native input props are incoherent.');
+    }
+    const ownedDescribedBy = (await ownedInput.getAttribute('aria-describedby'))
+      ?.split(/\s+/u)
+      .filter(Boolean);
+    if (
+      JSON.stringify(ownedDescribedBy) !==
+      JSON.stringify(['packed-owned-description', 'packed-owned-phone-helper-text'])
+    ) {
+      throw new Error(
+        `Packed controller-owned descriptions are incoherent: ${JSON.stringify(ownedDescribedBy)}`,
+      );
+    }
+    if (
+      (await page.locator('#packed-owned-phone-helper-text').count()) !== 1 ||
+      (await page.locator('#packed-consumer-helper').count()) !== 0
+    ) {
+      throw new Error('Packed controller-owned helper identity is incoherent.');
+    }
+    await ownedInput.evaluate((element) => {
+      if (!(element instanceof HTMLInputElement)) {
+        throw new TypeError('Expected the packed controller-owned native input.');
+      }
+      element.focus();
+      element.setSelectionRange(element.value.length, element.value.length);
+    });
+    await ownedInput.pressSequentially('2');
+    const ownedValueAfterInput = await ownedInput.inputValue();
+    const ownedConsumerInputCount = await page
+      .getByTestId('packed-owned-consumer-input-count')
+      .textContent();
+    if (ownedValueAfterInput !== '+12' || ownedConsumerInputCount !== '1') {
+      throw new Error(
+        `Packed safe native input handler composition is incoherent: ${JSON.stringify({
+          consumerInputCount: ownedConsumerInputCount,
+          value: ownedValueAfterInput,
+        })}`,
+      );
+    }
     const packedTabTrigger = page.getByTestId('packed-tab-trigger');
     await packedTabTrigger.click();
     let packedTabSearch = page.getByRole('combobox', { name: 'Search countries' });
@@ -455,9 +503,24 @@ async function verifyPackedBrowser(destination, consumer) {
     if (!(await input.evaluate((element) => element === document.activeElement))) {
       throw new Error('Packed input ref did not focus the native input.');
     }
-    await page.getByText('Complete the phone number.').waitFor({ state: 'visible' });
+    await page.waitForFunction(
+      () =>
+        document
+          .querySelector('[data-testid="phone-input"]')
+          ?.getAttribute('aria-invalid') === 'true',
+    );
     if ((await input.getAttribute('aria-invalid')) !== 'true') {
       throw new Error('Packed incomplete value did not expose blur validation.');
+    }
+    const inputErrorMessageId = await input.getAttribute('aria-errormessage');
+    const inputErrorMessage = inputErrorMessageId
+      ? await page.evaluate(
+          (id) => document.getElementById(id)?.textContent ?? null,
+          inputErrorMessageId,
+        )
+      : null;
+    if (!inputErrorMessageId || inputErrorMessage !== 'Complete the phone number.') {
+      throw new Error('Packed incomplete value helper relationship is invalid.');
     }
 
     await input.selectText();

@@ -9,6 +9,7 @@ import {
   useCallback,
 } from 'react';
 
+import type { PhoneValue } from '../phone-value';
 import type {
   PhoneInputInputExternalProps,
   PhoneInputNumberingPlanState,
@@ -19,7 +20,6 @@ import type {
   PhoneInputValidationMessageExternalProps,
   PhoneInputValidationState,
 } from '../usePhoneInput';
-import type { PhoneValue } from '../phone-value';
 
 interface PhoneInputPropGetterParameters {
   controlled: boolean;
@@ -55,7 +55,9 @@ export interface PhoneInputPropGetters {
 }
 
 function joinTokens(...values: Array<string | undefined>): string | undefined {
-  const joined = values.filter(Boolean).join(' ');
+  const joined = [
+    ...new Set(values.flatMap((value) => value?.split(/\s+/u).filter(Boolean) ?? [])),
+  ].join(' ');
   return joined || undefined;
 }
 

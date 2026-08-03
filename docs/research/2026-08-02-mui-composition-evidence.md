@@ -39,6 +39,12 @@ engine, composition, paste, blur, reset and accessibility behavior. No public
 controller or primitive repairs state by assigning `input.value` or calling
 `setSelectionRange`.
 
+The MUI adapter resolves object- and function-valued native slot props through
+that same getter. Controller-owned value, identity, state and accessibility
+relationships are applied after visual/native customization; component and
+slot refs remain independently composed. Full adversarial evidence is recorded
+in `2026-08-03-controller-owned-slot-boundary-evidence.md`.
+
 ## Accessibility and stable state
 
 Prepared input props include:
@@ -66,7 +72,10 @@ Primitives provide a polite live validation message and stable utility classes.
 - inherited `TextField` `slots` and `slotProps` as the single visual
   replacement API;
 - prepared refs, handlers, classes, state data and ARIA props for a custom
-  `htmlInput` slot.
+  `htmlInput` slot;
+- sealed native value/ID/state/ARIA and form-helper identity that visual slot
+  props cannot replace;
+- persistent MUI helper text composed with consumer description tokens.
 
 Runtime tests demonstrate owner-state-driven style overrides and a required
 theme variant through a custom native-input slot.
@@ -80,11 +89,12 @@ covers default state, typing, callback cardinality, Numbering Plan Resolution,
 validation, prepared data props, focus, clear and reset on latest and minimum
 React 19 / MUI 9 matrices.
 
-The exact post-composition artifact remains within the established budgets:
+The current exact post-composition artifact remains within the established
+budgets:
 
-- main closure: 16,020 bytes gzip;
-- server entry: 2,915 bytes gzip;
-- packed tarball: 61,189 bytes.
+- main closure: 22,452 bytes gzip;
+- server entry: 4,794 bytes gzip;
+- packed tarball: 85,988 bytes.
 
 ## Scope boundary
 

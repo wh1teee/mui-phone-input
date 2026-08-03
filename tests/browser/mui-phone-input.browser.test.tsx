@@ -1,4 +1,5 @@
 import { createTheme, ThemeProvider } from '@mui/material/styles';
+import axe from 'axe-core';
 import type { CountryCode, PhoneNumberType } from 'libphonenumber-js/max';
 import {
   type ClipboardEvent,
@@ -269,6 +270,15 @@ function CustomHtmlInput({
   ownerState?: unknown;
 }) {
   return <input {...props} data-custom-phone-slot="true" />;
+}
+
+function CustomFormHelperText({
+  ownerState: _ownerState,
+  ...props
+}: ComponentProps<'p'> & {
+  ownerState?: unknown;
+}) {
+  return <p {...props} data-custom-helper-slot="true" />;
 }
 
 async function pasteText(inputTestId: string, text: string) {
@@ -1281,6 +1291,187 @@ describe('MuiPhoneInput tracer', () => {
     await expect.element(input).toHaveAttribute('data-phone-input-accepted', 'true');
     await expect.element(input).toHaveAttribute('data-phone-input-plan', 'geographic');
     await expect.element(page.elementLocator(root)).toHaveStyle({ opacity: '1' });
+  });
+
+  test('protects controller-owned native props while composing safe slot customization', async () => {
+    const componentRef = { current: null as HTMLInputElement | null };
+    let slotInputRef: HTMLInputElement | null = null;
+    let helperRef: HTMLParagraphElement | null = null;
+    let consumerInputCount = 0;
+
+    render(
+      <>
+        <span id="consumer-description">Consumer description</span>
+        <MuiPhoneInput
+          defaultValue="+1"
+          id="owned-phone"
+          label="Owned phone"
+          ref={componentRef}
+          required
+          slots={{
+            formHelperText: CustomFormHelperText,
+            htmlInput: CustomHtmlInput,
+          }}
+          slotProps={{
+            formHelperText: {
+              className: 'consumer-helper-class',
+              id: 'consumer-helper',
+              ref: (element: HTMLParagraphElement | null) => {
+                helperRef = element;
+              },
+            },
+            htmlInput: {
+              'aria-describedby':
+                'consumer-description owned-phone-helper-text consumer-description',
+              'aria-errormessage': 'consumer-error',
+              'aria-invalid': false,
+              className: 'consumer-input-class',
+              'data-testid': 'owned-input',
+              disabled: false,
+              id: 'consumer-input',
+              onInput: () => {
+                consumerInputCount += 1;
+              },
+              readOnly: false,
+              ref: (element: HTMLInputElement | null) => {
+                slotInputRef = element;
+              },
+              required: false,
+              value: '+44',
+            },
+          }}
+          validationDisplay="always"
+        />
+      </>,
+    );
+
+    const input = page.getByTestId('owned-input');
+    await expect.element(input).toBeInTheDocument();
+    const helperElement = document.querySelector('[data-custom-helper-slot="true"]');
+    if (!(helperElement instanceof HTMLParagraphElement)) {
+      throw new Error('Expected the custom form-helper slot.');
+    }
+    const helper = page.elementLocator(helperElement);
+    const label = document.querySelector('label[for="owned-phone"]');
+    if (!(label instanceof HTMLLabelElement)) {
+      throw new Error('Expected the owned phone label.');
+    }
+
+    await expect.element(input).toHaveValue('+1');
+    await expect.element(input).toHaveAttribute('id', 'owned-phone');
+    await expect.element(input).toHaveAttribute('required');
+    await expect.element(input).not.toHaveAttribute('disabled');
+    await expect.element(input).not.toHaveAttribute('readonly');
+    await expect.element(input).toHaveAttribute('aria-invalid', 'true');
+    await expect
+      .element(input)
+      .toHaveAttribute('aria-errormessage', 'owned-phone-helper-text');
+    expect(input.element().getAttribute('aria-describedby')?.split(/\s+/u)).toEqual([
+      'consumer-description',
+      'owned-phone-helper-text',
+    ]);
+    expect(label).toHaveAttribute('for', 'owned-phone');
+    await expect.element(helper).toHaveAttribute('id', 'owned-phone-helper-text');
+    await expect.element(helper).toHaveClass('consumer-helper-class');
+    await expect.element(input).toHaveClass('consumer-input-class');
+    await expect.element(input).toHaveAttribute('data-custom-phone-slot', 'true');
+    await expect.element(helper).toHaveAttribute('data-custom-helper-slot', 'true');
+    expect(componentRef.current).toBe(input.element());
+    expect(slotInputRef).toBe(input.element());
+    expect(helperRef).toBe(helper.element());
+
+    await userEvent.type(input, '2');
+    await expect.element(input).toHaveValue('+12');
+    expect(consumerInputCount).toBe(1);
+
+    const accessibility = await axe.run(document.body, {
+      runOnly: {
+        type: 'tag',
+        values: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22a', 'wcag22aa'],
+      },
+    });
+    const violations = accessibility.violations.map((violation) => ({
+      id: violation.id,
+      targets: violation.nodes.map((node) => node.target),
+    }));
+    expect(violations, JSON.stringify(violations, null, 2)).toEqual([]);
+  });
+
+  test('protects controlled value and state props from function-valued slot overrides', async () => {
+    const onChange = vi.fn();
+
+    render(
+      <MuiPhoneInput
+        disabled
+        id="controlled-owned-phone"
+        label="Controlled owned phone"
+        onChange={onChange}
+        readOnly
+        required
+        slotProps={{
+          formHelperText: () => ({ id: 'consumer-controlled-helper' }),
+          htmlInput: () => ({
+            'aria-invalid': false,
+            'data-testid': 'controlled-owned-input',
+            disabled: false,
+            id: 'consumer-controlled-input',
+            readOnly: false,
+            required: false,
+            value: '+44',
+          }),
+        }}
+        validationDisplay="always"
+        value="+1"
+      />,
+    );
+
+    const input = page.getByTestId('controlled-owned-input');
+    await expect.element(input).toHaveValue('+1');
+    await expect.element(input).toHaveAttribute('id', 'controlled-owned-phone');
+    await expect.element(input).toHaveAttribute('disabled');
+    await expect.element(input).toHaveAttribute('readonly');
+    await expect.element(input).toHaveAttribute('required');
+    await expect.element(input).toHaveAttribute('aria-invalid', 'true');
+    await expect
+      .element(input)
+      .toHaveAttribute('aria-errormessage', 'controlled-owned-phone-helper-text');
+    const helper = document.getElementById('controlled-owned-phone-helper-text');
+    expect(helper).toBeInstanceOf(HTMLElement);
+    expect(document.getElementById('consumer-controlled-helper')).toBeNull();
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  test('composes persistent MUI helper text with consumer descriptions', async () => {
+    render(
+      <>
+        <span id="persistent-consumer-description">
+          Persistent consumer description
+        </span>
+        <MuiPhoneInput
+          helperText="Persistent phone help"
+          id="persistent-helper-phone"
+          label="Persistent helper phone"
+          slotProps={{
+            formHelperText: { id: 'consumer-persistent-helper' },
+            htmlInput: {
+              'aria-describedby': 'persistent-consumer-description',
+              'data-testid': 'persistent-helper-input',
+            },
+          }}
+        />
+      </>,
+    );
+
+    const input = page.getByTestId('persistent-helper-input');
+    await expect
+      .element(input)
+      .toHaveAttribute(
+        'aria-describedby',
+        'persistent-consumer-description persistent-helper-phone-helper-text',
+      );
+    const helper = document.getElementById('persistent-helper-phone-helper-text');
+    expect(helper).toHaveTextContent('Persistent phone help');
+    expect(document.getElementById('consumer-persistent-helper')).toBeNull();
   });
 
   test('shows incomplete validation after blur and clears it on correction', async () => {
