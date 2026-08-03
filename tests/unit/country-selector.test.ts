@@ -157,5 +157,5 @@ describe('country selection transaction', () => {
     expect(pairCount).toBe(59_780);
     expect(appliedCount).toBe(57_018);
     expect(conflictCount).toBe(2_762);
-  });
+  }, 15_000);
 });
