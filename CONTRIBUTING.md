@@ -55,3 +55,11 @@ Use these labels consistently:
 
 Use blocking dependencies for execution order, `discovered-from` for work found during implementation, and `bd human` for irreducible owner gates. GitHub Issues and Discussions are not execution trackers for this project.
 
+Public bug reports and support questions enter through the repository's
+[Q&A Discussion intake](https://github.com/wh1teee/mui-phone-input/discussions/new?category=q-a).
+For an actionable report, a maintainer must create or link one canonical Bead
+under `mpi-oan`, reply to the Discussion with that Bead ID, and keep all status,
+dependencies, acceptance evidence, and closure state in Beads/Dolt. The
+Discussion remains a communication record only and must not become a parallel
+backlog.
+

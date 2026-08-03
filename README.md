@@ -21,6 +21,14 @@ A highly customizable, accessible phone input for React and Material UI, with `l
 
 The target npm package name is `@whiteee/mui-phone-input`. This machine is not authenticated to npm, so scope ownership and Trusted Publishing approval are tracked as the human release gate `mpi-g7a`; implementation may proceed, but registry publication may not.
 
+## Reporting problems
+
+Use the public [Q&A intake](https://github.com/wh1teee/mui-phone-input/discussions/new?category=q-a)
+for bug reports and support questions. Discussions are an intake and
+communication surface only: maintainers create the canonical Bead under
+`mpi-oan`, reply with its ID, and keep execution state exclusively in
+Beads/Dolt.
+
 ## Runtime support
 
 Repository installation, development, and release tooling require Node 24 LTS.

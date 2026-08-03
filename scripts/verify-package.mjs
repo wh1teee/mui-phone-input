@@ -44,6 +44,24 @@ assert.equal(
   undefined,
   'Published package metadata must not expose the maintainer Node floor.',
 );
+assert.equal(
+  packedManifest.bugs?.url,
+  'https://github.com/wh1teee/mui-phone-input/discussions/new?category=q-a',
+  'Published package metadata must point to the supported public intake.',
+);
+assert.doesNotMatch(
+  JSON.stringify(packedManifest),
+  /github\.com\/wh1teee\/mui-phone-input\/issues/u,
+);
+const packedReadme = execFileSync('tar', ['-xOf', tarball, 'package/README.md'], {
+  cwd: repositoryRoot,
+  encoding: 'utf8',
+});
+assert.match(
+  packedReadme,
+  /github\.com\/wh1teee\/mui-phone-input\/discussions\/new\?category=q-a/u,
+);
+assert.doesNotMatch(packedReadme, /github\.com\/wh1teee\/mui-phone-input\/issues/u);
 
 const packedClientSourceMap = JSON.parse(
   execFileSync('tar', ['-xOf', tarball, 'package/dist/index.js.map'], {

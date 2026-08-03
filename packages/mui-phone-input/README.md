@@ -11,6 +11,13 @@ The package is still under active 1.0 development. Advanced display modes and
 masks, extensions, packaged locale/flag modes, metadata variants, and form
 adapters are delivered in later gated slices.
 
+## Reporting problems
+
+Use the public [Q&A intake](https://github.com/wh1teee/mui-phone-input/discussions/new?category=q-a)
+for bug reports and support questions. Maintainers transfer actionable reports
+to the canonical Beads/Dolt tracker and reply with the Bead ID; GitHub
+Discussions do not carry implementation status.
+
 ## Install
 
 ```sh

@@ -42,6 +42,11 @@ const publishedRuntimeVerifier = await readFile(
   'scripts/verify-published-runtime.mjs',
   'utf8',
 );
+const rootReadme = await readFile('README.md', 'utf8');
+const packageReadme = await readFile('packages/mui-phone-input/README.md', 'utf8');
+const contributingGuide = await readFile('CONTRIBUTING.md', 'utf8');
+const publicIntakePattern =
+  /github\.com\/wh1teee\/mui-phone-input\/discussions\/new\?category=q-a/u;
 
 assert.equal(rootPackage.private, true);
 assert.match(rootPackage.packageManager, /^pnpm@11\./u);
@@ -51,6 +56,15 @@ assert.equal(packageManifest.name, '@whiteee/mui-phone-input');
 assert.equal(packageManifest.type, 'module');
 assert.equal(packageManifest.sideEffects, false);
 assert.equal(packageManifest.engines, undefined);
+assert.equal(
+  packageManifest.bugs.url,
+  'https://github.com/wh1teee/mui-phone-input/discussions/new?category=q-a',
+);
+for (const publicDocument of [rootReadme, packageReadme, contributingGuide]) {
+  assert.match(publicDocument, publicIntakePattern);
+  assert.doesNotMatch(publicDocument, /github\.com\/wh1teee\/mui-phone-input\/issues/u);
+}
+assert.match(contributingGuide, /canonical Bead/u);
 assert.equal(packageManifest.peerDependencies.react, '^19.0.0');
 assert.equal(packageManifest.peerDependencies['@mui/material'], '^9.0.0');
 assert.equal(packageManifest.peerDependencies['@emotion/react'], '^11.14.0');
