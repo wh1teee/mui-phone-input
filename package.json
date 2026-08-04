@@ -28,6 +28,7 @@
     "verify:npm-identity": "node scripts/check-npm-identity.mjs",
     "verify:npm-identity:gate": "node scripts/check-npm-identity.mjs --allow-human-gate",
     "verify:package": "node scripts/verify-package.mjs",
+    "verify:package-exports": "node scripts/verify-package-exports.mjs",
     "verify:package-concurrency": "node scripts/verify-package-artifact-concurrency.mjs",
     "verify:production-dependencies": "node scripts/verify-production-dependencies.mjs",
     "verify:published-runtime": "node scripts/verify-published-runtime.mjs --expected-major=24",

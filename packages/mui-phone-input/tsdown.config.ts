@@ -9,8 +9,6 @@ const externalDependencies = [
   '@mui/material',
   'react',
   'react-dom',
-  'react-hook-form',
-  'zod',
 ];
 
 export default defineConfig([
@@ -22,8 +20,6 @@ export default defineConfig([
     dts: true,
     entry: {
       index: 'src/index.ts',
-      'react-hook-form': 'src/react-hook-form.ts',
-      'flags/local': 'src/flags/local.ts',
     },
     deps: {
       neverBundle: externalDependencies,
@@ -39,12 +35,6 @@ export default defineConfig([
     dts: true,
     entry: {
       server: 'src/server.ts',
-      zod: 'src/zod.ts',
-      'metadata/max': 'src/metadata/max.ts',
-      'metadata/min': 'src/metadata/min.ts',
-      'metadata/mobile': 'src/metadata/mobile.ts',
-      'metadata/custom': 'src/metadata/custom.ts',
-      'locales/en': 'src/locales/en.ts',
     },
     deps: {
       neverBundle: externalDependencies,

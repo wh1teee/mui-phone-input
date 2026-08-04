@@ -1,0 +1,13 @@
+{
+  "implemented": [".", "./server", "./package.json"],
+  "intentionallyAbsent": {
+    "./react-hook-form": "mpi-oan.12",
+    "./zod": "mpi-oan.12",
+    "./flags/local": "mpi-oan.11",
+    "./locales/en": "mpi-oan.11",
+    "./metadata/max": "mpi-oan.25",
+    "./metadata/min": "mpi-oan.25",
+    "./metadata/mobile": "mpi-oan.25",
+    "./metadata/custom": "mpi-oan.25"
+  }
+}

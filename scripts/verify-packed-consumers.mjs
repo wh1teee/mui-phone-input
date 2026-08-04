@@ -897,6 +897,14 @@ try {
     const source = new URL(`../apps/${consumer}/`, import.meta.url);
     const destination = join(temporaryRoot, consumer);
     await cp(source, destination, { recursive: true });
+    await cp(
+      new URL('../apps/package-export-contract.json', import.meta.url),
+      join(destination, 'package-export-contract.json'),
+    );
+    await cp(
+      new URL('../apps/package-export-probe.mjs', import.meta.url),
+      join(destination, 'package-export-probe.mjs'),
+    );
 
     const packagePath = join(destination, 'package.json');
     const packageManifest = JSON.parse(await readFile(packagePath, 'utf8'));
@@ -943,6 +951,7 @@ try {
     );
 
     run('pnpm', ['--dir', destination, 'install', '--frozen-lockfile=false']);
+    run('pnpm', ['--dir', destination, 'exec', 'node', 'package-export-probe.mjs']);
     if (consumer === 'next-consumer') {
       run('pnpm', [
         '--dir',

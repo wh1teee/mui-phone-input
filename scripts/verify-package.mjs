@@ -5,11 +5,13 @@ import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 import { createPackageArtifact, repositoryRoot, run } from './lib/package-artifact.mjs';
+import { verifyPackageExportContract } from './lib/package-export-contract.mjs';
 
 const tarball = await createPackageArtifact();
 
 run('pnpm', ['exec', 'publint', 'run', tarball, '--strict']);
 run('pnpm', ['exec', 'attw', tarball, '--profile', 'esm-only']);
+await verifyPackageExportContract(tarball);
 
 const contents = execFileSync('tar', ['-tf', tarball], {
   cwd: repositoryRoot,

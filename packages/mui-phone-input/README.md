@@ -11,6 +11,30 @@ The package is still under active 1.0 development. Advanced display modes and
 masks, extensions, packaged locale/flag modes, metadata variants, and form
 adapters are delivered in later gated slices.
 
+## Published subpaths
+
+The current canary publishes only these implemented paths:
+
+- `@whiteee/mui-phone-input` — React/MUI component, controller, primitives and
+  shared phone helpers;
+- `@whiteee/mui-phone-input/server` — neutral parsing, numbering-plan,
+  formatting and validation helpers;
+- `@whiteee/mui-phone-input/package.json` — package metadata.
+
+The following future paths are intentionally not exported until their owning
+feature ships atomically with implementation, documentation, tests and release
+evidence:
+
+- `./react-hook-form` and `./zod` (`mpi-oan.12`);
+- `./flags/local` and `./locales/en` (`mpi-oan.11`);
+- `./metadata/max`, `./metadata/min`, `./metadata/mobile` and
+  `./metadata/custom` (`mpi-oan.25`).
+
+React Hook Form and Zod remain optional peer declarations so their owning
+adapter slice can preserve the planned package contract without forcing either
+dependency into current consumers. They are not required to install or use the
+implemented canary paths.
+
 ## Reporting problems
 
 Use the public [Q&A intake](https://github.com/wh1teee/mui-phone-input/discussions/new?category=q-a)

@@ -54,6 +54,11 @@ const publishedRuntimeVerifier = await readFile(
   'scripts/verify-published-runtime.mjs',
   'utf8',
 );
+const packageExportVerifier = await readFile(
+  'scripts/lib/package-export-contract.mjs',
+  'utf8',
+);
+const consumerExportContract = await readJson('apps/package-export-contract.json');
 const rootReadme = await readFile('README.md', 'utf8');
 const packageReadme = await readFile('packages/mui-phone-input/README.md', 'utf8');
 const contributingGuide = await readFile('CONTRIBUTING.md', 'utf8');
@@ -81,6 +86,10 @@ assert.equal(packageManifest.peerDependencies.react, '^19.0.0');
 assert.equal(packageManifest.peerDependencies['@mui/material'], '^9.0.0');
 assert.equal(packageManifest.peerDependencies['@emotion/react'], '^11.14.0');
 assert.equal(packageManifest.peerDependencies['@emotion/styled'], '^11.14.0');
+assert.equal(packageManifest.peerDependencies['react-hook-form'], '^7.0.0');
+assert.equal(packageManifest.peerDependencies.zod, '^4.0.0');
+assert.equal(packageManifest.peerDependenciesMeta['react-hook-form'].optional, true);
+assert.equal(packageManifest.peerDependenciesMeta.zod.optional, true);
 assert.equal(packageManifest.dependencies['@maskito/core'], '5.3.1');
 assert.equal(packageManifest.dependencies['@maskito/react'], '5.3.1');
 assert.equal(packageManifest.dependencies['libphonenumber-js'], '1.13.10');
@@ -94,9 +103,10 @@ for (const virtualizationDependency of [
   assert.equal(packageManifest.peerDependencies[virtualizationDependency], undefined);
 }
 
-for (const exportPath of [
-  '.',
-  './server',
+for (const exportPath of ['.', './server', './package.json']) {
+  assert.ok(packageManifest.exports[exportPath], `Missing export ${exportPath}`);
+}
+for (const futureExportPath of [
   './react-hook-form',
   './zod',
   './metadata/max',
@@ -106,8 +116,27 @@ for (const exportPath of [
   './locales/en',
   './flags/local',
 ]) {
-  assert.ok(packageManifest.exports[exportPath], `Missing export ${exportPath}`);
+  assert.equal(
+    packageManifest.exports[futureExportPath],
+    undefined,
+    `Future export ${futureExportPath} must remain absent.`,
+  );
 }
+assert.deepEqual(consumerExportContract.implemented, [
+  '.',
+  './server',
+  './package.json',
+]);
+assert.deepEqual(Object.keys(consumerExportContract.intentionallyAbsent).sort(), [
+  './flags/local',
+  './locales/en',
+  './metadata/custom',
+  './metadata/max',
+  './metadata/min',
+  './metadata/mobile',
+  './react-hook-form',
+  './zod',
+]);
 
 assert.match(tsdownConfig, /platform:\s*['"]browser['"]/u);
 assert.match(tsdownConfig, /platform:\s*['"]neutral['"]/u);
@@ -211,6 +240,9 @@ assert.match(
 assert.match(publishedRuntimeVerifier, /engine-strict=true/u);
 assert.match(publishedRuntimeVerifier, /@whiteee\/mui-phone-input\/server/u);
 assert.match(publishedRuntimeVerifier, /--artifact=/u);
+assert.match(packageExportVerifier, /ERR_PACKAGE_PATH_NOT_EXPORTED/u);
+assert.match(packageExportVerifier, /expectedExportContract/u);
+assert.match(packageExportVerifier, /data-only/u);
 assert.match(ciWorkflow, /node-version:\s*22\.23\.1/u);
 assert.match(ciWorkflow, /verify-published-runtime\.mjs\s+--expected-major=22/u);
 assert.match(ciWorkflow, /published-runtime-artifact\.outputs\.tarball/u);
