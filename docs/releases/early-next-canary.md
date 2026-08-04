@@ -1,6 +1,8 @@
 This is an **intentionally narrow** production-shaped canary for integration
-feedback. It is published only under the `next` dist-tag and is **not promoted
-to `latest`**.
+feedback. npm requires every package to expose a `latest` dist-tag, so the
+initial bootstrap release remains pinned there as `0.1.0-next.0`. Later canary
+releases are published only through `next`; `latest` is not advanced again
+until a stable release is explicitly approved.
 
 ## Included
 
@@ -31,3 +33,7 @@ Install explicitly with:
 ```bash
 pnpm add @wh1teee/mui-phone-input@next
 ```
+
+Do not install this prerelease without `@next` or an exact version: an
+unqualified install resolves npm's registry-required bootstrap `latest` tag,
+not the current canary.

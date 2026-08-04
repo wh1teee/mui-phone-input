@@ -1,6 +1,8 @@
-The early canary never changes the `latest` dist-tag. Rollback therefore means
-removing the affected version from active discovery while preserving immutable
-registry and provenance evidence.
+npm requires every package to expose a `latest` dist-tag. During the early
+canary program it remains pinned to the bootstrap `0.1.0-next.0` release and is
+not advanced again. Rollback therefore means removing the affected version
+from `next` discovery while preserving immutable registry and provenance
+evidence.
 
 1. Confirm the affected version and exact candidate SHA-256 from the GitHub release.
 2. Deprecate the version with an actionable message:

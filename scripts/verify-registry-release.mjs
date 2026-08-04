@@ -6,6 +6,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { assertEarlyCanaryDistTags } from './lib/npm-dist-tags.mjs';
 import { readRegistryJsonWithRetry } from './lib/npm-registry-retry.mjs';
 
 const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -66,12 +67,7 @@ const distTags = await readRegistryJsonWithRetry({
 });
 assert.equal(registryMetadata.name, candidate.package.name);
 assert.equal(registryMetadata.version, candidate.package.version);
-assert.equal(distTags.next, candidate.package.version);
-assert.notEqual(
-  distTags.latest,
-  candidate.package.version,
-  'The early canary must never be promoted to latest.',
-);
+assertEarlyCanaryDistTags(distTags, candidate.package.version);
 
 const temporaryRoot = await mkdtemp(join(tmpdir(), 'mui-phone-input-registry-'));
 try {
