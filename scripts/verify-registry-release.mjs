@@ -6,6 +6,8 @@ import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { readRegistryJsonWithRetry } from './lib/npm-registry-retry.mjs';
+
 const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const directoryArgument = process.argv.find((argument) =>
   argument.startsWith('--directory='),
@@ -17,13 +19,7 @@ const candidateDirectory = resolve(
 );
 
 function run(command, args, options = {}) {
-  const result = spawnSync(command, args, {
-    cwd: repositoryRoot,
-    encoding: 'utf8',
-    env: process.env,
-    shell: false,
-    ...options,
-  });
+  const result = execute(command, args, options);
   if (result.stdout && !options.capture) {
     process.stdout.write(result.stdout);
   }
@@ -41,6 +37,16 @@ function run(command, args, options = {}) {
   return result.stdout ?? '';
 }
 
+function execute(command, args, options = {}) {
+  return spawnSync(command, args, {
+    cwd: repositoryRoot,
+    encoding: 'utf8',
+    env: process.env,
+    shell: false,
+    ...options,
+  });
+}
+
 function sha256(content) {
   return createHash('sha256').update(content).digest('hex');
 }
@@ -49,14 +55,15 @@ const candidate = JSON.parse(
   await readFile(join(candidateDirectory, 'candidate.json'), 'utf8'),
 );
 const specifier = `${candidate.package.name}@${candidate.package.version}`;
-const registryMetadata = JSON.parse(
-  run('npm', ['view', specifier, '--json'], { capture: true }),
-);
-const distTags = JSON.parse(
-  run('npm', ['view', candidate.package.name, 'dist-tags', '--json'], {
-    capture: true,
-  }),
-);
+const registryMetadata = await readRegistryJsonWithRetry({
+  description: `npm view ${specifier} --json`,
+  execute: () => execute('npm', ['view', specifier, '--json']),
+});
+const distTags = await readRegistryJsonWithRetry({
+  description: `npm view ${candidate.package.name} dist-tags --json`,
+  execute: () =>
+    execute('npm', ['view', candidate.package.name, 'dist-tags', '--json']),
+});
 assert.equal(registryMetadata.name, candidate.package.name);
 assert.equal(registryMetadata.version, candidate.package.version);
 assert.equal(distTags.next, candidate.package.version);
