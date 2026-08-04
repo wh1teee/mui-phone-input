@@ -12,7 +12,11 @@ import {
   type NumberingPlanResolution,
   resolveNumberingPlan,
 } from './numbering-plan';
-import { assertPhoneValue, type PhoneValue } from './phone-value';
+import {
+  assertPhoneValue,
+  normalizePhoneInputDigit,
+  type PhoneValue,
+} from './phone-value';
 
 export interface PhoneCountryOption {
   callingCode: string;
@@ -132,6 +136,26 @@ function normalizeSearchText(value: string): string {
     .toLocaleLowerCase('en');
 }
 
+function normalizeCallingCodeSearchQuery(value: string): string | null {
+  let digits = '';
+  let hasLeadingPlus = false;
+
+  for (const character of value.trim()) {
+    if (!hasLeadingPlus && digits.length === 0 && character.normalize('NFKC') === '+') {
+      hasLeadingPlus = true;
+      continue;
+    }
+
+    const digit = normalizePhoneInputDigit(character);
+    if (digit === undefined) {
+      return null;
+    }
+    digits += digit;
+  }
+
+  return digits;
+}
+
 function defaultCountryOrder(
   left: Readonly<PhoneCountryOption>,
   right: Readonly<PhoneCountryOption>,
@@ -214,21 +238,27 @@ export function createPhoneCountryOptions(
   return Object.freeze(options);
 }
 
-function optionSearchRank(option: Readonly<PhoneCountryOption>, query: string): number {
+function optionSearchRank(
+  option: Readonly<PhoneCountryOption>,
+  query: string,
+  callingCodeQuery: string | null,
+): number {
   const normalizedCountry = option.country.toLocaleLowerCase('en');
   const normalizedCallingCode = normalizeSearchText(option.callingCode);
   const normalizedLocalizedName = normalizeSearchText(option.localizedName);
   const normalizedEnglishName = normalizeSearchText(option.englishName);
-  const digitsQuery = query.startsWith('+') ? query.slice(1) : query;
 
-  if (normalizedCountry === query || normalizedCallingCode === digitsQuery) {
+  if (
+    normalizedCountry === query ||
+    (callingCodeQuery !== null && normalizedCallingCode === callingCodeQuery)
+  ) {
     return 0;
   }
   if (
     normalizedLocalizedName.startsWith(query) ||
     normalizedEnglishName.startsWith(query) ||
     normalizedCountry.startsWith(query) ||
-    normalizedCallingCode.startsWith(digitsQuery)
+    (callingCodeQuery !== null && normalizedCallingCode.startsWith(callingCodeQuery))
   ) {
     return 1;
   }
@@ -252,12 +282,13 @@ export function filterPhoneCountryOptions(
   }
 
   const normalizedQuery = normalizeSearchText(query);
+  const callingCodeQuery = normalizeCallingCodeSearchQuery(query);
   const matches = normalizedQuery
     ? options
         .map((option, index) => ({
           index,
           option,
-          rank: optionSearchRank(option, normalizedQuery),
+          rank: optionSearchRank(option, normalizedQuery, callingCodeQuery),
         }))
         .filter(({ rank }) => Number.isFinite(rank))
         .sort((left, right) => left.rank - right.rank || left.index - right.index)

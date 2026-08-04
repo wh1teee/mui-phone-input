@@ -47,6 +47,43 @@ describe('country selector data', () => {
     }
   });
 
+  it('normalizes every phone-entry decimal script for calling-code search', () => {
+    const asciiResult = filterPhoneCountryOptions(options, '+375').map(
+      (option) => option.country,
+    );
+
+    for (const query of ['+375', '+٣٧٥', '+۳۷۵', '+३७५', '+３７５']) {
+      expect(
+        filterPhoneCountryOptions(options, query).map((option) => option.country),
+      ).toEqual(asciiResult);
+      expect(filterPhoneCountryOptions(options, query)[0]?.country).toBe('BY');
+    }
+  });
+
+  it('normalizes mixed supported decimal scripts with and without a plus', () => {
+    for (const query of ['+3٧۵', '3٧۵']) {
+      expect(filterPhoneCountryOptions(options, query)[0]?.country).toBe('BY');
+    }
+  });
+
+  it('does not reinterpret unsupported characters as a calling code', () => {
+    expect(filterPhoneCountryOptions(options, '+٣٧٥A')).toEqual([]);
+  });
+
+  it('keeps localized name digits and ISO matching semantically separate', () => {
+    const namedOptions = createPhoneCountryOptions({
+      countryFilter: (country) => country === 'BY',
+      locale: 'ar',
+      resolveCountryName: (country, locale) =>
+        country === 'BY' && locale === 'ar' ? 'بيلاروس ٣٧٥' : undefined,
+    });
+
+    expect(filterPhoneCountryOptions(namedOptions, 'بيلاروس ٣٧٥')[0]?.country).toBe(
+      'BY',
+    );
+    expect(filterPhoneCountryOptions(namedOptions, 'BY')[0]?.country).toBe('BY');
+  });
+
   it('keeps preferred countries first and includes every country once', () => {
     expect(options.slice(0, 3).map((option) => option.country)).toEqual([
       'BY',

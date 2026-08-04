@@ -168,6 +168,30 @@ function DesktopSelectorHarness() {
   );
 }
 
+function LocalizedDigitSearchHarness() {
+  return (
+    <MuiPhoneInput
+      defaultCountry="US"
+      label="Localized digit search phone"
+      slotProps={{
+        countrySelector: {
+          'data-testid': 'localized-digit-trigger',
+          countryFilter: (country) => ['BY', 'DE', 'KZ', 'US'].includes(country),
+          locale: 'be',
+          mode: 'desktop',
+          resolveCountryName: localizedName,
+          slotProps: {
+            searchInput: {
+              'data-testid': 'localized-digit-search',
+              dir: 'rtl',
+            },
+          },
+        },
+      }}
+    />
+  );
+}
+
 function ResponsiveSelectorHarness() {
   const [mode, setMode] = useState<PhoneCountrySelectorMode>('desktop');
 
@@ -667,6 +691,33 @@ function ImeCountrySelectorHarness({
 }
 
 describe('responsive country selector', () => {
+  test('gives RTL Arabic and Persian calling-code input the ASCII result and rank', async () => {
+    const view = await render(<LocalizedDigitSearchHarness />);
+
+    await userEvent.click(page.getByTestId('localized-digit-trigger'));
+    const search = page.getByTestId('localized-digit-search');
+    await expect.element(search).toHaveAttribute('dir', 'rtl');
+
+    await userEvent.fill(search, '+375');
+    const asciiCountries = Array.from(
+      document.querySelectorAll<HTMLElement>('[role="option"][data-country]'),
+      (option) => option.dataset.country,
+    );
+    expect(asciiCountries[0]).toBe('BY');
+
+    for (const query of ['+٣٧٥', '+۳۷۵']) {
+      await userEvent.fill(search, query);
+      const localizedCountries = Array.from(
+        document.querySelectorAll<HTMLElement>('[role="option"][data-country]'),
+        (option) => option.dataset.country,
+      );
+      expect(localizedCountries).toEqual(asciiCountries);
+      expect(localizedCountries[0]).toBe('BY');
+    }
+
+    await view.unmount();
+  });
+
   test('keeps a filtered uncontrolled default country visible and accurately named', async () => {
     const view = await render(
       <MuiPhoneInput

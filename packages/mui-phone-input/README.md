@@ -95,7 +95,9 @@ Do not switch between controlled and uncontrolled ownership after mount.
 
 The built-in selector searches localized and English country names, ISO codes,
 and calling codes. Country/calling-code authority comes from
-`libphonenumber-js`; names default to `Intl.DisplayNames`.
+`libphonenumber-js`; names default to `Intl.DisplayNames`. Calling-code search
+accepts the same ASCII, Arabic-Indic, Extended Arabic-Indic, Devanagari, and
+fullwidth decimal digits as phone entry.
 
 ```tsx
 <MuiPhoneInput
