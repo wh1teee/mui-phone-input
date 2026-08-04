@@ -1,13 +1,19 @@
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { readFile } from 'node:fs/promises';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 import { createPackageArtifact, repositoryRoot, run } from './lib/package-artifact.mjs';
 import { verifyPackageExportContract } from './lib/package-export-contract.mjs';
 
-const tarball = await createPackageArtifact();
+const artifactArgument = process.argv.find((argument) =>
+  argument.startsWith('--artifact='),
+);
+const tarball = artifactArgument
+  ? resolve(artifactArgument.slice('--artifact='.length))
+  : await createPackageArtifact();
+await readFile(tarball);
 
 run('pnpm', ['exec', 'publint', 'run', tarball, '--strict']);
 run('pnpm', ['exec', 'attw', tarball, '--profile', 'esm-only']);

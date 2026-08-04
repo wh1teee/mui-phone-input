@@ -11,6 +11,7 @@ const tsdownConfig = await readFile(
   'utf8',
 );
 const ciWorkflow = await readFile('.github/workflows/ci.yml', 'utf8');
+const releaseWorkflow = await readFile('.github/workflows/release.yml', 'utf8');
 const dependabotConfig = await readFile('.github/dependabot.yml', 'utf8');
 const githubActionsPinsVerifier = await readFile(
   'scripts/verify-github-actions-pins.mjs',
@@ -60,6 +61,18 @@ const publishedRuntimeVerifier = await readFile(
   'scripts/verify-published-runtime.mjs',
   'utf8',
 );
+const releaseCandidateCreator = await readFile(
+  'scripts/create-release-candidate.mjs',
+  'utf8',
+);
+const releaseCandidateVerifier = await readFile(
+  'scripts/verify-release-candidate.mjs',
+  'utf8',
+);
+const registryReleaseVerifier = await readFile(
+  'scripts/verify-registry-release.mjs',
+  'utf8',
+);
 const packageExportVerifier = await readFile(
   'scripts/lib/package-export-contract.mjs',
   'utf8',
@@ -80,6 +93,7 @@ assert.match(packedConsumersVerifier, /['"]minimumReleaseAge:\s*1440['"]/u);
 assert.match(packedConsumersVerifier, /['"]minimumReleaseAgeStrict:\s*false['"]/u);
 
 assert.equal(packageManifest.name, '@whiteee/mui-phone-input');
+assert.match(packageManifest.version, /^0\.1\.0-next\.\d+$/u);
 assert.equal(packageManifest.type, 'module');
 assert.equal(packageManifest.sideEffects, false);
 assert.equal(packageManifest.engines, undefined);
@@ -100,6 +114,11 @@ assert.equal(packageManifest.peerDependencies['react-hook-form'], '^7.0.0');
 assert.equal(packageManifest.peerDependencies.zod, '^4.0.0');
 assert.equal(packageManifest.peerDependenciesMeta['react-hook-form'].optional, true);
 assert.equal(packageManifest.peerDependenciesMeta.zod.optional, true);
+assert.deepEqual(packageManifest.publishConfig, {
+  access: 'public',
+  provenance: true,
+  tag: 'next',
+});
 assert.equal(packageManifest.dependencies['@maskito/core'], '5.3.1');
 assert.equal(packageManifest.dependencies['@maskito/react'], '5.3.1');
 assert.equal(packageManifest.dependencies['libphonenumber-js'], '1.13.10');
@@ -266,5 +285,36 @@ assert.match(packageExportVerifier, /data-only/u);
 assert.match(ciWorkflow, /node-version:\s*22\.23\.1/u);
 assert.match(ciWorkflow, /verify-published-runtime\.mjs\s+--expected-major=22/u);
 assert.match(ciWorkflow, /published-runtime-artifact\.outputs\.tarball/u);
+assert.match(releaseWorkflow, /tags:\s*\n\s*- v0\.1\.0-next\.\*/u);
+assert.match(releaseWorkflow, /runs-on:\s*ubuntu-latest/u);
+assert.match(releaseWorkflow, /id-token:\s*write/u);
+assert.match(releaseWorkflow, /npm@11\.16\.0/u);
+assert.match(releaseWorkflow, /create-release-candidate\.mjs/u);
+assert.match(releaseWorkflow, /verify-release-candidate\.mjs/u);
+assert.match(releaseWorkflow, /verify-package\.mjs[\s\S]*--artifact=/u);
+assert.match(releaseWorkflow, /verify-tracer-package\.mjs[\s\S]*--artifact=/u);
+assert.match(releaseWorkflow, /verify-packed-consumers\.mjs[\s\S]*--artifact=/u);
+assert.match(releaseWorkflow, /verify-published-runtime\.mjs[\s\S]*--artifact=/u);
+assert.match(releaseWorkflow, /npm publish[\s\S]*candidate\.outputs\.tarball/u);
+assert.match(releaseWorkflow, /--access public/u);
+assert.match(releaseWorkflow, /--tag next/u);
+assert.match(releaseWorkflow, /--provenance/u);
+assert.match(releaseWorkflow, /verify-registry-release\.mjs/u);
+assert.doesNotMatch(releaseWorkflow, /NODE_AUTH_TOKEN|NPM_TOKEN/u);
+assert.match(releaseCandidateCreator, /pnpm[\s\S]*sbom/u);
+assert.match(releaseCandidateCreator, /CycloneDX/u);
+assert.match(releaseCandidateCreator, /SHA256SUMS/u);
+assert.match(releaseCandidateVerifier, /packedManifest\.exports/u);
+assert.match(releaseCandidateVerifier, /source\.commit/u);
+assert.match(registryReleaseVerifier, /audit[\s\S]*signatures/u);
+assert.match(registryReleaseVerifier, /candidate\.artifact\.sha256/u);
+assert.equal(
+  rootPackage.scripts['release:candidate'],
+  'node scripts/create-release-candidate.mjs',
+);
+assert.equal(
+  rootPackage.scripts['verify:release-candidate'],
+  'node scripts/verify-release-candidate.mjs',
+);
 
 console.log('Workspace contract verified.');

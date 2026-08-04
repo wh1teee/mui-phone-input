@@ -111,13 +111,13 @@ Current exact-artifact measurements are:
 
 - main closure: 23,745 bytes gzip;
 - server entry: 4,794 bytes gzip;
-- packed tarball: 91,687 bytes.
+- packed tarball: 91,694 bytes.
 
 CI rebuilds the artifact and requires exact byte/hash equality with the
 committed measurement.
 
 ## Release boundary
 
-No package was published. `mpi-g7a` remains blocked until the owner authenticates
-to npm, proves `@whiteee` scope ownership, configures Trusted Publishing/OIDC,
-and explicitly authorizes a prerelease publication.
+No package was published while generating this source evidence. The human npm
+identity/scope gate `mpi-g7a` is closed. Actual publication remains controlled
+by the tag-only GitHub OIDC workflow and `mpi-oan.17`.

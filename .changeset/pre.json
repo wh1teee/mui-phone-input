@@ -1,0 +1,21 @@
+{
+  "mode": "pre",
+  "tag": "next",
+  "initialVersions": {
+    "@mui-phone-input/next-consumer": "0.0.0",
+    "@mui-phone-input/vite-consumer": "0.0.0",
+    "@whiteee/mui-phone-input": "0.0.0"
+  },
+  "changesets": [
+    "basic-country-selector",
+    "bright-phones-validate",
+    "lossless-country-selection",
+    "modern-buses-call",
+    "preserve-explicit-territories",
+    "quiet-paths-wait",
+    "replace-partial-country-prefixes",
+    "strong-slots-compose",
+    "tidy-coins-resolve",
+    "typed-country-transition-reasons"
+  ]
+}

@@ -3,6 +3,10 @@ import { readFile } from 'node:fs/promises';
 
 import { measureTracerPackage } from './lib/tracer-package-measurement.mjs';
 
+const artifactArgument = process.argv.find((argument) =>
+  argument.startsWith('--artifact='),
+);
+
 const expected = JSON.parse(
   await readFile('docs/research/2026-08-02-tracer-package-budget.json', 'utf8'),
 );
@@ -10,7 +14,9 @@ const evidence = await readFile(
   'docs/research/2026-08-02-minimal-tracer-evidence.md',
   'utf8',
 );
-const actual = await measureTracerPackage();
+const actual = await measureTracerPackage(
+  artifactArgument?.slice('--artifact='.length),
+);
 
 assert.deepEqual(actual, expected);
 assert.equal(actual.status, 'pass');
