@@ -217,6 +217,134 @@ describe('country selector data', () => {
     expect(second).toEqual(first);
   });
 
+  it('uses Turkish casing for localized country-name search', () => {
+    const turkishOptions = createPhoneCountryOptions({
+      countryFilter: (country) => country === 'KG',
+      locale: 'tr',
+      resolveCountryName: (country, locale) => {
+        if (country !== 'KG') {
+          return undefined;
+        }
+        return locale === 'tr'
+          ? 'Kırgızistan'
+          : locale === 'en'
+            ? 'Kyrgyzstan'
+            : undefined;
+      },
+    });
+
+    for (const query of ['KIRGIZİSTAN', 'KIRgızİSTAN']) {
+      expect(filterPhoneCountryOptions(turkishOptions, query)[0]?.country).toBe('KG');
+    }
+  });
+
+  it('uses Azerbaijani dotted and dotless I casing', () => {
+    const azerbaijaniOptions = createPhoneCountryOptions({
+      countryFilter: (country) => country === 'KG',
+      locale: 'az',
+      resolveCountryName: (country, locale) =>
+        country === 'KG' && locale === 'az' ? 'Qırğızıstan' : undefined,
+    });
+
+    expect(
+      filterPhoneCountryOptions(azerbaijaniOptions, 'QIRĞIZISTAN')[0]?.country,
+    ).toBe('KG');
+  });
+
+  it('handles Lithuanian locale-sensitive casing before diacritic folding', () => {
+    const lithuanianOptions = createPhoneCountryOptions({
+      countryFilter: (country) => country === 'LT',
+      locale: 'lt',
+      resolveCountryName: (country, locale) =>
+        country === 'LT' && locale === 'lt' ? 'i\u0307\u0301lanka' : undefined,
+    });
+
+    expect(
+      filterPhoneCountryOptions(lithuanianOptions, 'I\u0301LANKA')[0]?.country,
+    ).toBe('LT');
+  });
+
+  it('handles Greek casing and explicit diacritic folding', () => {
+    const greekOptions = createPhoneCountryOptions({
+      countryFilter: (country) => country === 'GR',
+      locale: 'el',
+      resolveCountryName: (country, locale) =>
+        country === 'GR' && locale === 'el' ? 'Ελλάδα' : undefined,
+    });
+
+    expect(filterPhoneCountryOptions(greekOptions, 'ΕΛΛΑΔΑ')[0]?.country).toBe('GR');
+  });
+
+  it('keeps stable English fallback search under a non-English locale', () => {
+    const turkishOptions = createPhoneCountryOptions({
+      countryFilter: (country) => country === 'KG',
+      locale: 'tr',
+      resolveCountryName: (country, locale) => {
+        if (country !== 'KG') {
+          return undefined;
+        }
+        return locale === 'tr'
+          ? 'Kırgızistan'
+          : locale === 'en'
+            ? 'Kyrgyzstan'
+            : undefined;
+      },
+    });
+
+    expect(filterPhoneCountryOptions(turkishOptions, 'KYRGYZSTAN')[0]?.country).toBe(
+      'KG',
+    );
+  });
+
+  it('keeps ISO and localized calling-code rank precedence unchanged', () => {
+    const rankedOptions = createPhoneCountryOptions({
+      countryFilter: (country) => country === 'BY' || country === 'US',
+      locale: 'tr',
+      resolveCountryName: (country, locale) => {
+        if (locale !== 'tr') {
+          return undefined;
+        }
+        return country === 'BY' ? 'Byland' : 'BY 375 ülkesi';
+      },
+    });
+
+    expect(
+      filterPhoneCountryOptions(rankedOptions, 'BY').map((option) => option.country),
+    ).toEqual(['BY', 'US']);
+    expect(
+      filterPhoneCountryOptions(rankedOptions, '+٣٧٥').map((option) => option.country),
+    ).toEqual(['BY']);
+  });
+
+  it('recomputes localized and English query keys for every query', () => {
+    const changingQueryOptions = createPhoneCountryOptions({
+      countryFilter: (country) => country === 'BY' || country === 'KG',
+      locale: 'tr',
+      resolveCountryName: (country, locale) => {
+        if (locale === 'tr') {
+          return country === 'KG' ? 'Kırgızistan' : 'Belarus';
+        }
+        if (locale === 'en') {
+          return country === 'KG' ? 'Kyrgyzstan' : 'Belarus';
+        }
+        return undefined;
+      },
+    });
+
+    expect(
+      filterPhoneCountryOptions(changingQueryOptions, 'KIRGIZİSTAN')[0]?.country,
+    ).toBe('KG');
+    expect(
+      filterPhoneCountryOptions(changingQueryOptions, 'KYRGYZSTAN')[0]?.country,
+    ).toBe('KG');
+    expect(filterPhoneCountryOptions(changingQueryOptions, 'BY')[0]?.country).toBe(
+      'BY',
+    );
+    expect(filterPhoneCountryOptions(changingQueryOptions, '+۳۷۵')[0]?.country).toBe(
+      'BY',
+    );
+  });
+
   it('supports country filtering and replaceable ordering', () => {
     const filtered = createPhoneCountryOptions({
       countryFilter: (country) => ['BY', 'LT', 'PL'].includes(country),

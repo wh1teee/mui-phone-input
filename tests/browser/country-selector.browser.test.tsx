@@ -192,6 +192,56 @@ function LocalizedDigitSearchHarness() {
   );
 }
 
+function LocaleAwareSearchHarness() {
+  const [locale, setLocale] = useState<'az' | 'tr'>('tr');
+
+  return (
+    <>
+      <button
+        onClick={() => setLocale((current) => (current === 'tr' ? 'az' : 'tr'))}
+        type="button"
+      >
+        Switch selector locale
+      </button>
+      <output data-testid="locale-aware-current-locale">{locale}</output>
+      <MuiPhoneInput
+        defaultCountry="US"
+        label="Locale-aware search phone"
+        slotProps={{
+          countrySelector: {
+            'data-testid': 'locale-aware-trigger',
+            countryFilter: (country) => ['BY', 'KG', 'US'].includes(country),
+            locale,
+            mode: 'desktop',
+            resolveCountryName: (country, requestedLocale) => {
+              if (country === 'KG') {
+                if (requestedLocale === 'tr') {
+                  return 'Kırgızistan';
+                }
+                if (requestedLocale === 'az') {
+                  return 'Qırğızıstan';
+                }
+                if (requestedLocale === 'en') {
+                  return 'Kyrgyzstan';
+                }
+              }
+              if (country === 'BY') {
+                return 'Belarus';
+              }
+              return undefined;
+            },
+            slotProps: {
+              searchInput: {
+                'data-testid': 'locale-aware-search',
+              },
+            },
+          },
+        }}
+      />
+    </>
+  );
+}
+
 function ResponsiveSelectorHarness() {
   const [mode, setMode] = useState<PhoneCountrySelectorMode>('desktop');
 
@@ -691,6 +741,80 @@ function ImeCountrySelectorHarness({
 }
 
 describe('responsive country selector', () => {
+  test('uses the current selector locale for localized-name search without changing fallback ranks', async () => {
+    const view = await render(<LocaleAwareSearchHarness />);
+    const trigger = page.getByTestId('locale-aware-trigger');
+
+    await userEvent.click(trigger);
+    const search = page.getByTestId('locale-aware-search');
+    await userEvent.fill(search, 'KIRGIZİSTAN');
+    await expect
+      .element(page.getByRole('option', { name: /Kırgızistan/u }))
+      .toBeInTheDocument();
+    const turkishKyrgyzstan = document.querySelector<HTMLElement>(
+      '[role="option"][data-country="KG"]',
+    );
+    expect(turkishKyrgyzstan).toBeInTheDocument();
+    expect(turkishKyrgyzstan).toHaveTextContent('Kırgızistan');
+
+    await userEvent.fill(search, 'KYRGYZSTAN');
+    await expect
+      .element(page.getByRole('option', { name: /Kırgızistan/u }))
+      .toBeInTheDocument();
+
+    await userEvent.fill(search, '+٣٧٥');
+    await expect
+      .element(page.getByRole('option', { name: /Belarus/u }))
+      .toBeInTheDocument();
+    const numericCountries = Array.from(
+      document.querySelectorAll<HTMLElement>('[role="option"][data-country]'),
+      (option) => option.dataset.country,
+    );
+    expect(numericCountries).toEqual(['BY']);
+
+    await userEvent.fill(search, 'BY');
+    await expect
+      .element(page.getByRole('option', { name: /Belarus/u }))
+      .toBeInTheDocument();
+    const isoCountries = Array.from(
+      document.querySelectorAll<HTMLElement>('[role="option"][data-country]'),
+      (option) => option.dataset.country,
+    );
+    expect(isoCountries[0]).toBe('BY');
+
+    await waitForOpaqueAncestors(search.element());
+    const accessibility = await axe.run(document.body, {
+      runOnly: {
+        type: 'tag',
+        values: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22a', 'wcag22aa'],
+      },
+    });
+    const violations = summarizeAxeViolations(accessibility.violations);
+    expect(violations, JSON.stringify(violations, null, 2)).toEqual([]);
+
+    await userEvent.keyboard('{Escape}');
+    await userEvent.click(page.getByRole('button', { name: 'Switch selector locale' }));
+    await expect
+      .element(page.getByTestId('locale-aware-current-locale'))
+      .toHaveTextContent('az');
+
+    await userEvent.click(trigger);
+    const azerbaijaniSearch = page.getByTestId('locale-aware-search');
+    await expect.element(azerbaijaniSearch).toHaveFocus();
+    await userEvent.fill(azerbaijaniSearch, '');
+    await userEvent.fill(azerbaijaniSearch, 'QIRĞIZISTAN');
+    await expect
+      .element(page.getByRole('option', { name: /Qırğızıstan/u }))
+      .toBeInTheDocument();
+    const azerbaijaniKyrgyzstan = document.querySelector<HTMLElement>(
+      '[role="option"][data-country="KG"]',
+    );
+    expect(azerbaijaniKyrgyzstan).toBeInTheDocument();
+    expect(azerbaijaniKyrgyzstan).toHaveTextContent('Qırğızıstan');
+
+    await view.unmount();
+  });
+
   test('gives RTL Arabic and Persian calling-code input the ASCII result and rank', async () => {
     const view = await render(<LocalizedDigitSearchHarness />);
 

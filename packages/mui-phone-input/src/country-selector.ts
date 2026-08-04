@@ -47,6 +47,14 @@ export interface FilterPhoneCountryOptionsParameters {
   selectedCountry?: CountryCode | null;
 }
 
+interface PhoneCountrySearchMetadata {
+  callingCodeKey: string;
+  countryKey: string;
+  englishNameKey: string;
+  locale: string;
+  localizedNameKey: string;
+}
+
 export type PhoneCountrySelectionAppliedReason =
   | 'calling-code-initialized'
   | 'calling-code-preserved'
@@ -90,6 +98,10 @@ const AUTHORITY_CALLING_CODES = Object.freeze([
   ...Object.keys(maxMetadata.nonGeographic),
 ]);
 const DEFAULT_INTL_LOCALE = 'en';
+const COUNTRY_SEARCH_METADATA = new WeakMap<
+  Readonly<PhoneCountryOption>,
+  Readonly<PhoneCountrySearchMetadata>
+>();
 
 function isPartialInternationalCallingCode(
   digits: string,
@@ -124,6 +136,14 @@ function resolveIntlLocale(locale: string): string {
   }
 }
 
+function resolveCaseLocale(locale: string): string {
+  try {
+    return Intl.getCanonicalLocales([locale])[0] ?? DEFAULT_INTL_LOCALE;
+  } catch {
+    return DEFAULT_INTL_LOCALE;
+  }
+}
+
 function resolveDisplayName(
   country: CountryCode,
   locale: string,
@@ -140,12 +160,12 @@ function assertSupportedCountry(country: CountryCode, label: string): void {
   }
 }
 
-function normalizeSearchText(value: string): string {
+function normalizeNameSearchText(value: string, locale: string): string {
   return value
-    .normalize('NFKD')
-    .replace(/\p{Mark}/gu, '')
     .trim()
-    .toLocaleLowerCase('en');
+    .toLocaleLowerCase(locale)
+    .normalize('NFKD')
+    .replace(/\p{Mark}/gu, '');
 }
 
 function normalizeCallingCodeSearchQuery(value: string): string | null {
@@ -172,6 +192,28 @@ function compareCountryCodes(left: CountryCode, right: CountryCode): number {
   return left < right ? -1 : left > right ? 1 : 0;
 }
 
+function createCountrySearchMetadata(
+  option: Readonly<PhoneCountryOption>,
+  locale: string,
+): Readonly<PhoneCountrySearchMetadata> {
+  return Object.freeze({
+    callingCodeKey: normalizeCallingCodeSearchQuery(option.callingCode) ?? '',
+    countryKey: option.country.toLowerCase(),
+    englishNameKey: normalizeNameSearchText(option.englishName, DEFAULT_INTL_LOCALE),
+    locale,
+    localizedNameKey: normalizeNameSearchText(option.localizedName, locale),
+  });
+}
+
+function getCountrySearchMetadata(
+  option: Readonly<PhoneCountryOption>,
+): Readonly<PhoneCountrySearchMetadata> {
+  return (
+    COUNTRY_SEARCH_METADATA.get(option) ??
+    createCountrySearchMetadata(option, DEFAULT_INTL_LOCALE)
+  );
+}
+
 function createDefaultCountryOrder(
   locale: string,
 ): NonNullable<CreatePhoneCountryOptionsParameters['countryOrder']> {
@@ -193,6 +235,7 @@ export function createPhoneCountryOptions(
 ): readonly PhoneCountryOption[] {
   const requestedLocale = parameters.locale ?? DEFAULT_INTL_LOCALE;
   const intlLocale = resolveIntlLocale(requestedLocale);
+  const caseLocale = resolveCaseLocale(requestedLocale);
   const localizedDisplayNames = createDisplayNames(intlLocale);
   const englishDisplayNames = createDisplayNames(DEFAULT_INTL_LOCALE);
   const preferredCountries: CountryCode[] = [];
@@ -224,13 +267,18 @@ export function createPhoneCountryOptions(
           localizedDisplayNames,
         ) ?? englishName;
 
-      return Object.freeze({
+      const option = Object.freeze({
         callingCode: getCountryCallingCode(country),
         country,
         englishName,
         localizedName,
         preferred: preferredSet.has(country),
       });
+      COUNTRY_SEARCH_METADATA.set(
+        option,
+        createCountrySearchMetadata(option, caseLocale),
+      );
+      return option;
     });
 
   const order = parameters.countryOrder ?? createDefaultCountryOrder(intlLocale);
@@ -260,31 +308,29 @@ export function createPhoneCountryOptions(
 
 function optionSearchRank(
   option: Readonly<PhoneCountryOption>,
-  query: string,
+  englishQuery: string,
+  localizedQuery: string,
   callingCodeQuery: string | null,
 ): number {
-  const normalizedCountry = option.country.toLocaleLowerCase('en');
-  const normalizedCallingCode = normalizeSearchText(option.callingCode);
-  const normalizedLocalizedName = normalizeSearchText(option.localizedName);
-  const normalizedEnglishName = normalizeSearchText(option.englishName);
+  const metadata = getCountrySearchMetadata(option);
 
   if (
-    normalizedCountry === query ||
-    (callingCodeQuery !== null && normalizedCallingCode === callingCodeQuery)
+    metadata.countryKey === englishQuery ||
+    (callingCodeQuery !== null && metadata.callingCodeKey === callingCodeQuery)
   ) {
     return 0;
   }
   if (
-    normalizedLocalizedName.startsWith(query) ||
-    normalizedEnglishName.startsWith(query) ||
-    normalizedCountry.startsWith(query) ||
-    (callingCodeQuery !== null && normalizedCallingCode.startsWith(callingCodeQuery))
+    metadata.localizedNameKey.startsWith(localizedQuery) ||
+    metadata.englishNameKey.startsWith(englishQuery) ||
+    metadata.countryKey.startsWith(englishQuery) ||
+    (callingCodeQuery !== null && metadata.callingCodeKey.startsWith(callingCodeQuery))
   ) {
     return 1;
   }
   if (
-    normalizedLocalizedName.includes(query) ||
-    normalizedEnglishName.includes(query)
+    metadata.localizedNameKey.includes(localizedQuery) ||
+    metadata.englishNameKey.includes(englishQuery)
   ) {
     return 2;
   }
@@ -301,15 +347,30 @@ export function filterPhoneCountryOptions(
     throw new RangeError('Country selector result limit must be a positive integer.');
   }
 
-  const normalizedQuery = normalizeSearchText(query);
+  const englishQuery = normalizeNameSearchText(query, DEFAULT_INTL_LOCALE);
   const callingCodeQuery = normalizeCallingCodeSearchQuery(query);
-  const matches = normalizedQuery
+  const localizedQueries = new Map<string, string>();
+  const matches = englishQuery
     ? options
-        .map((option, index) => ({
-          index,
-          option,
-          rank: optionSearchRank(option, normalizedQuery, callingCodeQuery),
-        }))
+        .map((option, index) => {
+          const locale = getCountrySearchMetadata(option).locale;
+          let localizedQuery = localizedQueries.get(locale);
+          if (localizedQuery === undefined) {
+            localizedQuery = normalizeNameSearchText(query, locale);
+            localizedQueries.set(locale, localizedQuery);
+          }
+
+          return {
+            index,
+            option,
+            rank: optionSearchRank(
+              option,
+              englishQuery,
+              localizedQuery,
+              callingCodeQuery,
+            ),
+          };
+        })
         .filter(({ rank }) => Number.isFinite(rank))
         .sort((left, right) => left.rank - right.rank || left.index - right.index)
         .map(({ option }) => option)

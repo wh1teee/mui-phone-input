@@ -97,7 +97,9 @@ The built-in selector searches localized and English country names, ISO codes,
 and calling codes. Country/calling-code authority comes from
 `libphonenumber-js`; names default to `Intl.DisplayNames`. Calling-code search
 accepts the same ASCII, Arabic-Indic, Extended Arabic-Indic, Devanagari, and
-fullwidth decimal digits as phone entry.
+fullwidth decimal digits as phone entry. Localized names use the selector
+locale for case-insensitive matching, while English fallback names keep stable
+English casing semantics.
 
 ```tsx
 <MuiPhoneInput

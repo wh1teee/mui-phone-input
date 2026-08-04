@@ -99,6 +99,41 @@ function HydrationHarness({
   );
 }
 
+function LocalizedSearchHydrationHarness() {
+  const [value, setValue] = useState<`+${string}` | undefined>('+996');
+
+  return (
+    <MuiPhoneInput
+      label="Localized hydrated phone"
+      onChange={setValue}
+      slotProps={{
+        countrySelector: {
+          'data-testid': 'localized-hydrated-country-trigger',
+          countryFilter: (country) => country === 'BY' || country === 'KG',
+          locale: 'tr',
+          mode: 'desktop',
+          resolveCountryName: (country, locale) => {
+            if (country !== 'KG') {
+              return undefined;
+            }
+            return locale === 'tr'
+              ? 'Kırgızistan'
+              : locale === 'en'
+                ? 'Kyrgyzstan'
+                : undefined;
+          },
+          slotProps: {
+            searchInput: {
+              'data-testid': 'localized-hydrated-country-search',
+            },
+          },
+        },
+      }}
+      value={value}
+    />
+  );
+}
+
 function serverMarkup(
   mode: PhoneCountrySelectorMode,
   filteredActive = false,
@@ -131,6 +166,16 @@ function hydrate(
       mode={mode}
     />,
   );
+  roots.push(root);
+  return root;
+}
+
+function hydrateLocalizedSearch(markup: string): Root {
+  const container = document.createElement('div');
+  container.dataset.testid = 'hydration-container';
+  container.innerHTML = markup;
+  document.body.append(container);
+  const root = hydrateRoot(container, <LocalizedSearchHydrationHarness />);
   roots.push(root);
   return root;
 }
@@ -177,6 +222,33 @@ afterEach(async () => {
 });
 
 describe('country selector hydration', () => {
+  test('keeps Turkish localized and English fallback search stable through hydration', async () => {
+    const media = createMatchMediaController();
+    media.install(false);
+    const markup = renderToString(<LocalizedSearchHydrationHarness />);
+    expect(markup).toContain('Kırgızistan');
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+
+    hydrateLocalizedSearch(markup);
+    await settleHydration();
+
+    const trigger = page.getByTestId('localized-hydrated-country-trigger');
+    await expect
+      .element(trigger)
+      .toHaveAccessibleName('Select country. Kırgızistan, KG, +996');
+    await userEvent.click(trigger);
+    const search = page.getByTestId('localized-hydrated-country-search');
+
+    for (const query of ['KIRGIZİSTAN', 'KYRGYZSTAN']) {
+      await userEvent.fill(search, query);
+      await expect
+        .element(page.getByRole('option', { name: /Kırgızistan/u }))
+        .toBeInTheDocument();
+    }
+
+    expect(consoleError).not.toHaveBeenCalled();
+  });
+
   test.each(['desktop', 'mobile'] as const)(
     'keeps a filtered resolved country coherent in %s server HTML and hydration',
     async (mode) => {
