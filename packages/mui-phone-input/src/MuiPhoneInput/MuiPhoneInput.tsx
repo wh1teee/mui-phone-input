@@ -8,15 +8,9 @@ import {
   styled,
 } from '@mui/material/styles';
 import TextField, { type TextFieldProps } from '@mui/material/TextField';
-import { mergeSlotProps } from '@mui/material/utils';
+import { mergeSlotProps, useForkRef } from '@mui/material/utils';
 import type { CountryCode, PhoneNumberType } from 'libphonenumber-js/max';
-import {
-  type ElementType,
-  type ReactNode,
-  type Ref,
-  useCallback,
-  useMemo,
-} from 'react';
+import { type ElementType, type ReactNode, type Ref, useMemo } from 'react';
 
 import type { PhoneCountrySelectionResult } from '../country-selector';
 import {
@@ -179,17 +173,6 @@ function mergeCountrySelectorClasses(
   return resolved;
 }
 
-function assignInputRef(
-  ref: Ref<HTMLInputElement> | undefined,
-  input: HTMLInputElement | null,
-): void {
-  if (typeof ref === 'function') {
-    ref(input);
-  } else if (ref) {
-    ref.current = input;
-  }
-}
-
 function useUtilityClasses(
   classes: Partial<MuiPhoneInputClasses> | undefined,
 ): MuiPhoneInputClasses {
@@ -331,13 +314,7 @@ export function MuiPhoneInput(inProps: MuiPhoneInputProps): ReactNode {
   const renderedHelperTextId = resolvedHelperText
     ? phone.state.validationMessageId
     : undefined;
-  const setInputRef = useCallback(
-    (input: HTMLInputElement | null) => {
-      phone.setInputRef(input);
-      assignInputRef(inputRefProp, input);
-    },
-    [inputRefProp, phone.setInputRef],
-  );
+  const setInputRef = useForkRef(phone.setInputRef, inputRefProp);
   const htmlInputSlotProps = useMemo(() => {
     const externalSlotProps = slotProps?.htmlInput;
 

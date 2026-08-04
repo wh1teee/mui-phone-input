@@ -47,6 +47,8 @@ Source Browser Mode tests cover:
 - controlled Strict Mode typing and incomplete values;
 - complete clear and deletion;
 - native input ref focus;
+- React 19 callback-ref cleanup, legacy null detachment, object-ref clearing,
+  ref identity replacement, Strict Mode balance, and custom native slots;
 - external reset without callback loops;
 - uncontrolled form reset;
 - invalid/formatted clipboard sanitation;
@@ -84,7 +86,7 @@ byte-identical repeated HTML. The Vite production smoke renders the same state
 matrix. Full details are recorded in
 `2026-08-02-ssr-packed-consumption-evidence.md`.
 
-The current combined source matrix contains 139 Browser Mode tests per engine;
+The current combined source matrix contains 146 Browser Mode tests per engine;
 all pass in Chromium, Firefox, and WebKit. The unit suite contains 94 tests.
 Browser files run serially because focus-sensitive fixtures share
 `document.activeElement`; repeatability evidence is recorded in
@@ -101,9 +103,9 @@ externalizes declared peers.
 
 Current exact-artifact measurements are:
 
-- main closure: 22,599 bytes gzip;
+- main closure: 22,573 bytes gzip;
 - server entry: 4,794 bytes gzip;
-- packed tarball: 86,584 bytes.
+- packed tarball: 86,448 bytes.
 
 CI rebuilds the artifact and requires exact byte/hash equality with the
 committed measurement.

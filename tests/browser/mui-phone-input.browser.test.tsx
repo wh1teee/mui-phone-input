@@ -381,6 +381,269 @@ function countDigitsBeforeCaret(input: HTMLInputElement): number {
 }
 
 describe('MuiPhoneInput tracer', () => {
+  test('forwards cleanup returned by the public callback ref on unmount', async () => {
+    const attachments: HTMLInputElement[] = [];
+    let cleanupCount = 0;
+    let nullCount = 0;
+    const view = await render(
+      <MuiPhoneInput
+        ref={(input) => {
+          if (!input) {
+            nullCount += 1;
+            return;
+          }
+
+          attachments.push(input);
+          return () => {
+            cleanupCount += 1;
+          };
+        }}
+        slotProps={{ htmlInput: { 'data-testid': 'cleanup-ref-phone' } }}
+      />,
+    );
+    const input = page.getByTestId('cleanup-ref-phone');
+    await expect.element(input).toBeInTheDocument();
+
+    expect(attachments).toEqual([input.element()]);
+    expect(cleanupCount).toBe(0);
+    expect(nullCount).toBe(0);
+
+    await view.unmount();
+
+    expect(cleanupCount).toBe(1);
+    expect(nullCount).toBe(0);
+  });
+
+  test('preserves null detachment for a void public callback ref', async () => {
+    const values: Array<HTMLInputElement | null> = [];
+    const view = await render(
+      <MuiPhoneInput
+        ref={(input) => {
+          values.push(input);
+        }}
+        slotProps={{ htmlInput: { 'data-testid': 'void-ref-phone' } }}
+      />,
+    );
+    const input = page.getByTestId('void-ref-phone');
+    await expect.element(input).toBeInTheDocument();
+    const inputElement = input.element();
+
+    expect(values).toEqual([inputElement]);
+
+    await view.unmount();
+
+    expect(values).toEqual([inputElement, null]);
+  });
+
+  test('sets and clears an object public ref', async () => {
+    const inputRef = { current: null as HTMLInputElement | null };
+    const view = await render(
+      <MuiPhoneInput
+        ref={inputRef}
+        slotProps={{ htmlInput: { 'data-testid': 'object-ref-phone' } }}
+      />,
+    );
+    const input = page.getByTestId('object-ref-phone');
+    await expect.element(input).toBeInTheDocument();
+
+    expect(inputRef.current).toBe(input.element());
+
+    await view.unmount();
+
+    expect(inputRef.current).toBeNull();
+  });
+
+  test('cleans the previous callback ref before attaching its replacement', async () => {
+    const events: string[] = [];
+    const firstRef = (input: HTMLInputElement | null) => {
+      if (!input) {
+        events.push('first:null');
+        return;
+      }
+
+      events.push('first:attach');
+      return () => {
+        events.push('first:cleanup');
+      };
+    };
+    const secondRef = (input: HTMLInputElement | null) => {
+      if (!input) {
+        events.push('second:null');
+        return;
+      }
+
+      events.push('second:attach');
+      return () => {
+        events.push('second:cleanup');
+      };
+    };
+
+    function RefIdentityHarness() {
+      const [useSecondRef, setUseSecondRef] = useState(false);
+
+      return (
+        <>
+          <MuiPhoneInput
+            ref={useSecondRef ? secondRef : firstRef}
+            slotProps={{ htmlInput: { 'data-testid': 'replacement-ref-phone' } }}
+          />
+          <button onClick={() => setUseSecondRef(true)} type="button">
+            Replace public ref
+          </button>
+        </>
+      );
+    }
+
+    const view = await render(<RefIdentityHarness />);
+    const input = page.getByTestId('replacement-ref-phone');
+    await expect.element(input).toBeInTheDocument();
+    expect(events).toEqual(['first:attach']);
+
+    await userEvent.click(page.getByRole('button', { name: 'Replace public ref' }));
+
+    expect(events).toEqual(['first:attach', 'first:cleanup', 'second:attach']);
+
+    await view.unmount();
+
+    expect(events).toEqual([
+      'first:attach',
+      'first:cleanup',
+      'second:attach',
+      'second:cleanup',
+    ]);
+  });
+
+  test('keeps cleanup-returning callback refs balanced in Strict Mode', async () => {
+    let attachmentCount = 0;
+    let cleanupCount = 0;
+    let nullCount = 0;
+    const view = await render(
+      <StrictMode>
+        <MuiPhoneInput
+          ref={(input) => {
+            if (!input) {
+              nullCount += 1;
+              return;
+            }
+
+            attachmentCount += 1;
+            return () => {
+              cleanupCount += 1;
+            };
+          }}
+          slotProps={{ htmlInput: { 'data-testid': 'strict-ref-phone' } }}
+        />
+      </StrictMode>,
+    );
+    await expect.element(page.getByTestId('strict-ref-phone')).toBeInTheDocument();
+
+    expect(attachmentCount).toBeGreaterThan(0);
+    expect(cleanupCount).toBe(attachmentCount - 1);
+    expect(nullCount).toBe(0);
+
+    await view.unmount();
+
+    expect(cleanupCount).toBe(attachmentCount);
+    expect(nullCount).toBe(0);
+  });
+
+  test('preserves cleanup refs through a custom native input slot', async () => {
+    let publicInput: HTMLInputElement | null = null;
+    let slotInput: HTMLInputElement | null = null;
+    let publicCleanupCount = 0;
+    let slotCleanupCount = 0;
+    let publicNullCount = 0;
+    let slotNullCount = 0;
+    const view = await render(
+      <MuiPhoneInput
+        ref={(input) => {
+          if (!input) {
+            publicNullCount += 1;
+            return;
+          }
+
+          publicInput = input;
+          return () => {
+            publicCleanupCount += 1;
+          };
+        }}
+        slots={{ htmlInput: CustomHtmlInput }}
+        slotProps={{
+          htmlInput: {
+            'data-testid': 'custom-cleanup-ref-phone',
+            ref: (input: HTMLInputElement | null) => {
+              if (!input) {
+                slotNullCount += 1;
+                return;
+              }
+
+              slotInput = input;
+              return () => {
+                slotCleanupCount += 1;
+              };
+            },
+          },
+        }}
+      />,
+    );
+    const input = page.getByTestId('custom-cleanup-ref-phone');
+    await expect.element(input).toHaveAttribute('data-custom-phone-slot', 'true');
+
+    expect(publicInput).toBe(input.element());
+    expect(slotInput).toBe(input.element());
+
+    await view.unmount();
+
+    expect(publicCleanupCount).toBe(1);
+    expect(slotCleanupCount).toBe(1);
+    expect(publicNullCount).toBe(0);
+    expect(slotNullCount).toBe(0);
+  });
+
+  test('composes controller, native-slot, and public refs on the same input', async () => {
+    const onChange = vi.fn();
+    const publicValues: Array<HTMLInputElement | null> = [];
+    const slotValues: Array<HTMLInputElement | null> = [];
+    const view = await render(
+      <MuiPhoneInput
+        defaultValue="+1"
+        onChange={onChange}
+        ref={(input) => {
+          publicValues.push(input);
+        }}
+        slots={{ htmlInput: CustomHtmlInput }}
+        slotProps={{
+          htmlInput: {
+            'data-testid': 'composed-ref-phone',
+            ref: (input: HTMLInputElement | null) => {
+              slotValues.push(input);
+            },
+          },
+        }}
+      />,
+    );
+    const input = page.getByTestId('composed-ref-phone');
+    await expect.element(input).toBeInTheDocument();
+    const inputElement = input.element();
+
+    expect(publicValues).toEqual([inputElement]);
+    expect(slotValues).toEqual([inputElement]);
+
+    await userEvent.type(input, '2');
+
+    await expect.element(input).toHaveValue('+12');
+    expect(onChange).toHaveBeenCalledTimes(1);
+    expect(onChange).toHaveBeenLastCalledWith(
+      '+12',
+      expect.objectContaining({ reason: 'input', value: '+12' }),
+    );
+
+    await view.unmount();
+
+    expect(publicValues).toEqual([inputElement, null]);
+    expect(slotValues).toEqual([inputElement, null]);
+  });
+
   test('commits Unicode digits only after composition ends', async () => {
     render(<ControlledHarness />);
     const locator = page.getByTestId('controlled-phone');
