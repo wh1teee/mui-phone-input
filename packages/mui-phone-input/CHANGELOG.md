@@ -1,5 +1,13 @@
 # @wh1teee/mui-phone-input
 
+## 0.1.0-next.1
+
+### Patch Changes
+
+- 230f0e3: Correct the canonical npm scope to match the authenticated npm and GitHub
+  identity, and fail release preflight when the package scope, repository owner,
+  or authenticated npm identity diverge.
+
 ## 0.1.0-next.0
 
 ### Minor Changes

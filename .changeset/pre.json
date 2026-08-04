@@ -9,6 +9,7 @@
   "changesets": [
     "basic-country-selector",
     "bright-phones-validate",
+    "fix-canonical-npm-scope",
     "lossless-country-selection",
     "modern-buses-call",
     "preserve-explicit-territories",
