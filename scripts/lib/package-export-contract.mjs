@@ -15,6 +15,11 @@ import { fileURLToPath } from 'node:url';
 
 import ts from 'typescript';
 
+import {
+  packageBoundaryKinds,
+  verifyJavaScriptPackageBoundary,
+} from './package-boundary-contract.mjs';
+
 const scriptsDirectory = dirname(fileURLToPath(import.meta.url));
 const repositoryRoot = resolve(scriptsDirectory, '../..');
 const packageName = '@whiteee/mui-phone-input';
@@ -22,6 +27,7 @@ const semanticExceptionKinds = new Set(['data-only', 'side-effect-only']);
 
 const expectedExportContract = {
   '.': {
+    boundary: 'client',
     runtime: [
       'MuiPhoneInput',
       'PhoneInputCountrySelector',
@@ -127,6 +133,7 @@ const expectedExportContract = {
     ],
   },
   './server': {
+    boundary: 'neutral',
     runtime: [
       'assertPhoneValue',
       'formatPhoneValueForDisplay',
@@ -159,6 +166,7 @@ const expectedExportContract = {
     ],
   },
   './package.json': {
+    boundary: 'data-only',
     exception: {
       kind: 'data-only',
       reason:
@@ -314,6 +322,10 @@ try {
     for (const [subpath, contract] of Object.entries(expectedExportContract)) {
       const manifestExport = manifest.exports[subpath];
       assert.ok(manifestExport, `Missing public export ${subpath}.`);
+      assert.ok(
+        packageBoundaryKinds.has(contract.boundary),
+        `${subpath} must declare an explicit package boundary.`,
+      );
 
       if ('exception' in contract) {
         assert.ok(
@@ -323,9 +335,19 @@ try {
         assert.ok(contract.exception.reason, `${subpath} exception requires a reason.`);
         if (contract.exception.kind === 'data-only') {
           assert.equal(
+            contract.boundary,
+            'data-only',
+            `${subpath} data-only exceptions must declare a data-only boundary.`,
+          );
+          assert.equal(
             typeof manifestExport,
             'string',
             `${subpath} data-only export must be a direct JSON target.`,
+          );
+          assert.match(
+            manifestExport,
+            /\.json$/u,
+            `${subpath} data-only export must resolve to JSON.`,
           );
           const probe = readRuntimeProbe(
             temporaryRoot,
@@ -338,6 +360,11 @@ try {
             `${subpath} JSON import failed.`,
           );
         } else {
+          assert.equal(
+            contract.boundary,
+            'neutral',
+            `${subpath} side-effect-only exceptions must declare a neutral boundary.`,
+          );
           assert.equal(
             typeof manifestExport,
             'object',
@@ -358,6 +385,11 @@ try {
         continue;
       }
 
+      assert.notEqual(
+        contract.boundary,
+        'data-only',
+        `${subpath} JavaScript exports cannot use the data-only boundary.`,
+      );
       assert.equal(typeof manifestExport, 'object', `${subpath} must use conditions.`);
       assert.equal(
         manifestExport.import,
@@ -384,6 +416,14 @@ try {
         `${subpath} runtime exports differ from the explicit contract.`,
       );
 
+      const runtimeTarget = join(packageRoot, manifestExport.import);
+      verifyJavaScriptPackageBoundary({
+        boundary: contract.boundary,
+        filename: runtimeTarget,
+        source: await readFile(runtimeTarget, 'utf8'),
+        subpath,
+      });
+
       const typeTarget = join(packageRoot, manifestExport.types);
       assert.deepEqual(
         resolveTypeExports(temporaryRoot, subpath, typeTarget),
@@ -406,7 +446,7 @@ try {
     }
 
     console.log(
-      `Semantic export contract verified for ${Object.keys(expectedExportContract).length} public paths; ${absentFutureSubpaths.length} future paths remain absent.`,
+      `Semantic export and boundary contract verified for ${Object.keys(expectedExportContract).length} public paths; ${absentFutureSubpaths.length} future paths remain absent.`,
     );
   } finally {
     await rm(temporaryRoot, { force: true, recursive: true });

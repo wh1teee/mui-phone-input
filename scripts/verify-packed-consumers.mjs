@@ -1,12 +1,22 @@
 import assert from 'node:assert/strict';
-import { spawn } from 'node:child_process';
-import { cp, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { spawn, spawnSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
+import {
+  cp,
+  mkdtemp,
+  readFile,
+  realpath,
+  rm,
+  symlink,
+  writeFile,
+} from 'node:fs/promises';
 import { createServer } from 'node:net';
 import { tmpdir } from 'node:os';
-import { basename, join } from 'node:path';
+import { basename, dirname, join, resolve } from 'node:path';
 import { chromium } from '@playwright/test';
 
 import { createPackageArtifact, run } from './lib/package-artifact.mjs';
+import { removeLeadingClientDirective } from './lib/package-boundary-contract.mjs';
 
 const supportMatrix = process.env.SUPPORT_MATRIX ?? 'latest';
 const productionDependencyPolicy = JSON.parse(
@@ -36,8 +46,21 @@ if (!(supportMatrix in matrices)) {
   throw new Error(`Unknown SUPPORT_MATRIX: ${supportMatrix}`);
 }
 
-const tarball = await createPackageArtifact();
+const artifactArgument = process.argv.find((argument) =>
+  argument.startsWith('--artifact='),
+);
+const tarball = artifactArgument
+  ? resolve(artifactArgument.slice('--artifact='.length))
+  : await createPackageArtifact();
 const temporaryRoot = await mkdtemp(join(tmpdir(), 'mui-phone-input-consumers-'));
+
+async function sha256File(file) {
+  return createHash('sha256')
+    .update(await readFile(file))
+    .digest('hex');
+}
+
+const authoritativeTarballDigest = await sha256File(tarball);
 
 async function reservePort() {
   return new Promise((resolve, reject) => {
@@ -102,6 +125,161 @@ async function stopServer(process) {
   if (process.exitCode === null) {
     process.kill('SIGKILL');
   }
+}
+
+async function preparePackedConsumer(consumer, destination) {
+  const source = new URL(`../apps/${consumer}/`, import.meta.url);
+  await cp(source, destination, { recursive: true });
+  await cp(
+    new URL('../apps/package-export-contract.json', import.meta.url),
+    join(destination, 'package-export-contract.json'),
+  );
+  await cp(
+    new URL('../apps/package-export-probe.mjs', import.meta.url),
+    join(destination, 'package-export-probe.mjs'),
+  );
+
+  const packagePath = join(destination, 'package.json');
+  const packageManifest = JSON.parse(await readFile(packagePath, 'utf8'));
+  packageManifest.dependencies = {
+    ...packageManifest.dependencies,
+    ...matrices[supportMatrix],
+    '@whiteee/mui-phone-input': `file:${tarball}`,
+  };
+  if (consumer === 'next-consumer') {
+    Object.assign(
+      packageManifest.dependencies,
+      supportMatrix === 'minimum'
+        ? {
+            '@emotion/cache': '11.14.0',
+            '@mui/material-nextjs': '9.0.0',
+          }
+        : {
+            '@emotion/cache': '11.14.0',
+            '@mui/material-nextjs': '9.1.1',
+          },
+    );
+  }
+  await writeFile(packagePath, `${JSON.stringify(packageManifest, null, 2)}\n`);
+
+  const consumerWorkspacePolicy = [
+    'packages:',
+    '  - .',
+    '',
+    'allowBuilds:',
+    '  sharp: true',
+    'autoInstallPeers: false',
+    'minimumReleaseAge: 1440',
+  ];
+  if (consumer === 'next-consumer') {
+    consumerWorkspacePolicy.push(
+      'overrides:',
+      `  "next@16.2.12>postcss": ${productionDependencyPolicy.overrides.postcss}`,
+      `  "next@16.2.12>sharp": ${productionDependencyPolicy.overrides.sharp}`,
+    );
+  }
+  consumerWorkspacePolicy.push('strictPeerDependencies: true', '');
+  await writeFile(
+    join(destination, 'pnpm-workspace.yaml'),
+    consumerWorkspacePolicy.join('\n'),
+  );
+
+  run('pnpm', ['--dir', destination, 'install', '--frozen-lockfile=false']);
+}
+
+function readBoundaryFailureExcerpt(output) {
+  const ansiEscape = String.fromCharCode(27);
+  const plainOutput = output.replace(new RegExp(`${ansiEscape}\\[[0-9;]*m`, 'gu'), '');
+  const lines = plainOutput.split(/\r?\n/u);
+  const boundaryLine = lines.findIndex((line) =>
+    /Client Component|use client|useState/iu.test(line),
+  );
+  const start = Math.max(0, boundaryLine - 2);
+  return lines
+    .slice(start, start + 8)
+    .join('\n')
+    .trim();
+}
+
+async function verifyMissingPackageBoundaryFails(consumer) {
+  const destination = join(temporaryRoot, `${consumer}-missing-client-boundary`);
+  await preparePackedConsumer(consumer, destination);
+
+  const installedPackage = join(
+    destination,
+    'node_modules',
+    '@whiteee',
+    'mui-phone-input',
+  );
+  const installedPackageSource = await realpath(installedPackage);
+  const mutablePackage = join(
+    dirname(installedPackageSource),
+    'mui-phone-input-negative-control',
+  );
+  await cp(installedPackageSource, mutablePackage, {
+    dereference: true,
+    recursive: true,
+  });
+  await rm(installedPackage, { force: true, recursive: true });
+  await symlink(mutablePackage, installedPackage, 'dir');
+
+  const installedManifest = JSON.parse(
+    await readFile(join(installedPackage, 'package.json'), 'utf8'),
+  );
+  const rootRuntimeTarget = join(
+    installedPackage,
+    installedManifest.exports['.'].import,
+  );
+  const rootRuntimeSource = await readFile(rootRuntimeTarget, 'utf8');
+  const mutatedRootRuntimeSource = removeLeadingClientDirective(
+    rootRuntimeSource,
+    rootRuntimeTarget,
+  );
+  assert.notEqual(
+    mutatedRootRuntimeSource,
+    rootRuntimeSource,
+    'The negative control must remove only the installed root client directive.',
+  );
+  await writeFile(rootRuntimeTarget, mutatedRootRuntimeSource);
+
+  const result = spawnSync('pnpm', ['--dir', destination, 'build'], {
+    cwd: destination,
+    encoding: 'utf8',
+    env: process.env,
+    shell: false,
+  });
+  const output = `${result.stdout ?? ''}\n${result.stderr ?? ''}`;
+  assert.notEqual(
+    result.status,
+    0,
+    'The direct Server Component import unexpectedly built without the package client directive.',
+  );
+  assert.match(
+    output,
+    /Client Component|use client|useState/iu,
+    'The negative control failed for an unrelated reason instead of the client/server boundary.',
+  );
+  for (const unrelatedFailure of [
+    /Cannot find module/iu,
+    /ERR_MODULE_NOT_FOUND/iu,
+    /Module not found/iu,
+    /SyntaxError/iu,
+  ]) {
+    assert.doesNotMatch(
+      output,
+      unrelatedFailure,
+      'The negative control introduced an unrelated package, file, or syntax failure.',
+    );
+  }
+
+  const excerpt = readBoundaryFailureExcerpt(output);
+  assert.ok(excerpt, 'The negative control did not expose a boundary failure excerpt.');
+  assert.equal(
+    await sha256File(tarball),
+    authoritativeTarballDigest,
+    'The negative control mutated the authoritative package artifact.',
+  );
+  console.log(`Expected missing-boundary failure (${supportMatrix}):\n${excerpt}`);
 }
 
 const SSR_STATE_EXPECTATIONS = {
@@ -250,6 +428,28 @@ async function verifyPackedBrowser(destination, consumer) {
     if (consumer === 'next-consumer') {
       const serverContext = await browser.newContext({ javaScriptEnabled: false });
       try {
+        const boundaryServerPage = await serverContext.newPage();
+        await boundaryServerPage.goto(`${url}/package-boundary`, {
+          waitUntil: 'domcontentloaded',
+        });
+        const boundaryServerInput = boundaryServerPage.getByTestId(
+          'direct-package-boundary-input',
+        );
+        await boundaryServerInput.waitFor({ state: 'visible' });
+        assert.equal(await boundaryServerInput.inputValue(), '');
+        assert.equal(
+          await boundaryServerInput.getAttribute('data-phone-input-country'),
+          'BY',
+        );
+        assert.equal(
+          await boundaryServerInput.getAttribute('data-phone-input-status'),
+          'empty',
+        );
+        assert.equal(
+          await boundaryServerPage.getByRole('heading', { level: 1 }).textContent(),
+          'Direct package-owned client boundary',
+        );
+
         const serverPage = await serverContext.newPage();
         await serverPage.goto(url, { waitUntil: 'domcontentloaded' });
         serverSnapshot = await collectSsrStateSnapshot(serverPage);
@@ -278,6 +478,32 @@ async function verifyPackedBrowser(destination, consumer) {
         );
       } finally {
         await serverContext.close();
+      }
+    }
+
+    if (consumer === 'next-consumer') {
+      const boundaryPage = await browser.newPage();
+      const boundaryPageErrors = [];
+      const boundaryConsoleErrors = [];
+      boundaryPage.on('pageerror', (error) => boundaryPageErrors.push(error));
+      boundaryPage.on('console', (message) => {
+        if (message.type() === 'error') {
+          boundaryConsoleErrors.push(message.text());
+        }
+      });
+      try {
+        await boundaryPage.goto(`${url}/package-boundary`, {
+          waitUntil: 'networkidle',
+        });
+        const boundaryInput = boundaryPage.getByTestId('direct-package-boundary-input');
+        await boundaryInput.waitFor({ state: 'visible' });
+        assert.equal(await boundaryInput.inputValue(), '');
+        await boundaryInput.pressSequentially('375291234567');
+        assert.equal(await boundaryInput.inputValue(), '+375291234567');
+        assert.deepEqual(boundaryPageErrors, []);
+        assert.deepEqual(boundaryConsoleErrors, []);
+      } finally {
+        await boundaryPage.close();
       }
     }
 
@@ -894,63 +1120,8 @@ try {
     if (!['next-consumer', 'vite-consumer'].includes(consumer)) {
       throw new Error(`Unknown CONSUMER: ${consumer}`);
     }
-    const source = new URL(`../apps/${consumer}/`, import.meta.url);
     const destination = join(temporaryRoot, consumer);
-    await cp(source, destination, { recursive: true });
-    await cp(
-      new URL('../apps/package-export-contract.json', import.meta.url),
-      join(destination, 'package-export-contract.json'),
-    );
-    await cp(
-      new URL('../apps/package-export-probe.mjs', import.meta.url),
-      join(destination, 'package-export-probe.mjs'),
-    );
-
-    const packagePath = join(destination, 'package.json');
-    const packageManifest = JSON.parse(await readFile(packagePath, 'utf8'));
-    packageManifest.dependencies = {
-      ...packageManifest.dependencies,
-      ...matrices[supportMatrix],
-      '@whiteee/mui-phone-input': `file:${tarball}`,
-    };
-    if (consumer === 'next-consumer') {
-      Object.assign(
-        packageManifest.dependencies,
-        supportMatrix === 'minimum'
-          ? {
-              '@emotion/cache': '11.14.0',
-              '@mui/material-nextjs': '9.0.0',
-            }
-          : {
-              '@emotion/cache': '11.14.0',
-              '@mui/material-nextjs': '9.1.1',
-            },
-      );
-    }
-    await writeFile(packagePath, `${JSON.stringify(packageManifest, null, 2)}\n`);
-    const consumerWorkspacePolicy = [
-      'packages:',
-      '  - .',
-      '',
-      'allowBuilds:',
-      '  sharp: true',
-      'autoInstallPeers: false',
-      'minimumReleaseAge: 1440',
-    ];
-    if (consumer === 'next-consumer') {
-      consumerWorkspacePolicy.push(
-        'overrides:',
-        `  "next@16.2.12>postcss": ${productionDependencyPolicy.overrides.postcss}`,
-        `  "next@16.2.12>sharp": ${productionDependencyPolicy.overrides.sharp}`,
-      );
-    }
-    consumerWorkspacePolicy.push('strictPeerDependencies: true', '');
-    await writeFile(
-      join(destination, 'pnpm-workspace.yaml'),
-      consumerWorkspacePolicy.join('\n'),
-    );
-
-    run('pnpm', ['--dir', destination, 'install', '--frozen-lockfile=false']);
+    await preparePackedConsumer(consumer, destination);
     run('pnpm', ['--dir', destination, 'exec', 'node', 'package-export-probe.mjs']);
     if (consumer === 'next-consumer') {
       run('pnpm', [
@@ -965,6 +1136,9 @@ try {
     }
     run('pnpm', ['--dir', destination, 'build']);
     await verifyPackedBrowser(destination, consumer);
+    if (consumer === 'next-consumer') {
+      await verifyMissingPackageBoundaryFails(consumer);
+    }
     console.log(
       `${basename(destination)} build and browser behavior verified with the ${supportMatrix} support matrix.`,
     );

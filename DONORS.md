@@ -31,6 +31,26 @@ phone surfaces inspected at that revision were the account `PhoneField` family
 `setSelectionRange` mutation) and the checkout `PhoneFieldCountry` family
 (`COUNTRIES`, `getPhoneCountry`, duplicated selector/validation semantics).
 
+## Packaging boundary references
+
+`mpi-q19.13` inspected the installed `tsdown@0.22.14` and its
+`rolldown@1.2.1` runtime, plus the current `rolldown@1.2.2` release. The primary
+reports were
+[`rolldown/tsdown#362`](https://github.com/rolldown/tsdown/issues/362) and
+[`rolldown/rolldown#7809`](https://github.com/rolldown/rolldown/issues/7809).
+Both reports are closed as `not planned`: Rolldown documents that arbitrary
+module directives are retained on an entry but can be dropped when modules are
+merged or shared. The current package root retains `"use client"` because it is
+an explicit tsdown entry; that bundler shape is not accepted as a release gate.
+
+Decision: **pattern-only**. No upstream source is copied and no licence or
+attribution action is required. The accepted local regression is the exact
+tarball boundary contract in `scripts/lib/package-boundary-contract.mjs` and
+`scripts/lib/package-export-contract.mjs`, plus the direct Next App Router
+Server Component and isolated negative control in
+`apps/next-consumer/app/package-boundary/page.tsx` and
+`scripts/verify-packed-consumers.mjs`.
+
 ## Capability decisions
 
 ### `cap-numbering-authority`
