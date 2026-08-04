@@ -5,6 +5,7 @@ const readJson = async (path) => JSON.parse(await readFile(path, 'utf8'));
 
 const rootPackage = await readJson('package.json');
 const packageManifest = await readJson('packages/mui-phone-input/package.json');
+const pnpmWorkspace = await readFile('pnpm-workspace.yaml', 'utf8');
 const tsdownConfig = await readFile(
   'packages/mui-phone-input/tsdown.config.ts',
   'utf8',
@@ -73,6 +74,10 @@ const publicIntakePattern =
 assert.equal(rootPackage.private, true);
 assert.match(rootPackage.packageManager, /^pnpm@11\./u);
 assert.match(rootPackage.engines.node, /24/u);
+assert.match(pnpmWorkspace, /^minimumReleaseAge:\s*1440$/mu);
+assert.match(pnpmWorkspace, /^minimumReleaseAgeStrict:\s*false$/mu);
+assert.match(packedConsumersVerifier, /['"]minimumReleaseAge:\s*1440['"]/u);
+assert.match(packedConsumersVerifier, /['"]minimumReleaseAgeStrict:\s*false['"]/u);
 
 assert.equal(packageManifest.name, '@whiteee/mui-phone-input');
 assert.equal(packageManifest.type, 'module');

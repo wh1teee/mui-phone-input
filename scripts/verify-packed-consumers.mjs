@@ -170,6 +170,7 @@ async function preparePackedConsumer(consumer, destination) {
     '  sharp: true',
     'autoInstallPeers: false',
     'minimumReleaseAge: 1440',
+    'minimumReleaseAgeStrict: false',
   ];
   if (consumer === 'next-consumer') {
     consumerWorkspacePolicy.push(
