@@ -10,6 +10,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   type NumberingPlanResolution,
+  resolveCompleteNationalPhoneValue,
   resolveNumberingPlan,
 } from '../../packages/mui-phone-input/src/numbering-plan';
 import type { PhoneValue } from '../../packages/mui-phone-input/src/phone-value';
@@ -17,6 +18,22 @@ import type { PhoneValue } from '../../packages/mui-phone-input/src/phone-value'
 function expectSerializableResolution(resolution: NumberingPlanResolution) {
   expect(JSON.parse(JSON.stringify(resolution))).toEqual(resolution);
 }
+
+describe('resolveCompleteNationalPhoneValue', () => {
+  it('uses the selected country as the sole authority for a complete national number', () => {
+    expect(resolveCompleteNationalPhoneValue('2025550123', 'US')).toBe('+12025550123');
+    expect(resolveCompleteNationalPhoneValue('(202) 555-0123', 'US')).toBe(
+      '+12025550123',
+    );
+  });
+
+  it('rejects international, invalid, and country-incompatible candidates', () => {
+    expect(resolveCompleteNationalPhoneValue('+12025550123', 'US')).toBeNull();
+    expect(resolveCompleteNationalPhoneValue('123', 'US')).toBeNull();
+    expect(resolveCompleteNationalPhoneValue('2025550123', 'CA')).toBeNull();
+    expect(resolveCompleteNationalPhoneValue('phone: 2025550123', 'US')).toBeNull();
+  });
+});
 
 describe('resolveNumberingPlan', () => {
   it('keeps a shared +1 calling code unresolved without explicit selection', () => {

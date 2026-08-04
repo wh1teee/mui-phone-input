@@ -26,6 +26,9 @@ built-ins.
 - Controlled and uncontrolled modes use the same transaction model.
 - Ownership is fixed at mount; development builds warn on a mode switch.
 - One committed edit emits at most one public callback.
+- A complete-field replacement may restore a selected country calling code
+  only when captured `beforeinput` evidence proves an authoritative national
+  replacement; incremental input and partial ranges are never reclassified.
 - External controlled updates and form reset reconciliation do not create
   callback loops.
 - Queued input, reset, paste and composition-related work is invalidated at
@@ -69,6 +72,9 @@ Source Browser Mode tests cover:
 - external controlled-number reconciliation without callback loops;
 - possible-by-default validation and explicit strict/type policies;
 - blur-default error presentation and correction clearing.
+- selected-country national autofill recovery across controlled,
+  uncontrolled, Strict Mode, rejection, incomplete input metadata, invalid
+  replacement, range replacement and unmount boundaries.
 
 The same public tarball is installed outside the workspace in production
 Next.js and Vite consumers. Their built applications are started and exercised
@@ -86,8 +92,8 @@ byte-identical repeated HTML. The Vite production smoke renders the same state
 matrix. Full details are recorded in
 `2026-08-02-ssr-packed-consumption-evidence.md`.
 
-The current combined source matrix contains 162 Browser Mode tests per engine;
-all pass in Chromium, Firefox, and WebKit. The unit suite contains 94 tests.
+The current combined source matrix contains 174 Browser Mode tests per engine;
+all pass in Chromium, Firefox, and WebKit. The unit suite contains 96 tests.
 Browser files run serially because focus-sensitive fixtures share
 `document.activeElement`; repeatability evidence is recorded in
 `2026-08-03-browser-focus-serialization-evidence.md`.
@@ -103,9 +109,9 @@ externalizes declared peers.
 
 Current exact-artifact measurements are:
 
-- main closure: 23,018 bytes gzip;
+- main closure: 23,400 bytes gzip;
 - server entry: 4,794 bytes gzip;
-- packed tarball: 88,195 bytes.
+- packed tarball: 89,988 bytes.
 
 CI rebuilds the artifact and requires exact byte/hash equality with the
 committed measurement.

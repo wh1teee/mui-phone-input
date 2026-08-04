@@ -17,7 +17,10 @@ import {
   type PhoneCountrySelectionResult,
   resolvePhoneCountrySelection,
 } from '../country-selector';
-import { resolveNumberingPlan } from '../numbering-plan';
+import {
+  resolveCompleteNationalPhoneValue,
+  resolveNumberingPlan,
+} from '../numbering-plan';
 import {
   type PhoneValidationMode,
   type PhoneValidationOptions,
@@ -42,8 +45,17 @@ import {
 } from './use-phone-input-ownership';
 
 type PendingTransaction = Readonly<{
+  authoritativeFullFieldReplacement: boolean;
   displayValue: string;
   reason: PhoneInputChangeReason;
+}>;
+
+type PendingBeforeInput = Readonly<{
+  data: string | null;
+  displayValue: string;
+  inputType: string;
+  isComposing: boolean;
+  selection: readonly [start: number, end: number];
 }>;
 
 type PendingCompositionSelection = Readonly<{
@@ -124,6 +136,34 @@ function resolveInputEventMetadata(event: Event): Readonly<{
     inputType: typeof inputType === 'string' ? inputType : '',
     isComposing: isComposing === true,
   };
+}
+
+function resolveCompleteNationalReplacement(
+  displayValue: string,
+  pendingBeforeInput: PendingBeforeInput | null,
+  selectedCountry: CountryCode | null,
+): Exclude<PhoneValue, undefined> | null {
+  if (
+    !pendingBeforeInput ||
+    !selectedCountry ||
+    pendingBeforeInput.isComposing ||
+    pendingBeforeInput.inputType !== 'insertReplacementText' ||
+    pendingBeforeInput.selection[0] !== 0 ||
+    pendingBeforeInput.selection[1] !== pendingBeforeInput.displayValue.length
+  ) {
+    return null;
+  }
+
+  const incomingValue = pendingBeforeInput.data ?? displayValue;
+  if (
+    incomingValue.length === 0 ||
+    incomingValue.includes('+') ||
+    incomingValue === pendingBeforeInput.displayValue
+  ) {
+    return null;
+  }
+
+  return resolveCompleteNationalPhoneValue(incomingValue, selectedCountry);
 }
 
 function resolveChangeReason(
@@ -210,11 +250,13 @@ export function usePhoneInputTransactions(
     setUncontrolledValue,
   } = ownership;
   const inputElementRef = useRef<HTMLInputElement | null>(null);
+  const beforeInputCleanupRef = useRef<(() => void) | null>(null);
   const engineCleanupRef = useRef<(() => void) | null>(null);
   const formCleanupRef = useRef<(() => void) | null>(null);
   const composingRef = useRef(false);
   const compositionTextRef = useRef<string | null>(null);
   const compositionDigitOffsetRef = useRef<number | null>(null);
+  const pendingBeforeInputRef = useRef<PendingBeforeInput | null>(null);
   const pendingTransactionRef = useRef<PendingTransaction | null>(null);
   const pendingCommitScheduledRef = useRef(false);
   const pasteTransactionRef = useRef(false);
@@ -311,9 +353,40 @@ export function usePhoneInputTransactions(
     (input) => {
       formCleanupRef.current?.();
       formCleanupRef.current = null;
+      beforeInputCleanupRef.current?.();
+      beforeInputCleanupRef.current = null;
       engineCleanupRef.current?.();
-      engineCleanupRef.current = input ? engineBridge.attach(input) : null;
+      engineCleanupRef.current = null;
       inputElementRef.current = input;
+
+      if (input) {
+        const handleBeforeInput = (event: Event) => {
+          const metadata = resolveInputEventMetadata(event);
+          const data = 'data' in event ? event.data : null;
+          const pendingBeforeInput: PendingBeforeInput = {
+            data: typeof data === 'string' ? data : null,
+            displayValue: input.value,
+            inputType: metadata.inputType,
+            isComposing: metadata.isComposing,
+            selection: [
+              input.selectionStart ?? input.value.length,
+              input.selectionEnd ?? input.value.length,
+            ],
+          };
+          pendingBeforeInputRef.current = pendingBeforeInput;
+          queueMicrotask(() => {
+            if (pendingBeforeInputRef.current === pendingBeforeInput) {
+              pendingBeforeInputRef.current = null;
+            }
+          });
+        };
+        input.addEventListener('beforeinput', handleBeforeInput, { capture: true });
+        beforeInputCleanupRef.current = () =>
+          input.removeEventListener('beforeinput', handleBeforeInput, {
+            capture: true,
+          });
+        engineCleanupRef.current = engineBridge.attach(input);
+      }
 
       const form = input?.form;
       if (form) {
@@ -407,8 +480,18 @@ export function usePhoneInputTransactions(
   );
 
   const scheduleCommit = useCallback(
-    (displayValue: string, reason: PhoneInputChangeReason) => {
+    (
+      displayValue: string,
+      reason: PhoneInputChangeReason,
+      authoritativeFullFieldReplacement = false,
+    ) => {
       const pending = pendingTransactionRef.current;
+      if (
+        pending?.authoritativeFullFieldReplacement &&
+        !authoritativeFullFieldReplacement
+      ) {
+        return;
+      }
       const dropsTransientEmpty =
         displayValue.length === 0 &&
         pending !== null &&
@@ -421,6 +504,7 @@ export function usePhoneInputTransactions(
       const nextReason = dropsTransientEmpty ? pending.reason : reason;
 
       pendingTransactionRef.current = {
+        authoritativeFullFieldReplacement,
         displayValue: nextDisplayValue,
         reason: nextReason,
       };
@@ -476,12 +560,19 @@ export function usePhoneInputTransactions(
   const handleInput = useCallback(
     (event: FormEvent<HTMLInputElement>) => {
       const inputEvent = resolveInputEventMetadata(event.nativeEvent);
+      const pendingBeforeInput = pendingBeforeInputRef.current;
+      pendingBeforeInputRef.current = null;
 
       if (composingRef.current || inputEvent.isComposing) {
         return;
       }
 
-      const displayValue = event.currentTarget.value;
+      const completeNationalReplacement = resolveCompleteNationalReplacement(
+        event.currentTarget.value,
+        pendingBeforeInput,
+        currentSelectedCountryRef.current,
+      );
+      const displayValue = completeNationalReplacement ?? event.currentTarget.value;
       const nextValue = parsePhoneValue(displayValue);
       const pasted = pasteTransactionRef.current;
       pasteTransactionRef.current = false;
@@ -491,10 +582,13 @@ export function usePhoneInputTransactions(
       }
       scheduleCommit(
         displayValue,
-        resolveChangeReason(inputEvent.inputType, nextValue, pasted),
+        completeNationalReplacement
+          ? 'replacement'
+          : resolveChangeReason(inputEvent.inputType, nextValue, pasted),
+        completeNationalReplacement !== null,
       );
     },
-    [scheduleCommit],
+    [currentSelectedCountryRef, scheduleCommit],
   );
 
   const handleInputCapture = useCallback((event: FormEvent<HTMLInputElement>) => {
@@ -511,6 +605,7 @@ export function usePhoneInputTransactions(
 
   const handleCompositionStart = useCallback(() => {
     pendingCommitScheduledRef.current = false;
+    pendingBeforeInputRef.current = null;
     pendingTransactionRef.current = null;
     composingRef.current = true;
     compositionTextRef.current = null;
@@ -616,7 +711,9 @@ export function usePhoneInputTransactions(
       lifecycleActiveRef.current = false;
       lifecycleGenerationRef.current += 1;
       formCleanupRef.current?.();
+      beforeInputCleanupRef.current?.();
       engineCleanupRef.current?.();
+      pendingBeforeInputRef.current = null;
       pendingTransactionRef.current = null;
       pendingCommitScheduledRef.current = false;
       composingRef.current = false;

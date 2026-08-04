@@ -9,11 +9,12 @@ import {
   getCountries,
   getCountryCallingCode,
   isSupportedCountry,
+  parsePhoneNumberFromString,
 } from 'libphonenumber-js/max';
 import maxMetadata from 'libphonenumber-js/metadata.max.json';
 
 import { canDigitPatternMatchPrefix } from './digit-pattern-prefix';
-import { assertPhoneValue, type PhoneValue } from './phone-value';
+import { assertPhoneValue, type PhoneValue, parsePhoneValue } from './phone-value';
 
 export interface NumberingPlanResolutionOptions {
   selectedCountry?: CountryCode | null;
@@ -178,6 +179,37 @@ function validateSelectedCountry(
   }
 
   return selectedCountry;
+}
+
+export function resolveCompleteNationalPhoneValue(
+  input: string,
+  country: CountryCode,
+): Exclude<PhoneValue, undefined> | null {
+  validateSelectedCountry(country);
+
+  if (input.includes('+')) {
+    return null;
+  }
+
+  let normalized: PhoneValue;
+  try {
+    normalized = parsePhoneValue(input);
+  } catch {
+    return null;
+  }
+
+  const nationalDigits = normalized?.slice(1);
+  if (!nationalDigits) {
+    return null;
+  }
+
+  const phoneNumber = parsePhoneNumberFromString(nationalDigits, country);
+  if (!phoneNumber || phoneNumber.country !== country || !phoneNumber.isValid()) {
+    return null;
+  }
+
+  const candidate = phoneNumber.number as Exclude<PhoneValue, undefined>;
+  return isPhoneValuePossibleForCountry(candidate, country) ? candidate : null;
 }
 
 export function isPhoneValuePossibleForCountry(
