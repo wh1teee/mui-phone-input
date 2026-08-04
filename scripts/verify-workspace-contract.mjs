@@ -10,6 +10,11 @@ const tsdownConfig = await readFile(
   'utf8',
 );
 const ciWorkflow = await readFile('.github/workflows/ci.yml', 'utf8');
+const dependabotConfig = await readFile('.github/dependabot.yml', 'utf8');
+const githubActionsPinsVerifier = await readFile(
+  'scripts/verify-github-actions-pins.mjs',
+  'utf8',
+);
 const controllerSource = await readFile(
   'packages/mui-phone-input/src/usePhoneInput.ts',
   'utf8',
@@ -223,6 +228,16 @@ assert.match(
 assert.match(ciWorkflow, /node-version:\s*24/u);
 assert.match(ciWorkflow, /node-version:\s*26/u);
 assert.match(ciWorkflow, /continue-on-error:\s*true/u);
+assert.equal(
+  rootPackage.scripts['verify:github-actions-pins'],
+  'node scripts/verify-github-actions-pins.mjs',
+);
+assert.match(rootPackage.scripts['ci:pr'], /verify:github-actions-pins/u);
+assert.match(ciWorkflow, /pnpm ci:pr/u);
+assert.match(githubActionsPinsVerifier, /\.github\/workflows/u);
+assert.match(dependabotConfig, /package-ecosystem:\s*github-actions/u);
+assert.match(dependabotConfig, /directory:\s*\//u);
+assert.match(dependabotConfig, /interval:\s*weekly/u);
 assert.match(rootPackage.scripts['ci:pr'], /verify:production-dependencies/u);
 assert.match(rootPackage.scripts['ci:forward'], /verify:production-dependencies/u);
 assert.match(rootPackage.scripts['ci:pr'], /verify:published-runtime/u);
