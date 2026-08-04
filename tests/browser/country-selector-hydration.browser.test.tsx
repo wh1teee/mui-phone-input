@@ -67,9 +67,11 @@ function createMatchMediaController(): MatchMediaController {
 }
 
 function HydrationHarness({
+  disablePortal = false,
   filteredActive = false,
   mode = 'auto',
 }: Readonly<{
+  disablePortal?: boolean;
   filteredActive?: boolean;
   mode?: PhoneCountrySelectorMode;
 }>) {
@@ -85,7 +87,11 @@ function HydrationHarness({
           ...(filteredActive
             ? { countryFilter: (country: string) => country !== 'BY' }
             : {}),
+          disablePortal,
           mode,
+          slotProps: {
+            searchInput: { 'data-testid': 'hydrated-country-search' },
+          },
         },
       }}
       value={value}
@@ -93,9 +99,17 @@ function HydrationHarness({
   );
 }
 
-function serverMarkup(mode: PhoneCountrySelectorMode, filteredActive = false): string {
+function serverMarkup(
+  mode: PhoneCountrySelectorMode,
+  filteredActive = false,
+  disablePortal = false,
+): string {
   return renderToString(
-    <HydrationHarness filteredActive={filteredActive} mode={mode} />,
+    <HydrationHarness
+      disablePortal={disablePortal}
+      filteredActive={filteredActive}
+      mode={mode}
+    />,
   );
 }
 
@@ -103,6 +117,7 @@ function hydrate(
   markup: string,
   mode: PhoneCountrySelectorMode,
   filteredActive = false,
+  disablePortal = false,
 ): Root {
   const container = document.createElement('div');
   container.dataset.testid = 'hydration-container';
@@ -110,7 +125,11 @@ function hydrate(
   document.body.append(container);
   const root = hydrateRoot(
     container,
-    <HydrationHarness filteredActive={filteredActive} mode={mode} />,
+    <HydrationHarness
+      disablePortal={disablePortal}
+      filteredActive={filteredActive}
+      mode={mode}
+    />,
   );
   roots.push(root);
   return root;
@@ -119,6 +138,30 @@ function hydrate(
 async function settleHydration(): Promise<void> {
   await new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve()));
   await new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve()));
+}
+
+function activeOption(input: HTMLInputElement): HTMLElement | null {
+  const id = input.getAttribute('aria-activedescendant');
+  return id ? document.getElementById(id) : null;
+}
+
+function getOption(index: number): HTMLElement {
+  const option = document.querySelector<HTMLElement>(
+    `[role="option"][data-option-index="${index}"]`,
+  );
+  if (!option) {
+    throw new Error(`Expected hydrated country option at index ${index}.`);
+  }
+  return option;
+}
+
+function movePointerToOption(option: HTMLElement): void {
+  option.dispatchEvent(
+    new MouseEvent('mousemove', {
+      bubbles: true,
+      composed: true,
+    }),
+  );
 }
 
 afterEach(async () => {
@@ -200,25 +243,69 @@ describe('country selector hydration', () => {
     },
   );
 
-  test('preserves an open search draft and focus when auto mode switches after hydration', async () => {
-    const media = createMatchMediaController();
-    media.install(false);
-    const markup = serverMarkup('auto');
-    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+  test.each([false, true])(
+    'preserves an open search draft, highlight, focus, and ref safety across a post-hydration auto round trip with disablePortal=%s',
+    async (disablePortal) => {
+      const media = createMatchMediaController();
+      media.install(false);
+      const markup = serverMarkup('auto', false, disablePortal);
+      const consoleError = vi
+        .spyOn(console, 'error')
+        .mockImplementation(() => undefined);
 
-    hydrate(markup, 'auto');
-    await settleHydration();
-    await userEvent.click(page.getByTestId('hydrated-country-trigger'));
-    const desktopSearch = page.getByRole('combobox', { name: 'Search countries' });
-    await userEvent.type(desktopSearch, 'bel');
+      hydrate(markup, 'auto', false, disablePortal);
+      await settleHydration();
+      const trigger = page.getByTestId('hydrated-country-trigger');
+      await userEvent.click(trigger);
+      const desktopSearch = page.getByTestId('hydrated-country-search');
+      await userEvent.fill(desktopSearch, 'a');
+      await expect
+        .poll(() => document.querySelectorAll('[role="option"]').length)
+        .toBeGreaterThan(2);
+      const highlighted = getOption(1);
+      const highlightedCountry = highlighted.dataset.country;
+      movePointerToOption(highlighted);
+      await expect
+        .element(desktopSearch)
+        .toHaveAttribute('aria-activedescendant', highlighted.id);
 
-    media.setMatches(true);
+      const container = page.getByTestId('hydration-container').element();
+      const hiddenFallback = container.querySelector<HTMLInputElement>(
+        'input[aria-hidden="true"][hidden][tabindex="-1"]',
+      );
+      expect(hiddenFallback).toBeInstanceOf(HTMLInputElement);
+      expect(document.activeElement).not.toBe(hiddenFallback);
 
-    const dialog = page.getByRole('dialog', { name: 'Select country' });
-    await expect.element(dialog).toBeInTheDocument();
-    const mobileSearch = dialog.getByRole('combobox', { name: 'Search countries' });
-    await expect.element(mobileSearch).toHaveValue('bel');
-    await expect.element(mobileSearch).toHaveFocus();
-    expect(consoleError).not.toHaveBeenCalled();
-  });
+      media.setMatches(true);
+
+      await expect.element(trigger).toHaveAttribute('aria-haspopup', 'dialog');
+      const mobileSearch = page.getByTestId('hydrated-country-search');
+      await expect.element(mobileSearch).toHaveValue('a');
+      await expect.element(mobileSearch).toHaveFocus();
+      await expect
+        .element(mobileSearch)
+        .toHaveAttribute('aria-activedescendant', highlighted.id);
+      const mobileActive = activeOption(mobileSearch.element() as HTMLInputElement);
+      expect(mobileActive).toBeInstanceOf(HTMLElement);
+      expect(mobileActive).not.toBe(highlighted);
+      expect(mobileActive).toHaveAttribute('data-country', highlightedCountry);
+
+      media.setMatches(false);
+
+      await expect.element(trigger).toHaveAttribute('aria-haspopup', 'listbox');
+      const restoredDesktopSearch = page.getByTestId('hydrated-country-search');
+      await expect.element(restoredDesktopSearch).toHaveValue('a');
+      await expect.element(restoredDesktopSearch).toHaveFocus();
+      await expect
+        .element(restoredDesktopSearch)
+        .toHaveAttribute('aria-activedescendant', highlighted.id);
+      const restoredActive = activeOption(
+        restoredDesktopSearch.element() as HTMLInputElement,
+      );
+      expect(restoredActive).toBeInstanceOf(HTMLElement);
+      expect(restoredActive).not.toBe(mobileActive);
+      expect(restoredActive).toHaveAttribute('data-country', highlightedCountry);
+      expect(consoleError).not.toHaveBeenCalled();
+    },
+  );
 });

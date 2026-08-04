@@ -8,7 +8,9 @@ import DialogTitle from '@mui/material/DialogTitle';
 import Paper from '@mui/material/Paper';
 import Popper, { type PopperProps } from '@mui/material/Popper';
 import { type Breakpoint, styled, useTheme } from '@mui/material/styles';
-import useAutocomplete from '@mui/material/useAutocomplete';
+import useAutocomplete, {
+  type AutocompleteHighlightChangeReason,
+} from '@mui/material/useAutocomplete';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import { mergeSlotProps, type SlotProps, useForkRef } from '@mui/material/utils';
 import type { CountryCode } from 'libphonenumber-js/max';
@@ -39,6 +41,14 @@ import type { MuiPhoneInputClasses } from './MuiPhoneInput/muiPhoneInputClasses'
 import { muiPhoneInputClasses } from './MuiPhoneInput/muiPhoneInputClasses';
 import { usePhoneInputContext } from './PhoneInputPrimitives';
 import type { PhoneInputDataAttributes } from './usePhoneInput';
+
+const presentationHighlightRestoreMarker = Symbol(
+  'PhoneInputCountrySelector.presentationHighlightRestore',
+);
+
+type PresentationHighlightRestoreMouseEvent = globalThis.MouseEvent & {
+  [presentationHighlightRestoreMarker]?: true;
+};
 
 export type PhoneCountrySelectorMode = 'auto' | 'desktop' | 'mobile';
 
@@ -581,6 +591,9 @@ export function PhoneInputCountrySelector({
     },
     [returnFocus],
   );
+  const highlightedOptionRef = useRef<PhoneCountryOption | null>(null);
+  const highlightedReasonRef = useRef<AutocompleteHighlightChangeReason | null>(null);
+  const restoringPresentationHighlightRef = useRef(false);
   const autocomplete = useAutocomplete<PhoneCountryOption>({
     autoHighlight: true,
     clearOnBlur: false,
@@ -599,6 +612,13 @@ export function PhoneInputCountrySelector({
     id: `${phone.state.inputId}-country-selector`,
     inputValue: query,
     isOptionEqualToValue: (option, selected) => option.country === selected.country,
+    onHighlightChange: (_event, option, reason) => {
+      if (restoringPresentationHighlightRef.current) {
+        return;
+      }
+      highlightedOptionRef.current = option;
+      highlightedReasonRef.current = reason;
+    },
     onChange: (_event, option, reason) => {
       if (reason === 'selectOption' && option) {
         phone.actions.selectCountry(option.country);
@@ -633,6 +653,7 @@ export function PhoneInputCountrySelector({
   const { ref: autocompleteInputRef, ...inputProps } = autocomplete.getInputProps();
   const hiddenInputRef = useRef<HTMLInputElement | null>(null);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
+  const listboxElementRef = useRef<HTMLUListElement | null>(null);
   const closeButtonRef = useRef<HTMLButtonElement | null>(null);
   const setHiddenInputRef = useCallback(
     (input: HTMLInputElement | null) => {
@@ -653,9 +674,22 @@ export function PhoneInputCountrySelector({
   const triggerLabel = activeOption
     ? `${messages.selectCountry}. ${optionLabel(activeOption)}`
     : messages.selectCountry;
+  const previousOpenRef = useRef(open);
+  const previousPresentationRef = useRef(presentation);
+  const pendingPresentationHighlightRestoreRef = useRef(false);
+  const restoreHighlightAfterPresentationChange =
+    open && previousOpenRef.current && previousPresentationRef.current !== presentation;
 
   useEffect(() => {
+    if (restoreHighlightAfterPresentationChange) {
+      pendingPresentationHighlightRestoreRef.current = true;
+    }
+    previousOpenRef.current = open;
+    previousPresentationRef.current = presentation;
     if (!open) {
+      pendingPresentationHighlightRestoreRef.current = false;
+      highlightedOptionRef.current = null;
+      highlightedReasonRef.current = null;
       return;
     }
 
@@ -664,10 +698,42 @@ export function PhoneInputCountrySelector({
         searchInputRef.current?.dataset.countrySelectorPresentation === presentation
       ) {
         searchInputRef.current.focus();
+        if (pendingPresentationHighlightRestoreRef.current) {
+          const highlightedOption = highlightedOptionRef.current;
+          const highlightedReason = highlightedReasonRef.current;
+          const optionElement = highlightedOption
+            ? listboxElementRef.current?.querySelector<HTMLElement>(
+                `[role="option"][data-country="${highlightedOption.country}"]`,
+              )
+            : null;
+
+          if (optionElement) {
+            // MUI synchronizes the newly attached listbox to the selected value.
+            // Replay only its prepared option handler so a presentation-only
+            // remount retains the user's highlight without notifying slot consumers.
+            const restoreEvent = new globalThis.MouseEvent('mousemove', {
+              bubbles: true,
+              composed: true,
+            }) as PresentationHighlightRestoreMouseEvent;
+            Object.defineProperty(restoreEvent, presentationHighlightRestoreMarker, {
+              value: true,
+            });
+            restoringPresentationHighlightRef.current = true;
+            try {
+              optionElement.dispatchEvent(restoreEvent);
+            } finally {
+              restoringPresentationHighlightRef.current = false;
+            }
+            if (highlightedReason === 'keyboard') {
+              optionElement.classList.add('Mui-focusVisible');
+            }
+          }
+          pendingPresentationHighlightRestoreRef.current = false;
+        }
       }
     });
     return () => window.cancelAnimationFrame(frame);
-  }, [open, presentation]);
+  }, [open, presentation, restoreHighlightAfterPresentationChange]);
 
   const externalTriggerSlotProps = resolveSlotProps(slotProps?.trigger, ownerState);
   const triggerSlotRef = useForkRef(
@@ -767,6 +833,7 @@ export function PhoneInputCountrySelector({
   const externalListboxSlotProps = resolveSlotProps(slotProps?.listbox, ownerState);
   const listboxSlotRef = useForkRef(
     autocompleteListboxRef,
+    listboxElementRef,
     externalListboxSlotProps?.ref,
   );
   const listboxSlotProps = appendOwnerState(
@@ -917,18 +984,23 @@ export function PhoneInputCountrySelector({
                       slotProps?.option,
                       optionOwnerState,
                     );
+                    const mergedOptionSlotProps = mergeSlotProps(
+                      externalOptionSlotProps,
+                      {
+                        ...preparedOptionPropsWithoutKey,
+                        'aria-label': optionLabel(option),
+                        className: joinClassNames(
+                          classes.countrySelectorOption,
+                          preparedOptionPropsWithoutKey.className,
+                        ),
+                        'data-country': option.country,
+                      },
+                    );
+                    const mergedOptionMouseMove = mergedOptionSlotProps.onMouseMove;
                     const optionSlotProps = appendOwnerState(
                       OptionSlot,
                       {
-                        ...mergeSlotProps(externalOptionSlotProps, {
-                          ...preparedOptionPropsWithoutKey,
-                          'aria-label': optionLabel(option),
-                          className: joinClassNames(
-                            classes.countrySelectorOption,
-                            preparedOptionPropsWithoutKey.className,
-                          ),
-                          'data-country': option.country,
-                        }),
+                        ...mergedOptionSlotProps,
                         'aria-label': optionLabel(option),
                         'aria-disabled': preparedOptionPropsWithoutKey['aria-disabled'],
                         'aria-selected': preparedOptionPropsWithoutKey['aria-selected'],
@@ -936,6 +1008,16 @@ export function PhoneInputCountrySelector({
                         'data-option-index':
                           preparedOptionPropsWithoutKey['data-option-index'],
                         id: preparedOptionPropsWithoutKey.id,
+                        onMouseMove: (event: MouseEvent<HTMLLIElement>) => {
+                          const nativeEvent =
+                            event.nativeEvent as PresentationHighlightRestoreMouseEvent;
+                          if (nativeEvent[presentationHighlightRestoreMarker]) {
+                            preparedOptionPropsWithoutKey.onMouseMove?.(event);
+                            event.stopPropagation();
+                            return;
+                          }
+                          mergedOptionMouseMove?.(event);
+                        },
                         ref: externalOptionSlotProps?.ref,
                         role: preparedOptionPropsWithoutKey.role,
                         tabIndex: preparedOptionPropsWithoutKey.tabIndex,

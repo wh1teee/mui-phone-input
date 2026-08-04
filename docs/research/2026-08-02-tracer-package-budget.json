@@ -9,10 +9,10 @@
     "serverGzipBytes": 10240
   },
   "main": {
-    "brotliBytes": 19751,
-    "gzipBytes": 22573,
-    "rawBytes": 80136,
-    "sha256": "6cbd0b99fa8e7095775f11ab35a7e4cf78abdf61c33d179b97554fdbb9590639"
+    "brotliBytes": 20006,
+    "gzipBytes": 22953,
+    "rawBytes": 81256,
+    "sha256": "3da652658e8485b766814a72bee23cb61345157b2309ec7462762f3dee1be464"
   },
   "server": {
     "brotliBytes": 4202,
@@ -20,6 +20,6 @@
     "rawBytes": 18698,
     "sha256": "150816066ddf4db0ded06398ecc40a3a7c70cf5751691b670276cd9791c1a94a"
   },
-  "tarballBytes": 86197,
+  "tarballBytes": 87924,
   "status": "pass"
 }
