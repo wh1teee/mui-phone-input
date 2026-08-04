@@ -8,6 +8,7 @@
   },
   "changesets": [
     "basic-country-selector",
+    "brave-lemons-wait",
     "bright-phones-validate",
     "fix-canonical-npm-scope",
     "lossless-country-selection",

@@ -1,5 +1,11 @@
 # @wh1teee/mui-phone-input
 
+## 0.1.0-next.2
+
+### Patch Changes
+
+- a1fb14e: Retry registry verification while npm propagates a newly published canary.
+
 ## 0.1.0-next.1
 
 ### Patch Changes
