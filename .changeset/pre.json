@@ -4,7 +4,7 @@
   "initialVersions": {
     "@mui-phone-input/next-consumer": "0.0.0",
     "@mui-phone-input/vite-consumer": "0.0.0",
-    "@whiteee/mui-phone-input": "0.0.0"
+    "@wh1teee/mui-phone-input": "0.0.0"
   },
   "changesets": [
     "basic-country-selector",

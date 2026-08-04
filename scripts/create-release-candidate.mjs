@@ -83,7 +83,7 @@ const sourceTree = git('rev-parse', 'HEAD^{tree}');
 const packageManifest = JSON.parse(
   await readFile(join(repositoryRoot, 'packages/mui-phone-input/package.json'), 'utf8'),
 );
-assert.equal(packageManifest.name, '@whiteee/mui-phone-input');
+assert.equal(packageManifest.name, '@wh1teee/mui-phone-input');
 assert.match(
   packageManifest.version,
   /^0\.1\.0-next\.\d+$/u,
@@ -100,7 +100,7 @@ await mkdir(outputDirectory, { recursive: true });
 
 const ownedTarball = await createPackageArtifact();
 try {
-  const tarballName = `whiteee-mui-phone-input-${packageManifest.version}.tgz`;
+  const tarballName = `wh1teee-mui-phone-input-${packageManifest.version}.tgz`;
   const tarball = join(outputDirectory, tarballName);
   await copyFile(ownedTarball, tarball);
 
@@ -153,7 +153,7 @@ try {
   ]);
   const sbom = JSON.parse(await readFile(sbomPath, 'utf8'));
   assert.equal(sbom.bomFormat, 'CycloneDX');
-  assert.equal(sbom.metadata?.component?.group, '@whiteee');
+  assert.equal(sbom.metadata?.component?.group, '@wh1teee');
   assert.equal(sbom.metadata?.component?.name, 'mui-phone-input');
   assert.equal(sbom.metadata?.component?.version, packageManifest.version);
 

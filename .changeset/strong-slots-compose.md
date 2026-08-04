@@ -1,5 +1,5 @@
 ---
-"@whiteee/mui-phone-input": minor
+"@wh1teee/mui-phone-input": minor
 ---
 
 Add the shared `usePhoneInput` controller, supported composable primitives,

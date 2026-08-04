@@ -1,4 +1,4 @@
-import { resolveNumberingPlan } from '@whiteee/mui-phone-input/server';
+import { resolveNumberingPlan } from '@wh1teee/mui-phone-input/server';
 
 import { PhoneInputSmoke } from './phone-input-smoke';
 

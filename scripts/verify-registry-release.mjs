@@ -121,8 +121,8 @@ try {
   await writeFile(
     join(temporaryRoot, 'probe.mjs'),
     `import assert from 'node:assert/strict';
-import { MuiPhoneInput } from '@whiteee/mui-phone-input';
-import { isPhoneValue } from '@whiteee/mui-phone-input/server';
+import { MuiPhoneInput } from '@wh1teee/mui-phone-input';
+import { isPhoneValue } from '@wh1teee/mui-phone-input/server';
 
 assert.equal(typeof MuiPhoneInput, 'function');
 assert.equal(isPhoneValue('+37529'), true);

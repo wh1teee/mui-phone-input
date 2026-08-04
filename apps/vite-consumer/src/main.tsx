@@ -12,8 +12,8 @@ import {
   PhoneInputValidationMessage,
   type PhoneValue,
   usePhoneInput,
-} from '@whiteee/mui-phone-input';
-import { resolveNumberingPlan } from '@whiteee/mui-phone-input/server';
+} from '@wh1teee/mui-phone-input';
+import { resolveNumberingPlan } from '@wh1teee/mui-phone-input/server';
 import { type ComponentPropsWithRef, StrictMode, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 

@@ -1,5 +1,5 @@
 ---
-"@whiteee/mui-phone-input": minor
+"@wh1teee/mui-phone-input": minor
 ---
 
 Add possible-by-default phone validation, explicit strict/type/custom policies,

@@ -40,7 +40,7 @@ jobs:
           candidate_dir="$RUNNER_TEMP/mui-phone-input-release"
           node scripts/create-release-candidate.mjs --output-dir="$candidate_dir"
           version="$(node -p "require('./packages/mui-phone-input/package.json').version")"
-          tarball="$candidate_dir/whiteee-mui-phone-input-$version.tgz"
+          tarball="$candidate_dir/wh1teee-mui-phone-input-$version.tgz"
           test -f "$tarball"
           echo "directory=$candidate_dir" >> "$GITHUB_OUTPUT"
           echo "tarball=$tarball" >> "$GITHUB_OUTPUT"
@@ -91,7 +91,7 @@ jobs:
               --draft \
               --prerelease \
               --target "$GITHUB_SHA" \
-              --title "@whiteee/mui-phone-input ${{ steps.candidate.outputs.version }}" \
+              --title "@wh1teee/mui-phone-input ${{ steps.candidate.outputs.version }}" \
               --notes-file "$directory/RELEASE_NOTES.md"
           fi
       - name: Publish exact tarball through npm OIDC

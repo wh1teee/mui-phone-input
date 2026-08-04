@@ -83,7 +83,7 @@ try {
           '@emotion/react': rootPackage.devDependencies['@emotion/react'],
           '@emotion/styled': rootPackage.devDependencies['@emotion/styled'],
           '@mui/material': '9.0.0',
-          '@whiteee/mui-phone-input': `file:${tarball}`,
+          '@wh1teee/mui-phone-input': `file:${tarball}`,
           react: '19.0.0',
           'react-dom': '19.0.0',
         },
@@ -108,12 +108,12 @@ import { fileURLToPath } from 'node:url';
 
 const manifest = JSON.parse(
   await readFile(
-    fileURLToPath(import.meta.resolve('@whiteee/mui-phone-input/package.json')),
+    fileURLToPath(import.meta.resolve('@wh1teee/mui-phone-input/package.json')),
     'utf8',
   ),
 );
-const client = await import('@whiteee/mui-phone-input');
-const server = await import('@whiteee/mui-phone-input/server');
+const client = await import('@wh1teee/mui-phone-input');
+const server = await import('@wh1teee/mui-phone-input/server');
 
 assert.equal(manifest.engines, undefined);
 assert.equal(typeof client.MuiPhoneInput, 'function');

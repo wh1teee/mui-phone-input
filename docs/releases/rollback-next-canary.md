@@ -6,16 +6,16 @@ registry and provenance evidence.
 2. Deprecate the version with an actionable message:
 
    ```bash
-   npm deprecate @whiteee/mui-phone-input@<version> "Canary withdrawn; use <safe-version>."
+   npm deprecate @wh1teee/mui-phone-input@<version> "Canary withdrawn; use <safe-version>."
    ```
 
 3. Move the `next` dist-tag to the last verified safe canary, or remove it when
    no safe canary exists:
 
    ```bash
-   npm dist-tag add @whiteee/mui-phone-input@<safe-version> next
+   npm dist-tag add @wh1teee/mui-phone-input@<safe-version> next
    # or
-   npm dist-tag rm @whiteee/mui-phone-input next
+   npm dist-tag rm @wh1teee/mui-phone-input next
    ```
 
 4. Mark the matching GitHub prerelease as withdrawn and link the replacement.

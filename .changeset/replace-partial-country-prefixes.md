@@ -1,5 +1,5 @@
 ---
-'@whiteee/mui-phone-input': minor
+'@wh1teee/mui-phone-input': minor
 ---
 
 Replace unfinished international calling-code prefixes when a country is

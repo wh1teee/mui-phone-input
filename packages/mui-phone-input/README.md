@@ -1,4 +1,4 @@
-# @whiteee/mui-phone-input
+# @wh1teee/mui-phone-input
 
 Modern React 19 and Material UI 9 phone input. The current prerelease tracer
 provides a canonical international candidate, controlled and uncontrolled
@@ -15,11 +15,11 @@ adapters are delivered in later gated slices.
 
 The current canary publishes only these implemented paths:
 
-- `@whiteee/mui-phone-input` — React/MUI component, controller, primitives and
+- `@wh1teee/mui-phone-input` — React/MUI component, controller, primitives and
   shared phone helpers;
-- `@whiteee/mui-phone-input/server` — neutral parsing, numbering-plan,
+- `@wh1teee/mui-phone-input/server` — neutral parsing, numbering-plan,
   formatting and validation helpers;
-- `@whiteee/mui-phone-input/package.json` — package metadata.
+- `@wh1teee/mui-phone-input/package.json` — package metadata.
 
 The following future paths are intentionally not exported until their owning
 feature ships atomically with implementation, documentation, tests and release
@@ -45,7 +45,7 @@ Discussions do not carry implementation status.
 ## Install
 
 ```sh
-pnpm add @whiteee/mui-phone-input @mui/material @emotion/react @emotion/styled
+pnpm add @wh1teee/mui-phone-input @mui/material @emotion/react @emotion/styled
 ```
 
 React 19, React DOM 19, and MUI 9 are peer dependencies. The package is ESM
@@ -59,7 +59,7 @@ release tooling requires Node 24 LTS.
 ```tsx
 'use client';
 
-import { MuiPhoneInput, type PhoneValue } from '@whiteee/mui-phone-input';
+import { MuiPhoneInput, type PhoneValue } from '@wh1teee/mui-phone-input';
 import { useState } from 'react';
 
 export function PhoneField() {
@@ -170,7 +170,7 @@ Customize one semantic part without replacing the selector state machine:
 import type {
   PhoneCountrySelectorOptionOwnerState,
   PhoneCountrySelectorSlots,
-} from '@whiteee/mui-phone-input';
+} from '@wh1teee/mui-phone-input';
 import type { ComponentPropsWithRef } from 'react';
 
 function CountryOption({
@@ -219,7 +219,7 @@ ref, so a plain function popup cannot disable dismissal accidentally.
 ## Numbering-plan resolution
 
 ```ts
-import { resolveNumberingPlan } from '@whiteee/mui-phone-input/server';
+import { resolveNumberingPlan } from '@wh1teee/mui-phone-input/server';
 
 const plan = resolveNumberingPlan('+12025550123', {
   selectedCountry: 'CA',
@@ -280,7 +280,7 @@ For server or non-MUI boundaries:
 import {
   formatPhoneValueForDisplay,
   validatePhoneValue,
-} from '@whiteee/mui-phone-input/server';
+} from '@wh1teee/mui-phone-input/server';
 
 const result = validatePhoneValue('+441481123456');
 // status: 'possible', isPossible: true, isValid: false, accepted: true
@@ -306,7 +306,7 @@ import {
   PhoneInputRoot,
   PhoneInputValidationMessage,
   usePhoneInput,
-} from '@whiteee/mui-phone-input';
+} from '@wh1teee/mui-phone-input';
 
 function ComposablePhoneInput() {
   const phone = usePhoneInput({ defaultValue: '+1', required: true });
@@ -343,7 +343,7 @@ import {
   parsePhoneValue,
   resolveNumberingPlan,
   validatePhoneValue,
-} from '@whiteee/mui-phone-input/server';
+} from '@wh1teee/mui-phone-input/server';
 ```
 
 The server entrypoint imports no React, MUI, Emotion, DOM, or browser globals.
@@ -358,7 +358,7 @@ The release verifier installs the exact `.tgz` in a Next.js App Router
 application and compares semantic snapshots from JavaScript-disabled server
 output and the post-hydration DOM for empty, geographic, unresolved shared-code
 and non-geographic states. The same tarball is production-built and exercised
-in Vite. Import pure helpers from `@whiteee/mui-phone-input/server`; that entry
+in Vite. Import pure helpers from `@wh1teee/mui-phone-input/server`; that entry
 contains no MUI or React component graph.
 
 ## MUI customization

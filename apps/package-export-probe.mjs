@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 
-const packageName = '@whiteee/mui-phone-input';
+const packageName = '@wh1teee/mui-phone-input';
 const contract = JSON.parse(
   await readFile(new URL('./package-export-contract.json', import.meta.url), 'utf8'),
 );

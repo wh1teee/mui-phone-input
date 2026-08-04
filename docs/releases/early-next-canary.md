@@ -29,5 +29,5 @@ exposing placeholder modules.
 Install explicitly with:
 
 ```bash
-pnpm add @whiteee/mui-phone-input@next
+pnpm add @wh1teee/mui-phone-input@next
 ```

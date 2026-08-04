@@ -111,7 +111,7 @@ Current exact-artifact measurements are:
 
 - main closure: 23,745 bytes gzip;
 - server entry: 4,794 bytes gzip;
-- packed tarball: 91,694 bytes.
+- packed tarball: 91,690 bytes.
 
 CI rebuilds the artifact and requires exact byte/hash equality with the
 committed measurement.

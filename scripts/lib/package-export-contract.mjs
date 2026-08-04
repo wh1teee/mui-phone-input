@@ -22,7 +22,7 @@ import {
 
 const scriptsDirectory = dirname(fileURLToPath(import.meta.url));
 const repositoryRoot = resolve(scriptsDirectory, '../..');
-const packageName = '@whiteee/mui-phone-input';
+const packageName = '@wh1teee/mui-phone-input';
 const semanticExceptionKinds = new Set(['data-only', 'side-effect-only']);
 
 const expectedExportContract = {
@@ -263,7 +263,7 @@ export async function verifyPackageExportContract(tarball) {
   const packageRoot = join(
     temporaryRoot,
     'node_modules',
-    '@whiteee',
+    '@wh1teee',
     'mui-phone-input',
   );
 

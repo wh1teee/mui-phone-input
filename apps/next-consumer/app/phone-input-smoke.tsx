@@ -13,7 +13,7 @@ import {
   PhoneInputValidationMessage,
   type PhoneValue,
   usePhoneInput,
-} from '@whiteee/mui-phone-input';
+} from '@wh1teee/mui-phone-input';
 import { type ComponentPropsWithRef, useRef, useState } from 'react';
 
 import { SsrStateMatrix } from './ssr-state-matrix';

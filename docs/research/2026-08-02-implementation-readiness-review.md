@@ -74,4 +74,4 @@ Sources:
 
 ## Local package-identity evidence
 
-On 2026-08-02, `npm whoami` returned `E401 Unauthorized` on the implementation host. An unauthenticated lookup found no published `@whiteee/mui-phone-input` package, but absence does not prove scope ownership. Bead `mpi-g7a` is the human gate for authenticated npm identity, `@whiteee` scope control, canonical-name approval, and Trusted Publishing ownership before the early registry canary.
+On 2026-08-02, `npm whoami` returned `E401 Unauthorized` on the implementation host, so the initial draft scope was not ownership proof. Authenticated verification on 2026-08-04 identified the actual npm/GitHub identity as `wh1teee` (digit `1`), and the canonical package name was corrected to `@wh1teee/mui-phone-input`. Bead `mpi-g7a` gates create/publish authority and Trusted Publishing proof before the early registry canary.

@@ -1,5 +1,5 @@
 ---
-'@whiteee/mui-phone-input': minor
+'@wh1teee/mui-phone-input': minor
 ---
 
 Emit deterministic `onCountryChange` events for default, user, input, paste,

@@ -1,4 +1,4 @@
-# @whiteee/mui-phone-input
+# @wh1teee/mui-phone-input
 
 ## 0.1.0-next.0
 

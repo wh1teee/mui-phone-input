@@ -1,11 +1,11 @@
 # npm identity gate (`mpi-g7a`)
 
-The canonical package name remains `@whiteee/mui-phone-input`, but registry
-publication is blocked until the owner proves all of the following from an
-authenticated npm session:
+The canonical package name is `@wh1teee/mui-phone-input`, matching the
+authenticated npm and GitHub identity. Registry publication remains blocked
+until the owner proves all of the following from an authenticated npm session:
 
 1. `npm whoami` returns the intended publishing identity.
-2. The identity controls the `@whiteee` scope and can create public packages.
+2. The identity controls the `@wh1teee` scope and can create public packages.
 3. Two-factor authentication and npm Trusted Publishing/OIDC ownership are
    configured for `wh1teee/mui-phone-input`.
 4. The owner explicitly approves the canonical package name and the first

@@ -144,7 +144,7 @@ async function preparePackedConsumer(consumer, destination) {
   packageManifest.dependencies = {
     ...packageManifest.dependencies,
     ...matrices[supportMatrix],
-    '@whiteee/mui-phone-input': `file:${tarball}`,
+    '@wh1teee/mui-phone-input': `file:${tarball}`,
   };
   if (consumer === 'next-consumer') {
     Object.assign(
@@ -209,7 +209,7 @@ async function verifyMissingPackageBoundaryFails(consumer) {
   const installedPackage = join(
     destination,
     'node_modules',
-    '@whiteee',
+    '@wh1teee',
     'mui-phone-input',
   );
   const installedPackageSource = await realpath(installedPackage);
@@ -1018,7 +1018,26 @@ async function verifyPackedBrowser(destination, consumer) {
       element.focus();
       element.setSelectionRange(element.value.length, element.value.length);
     });
-    await composableInput.pressSequentially('2025550123');
+    const composableDigits = '2025550123';
+    for (const [index, digit] of [...composableDigits].entries()) {
+      await composableInput.press(digit);
+      const expectedCommittedValue = `+1${composableDigits.slice(0, index + 1)}`;
+      await page.waitForFunction(
+        ({ expectedCallbackCount, expectedValue }) => {
+          const input = document.querySelector('[data-testid="composable-input"]');
+          return (
+            input instanceof HTMLInputElement &&
+            input.value === expectedValue &&
+            document.querySelector('[data-testid="composable-callback-count"]')
+              ?.textContent === String(expectedCallbackCount)
+          );
+        },
+        {
+          expectedCallbackCount: index + 1,
+          expectedValue: expectedCommittedValue,
+        },
+      );
+    }
     if ((await composableInput.inputValue()) !== '+12025550123') {
       throw new Error(
         `Packed composable input did not commit the Phone Value: ${JSON.stringify({

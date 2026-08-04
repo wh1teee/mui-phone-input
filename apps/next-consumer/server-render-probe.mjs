@@ -30,7 +30,7 @@ const states = [
 try {
   const [muiStyles, phoneInputModule, reactModule, reactDomServer] = await Promise.all([
     import('@mui/material/styles'),
-    import('@whiteee/mui-phone-input'),
+    import('@wh1teee/mui-phone-input'),
     import('react'),
     import('react-dom/server'),
   ]);

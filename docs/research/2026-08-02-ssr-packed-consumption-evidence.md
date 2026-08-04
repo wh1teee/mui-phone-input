@@ -6,7 +6,7 @@ Bead: `mpi-oan.13`
 ## Exact artifact boundary
 
 Every proof in this lane starts by rebuilding and packing the real
-`@whiteee/mui-phone-input` `.tgz`. Temporary Next.js App Router and Vite
+`@wh1teee/mui-phone-input` `.tgz`. Temporary Next.js App Router and Vite
 applications install that tarball with strict peer dependencies; no workspace
 source alias or linked package path is accepted as runtime evidence.
 

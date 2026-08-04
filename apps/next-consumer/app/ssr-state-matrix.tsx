@@ -4,7 +4,7 @@ import {
   MuiPhoneInput,
   type MuiPhoneInputProps,
   type PhoneValue,
-} from '@whiteee/mui-phone-input';
+} from '@wh1teee/mui-phone-input';
 import { useEffect, useState } from 'react';
 
 type SsrState = Readonly<{

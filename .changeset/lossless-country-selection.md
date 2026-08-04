@@ -1,5 +1,5 @@
 ---
-'@whiteee/mui-phone-input': minor
+'@wh1teee/mui-phone-input': minor
 ---
 
 Preserve incompatible phone drafts during country selection and expose typed

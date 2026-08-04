@@ -1,5 +1,5 @@
 ---
-"@whiteee/mui-phone-input": minor
+"@wh1teee/mui-phone-input": minor
 ---
 
 Add authority-backed geographic, shared-calling-code, territory, and

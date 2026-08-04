@@ -9,7 +9,7 @@
     "pnpm": ">=11 <12"
   },
   "scripts": {
-    "build": "pnpm --filter @whiteee/mui-phone-input build",
+    "build": "pnpm --filter @wh1teee/mui-phone-input build",
     "check": "biome check .",
     "ci:forward": "pnpm verify:workspace && pnpm verify:donors && pnpm verify:input-engine && pnpm verify:production-dependencies && pnpm typecheck && pnpm test:unit && pnpm build && pnpm verify:tracer-package",
     "ci:pr": "pnpm format:check && pnpm lint && pnpm verify:github-actions-pins && pnpm verify:workspace && pnpm verify:donors && pnpm verify:input-engine && pnpm verify:production-dependencies && pnpm typecheck && pnpm test:unit && pnpm test:browser && pnpm verify:package && pnpm verify:published-runtime && pnpm verify:package-concurrency && pnpm verify:tracer-package && pnpm verify:consumers",
@@ -20,9 +20,9 @@
     "measure:tracer-package": "node scripts/measure-tracer-package.mjs",
     "release:candidate": "node scripts/create-release-candidate.mjs",
     "test": "pnpm test:unit && pnpm test:browser",
-    "test:browser": "vitest run --config vitest.browser.config.ts",
+    "test:browser": "node scripts/run-browser-tests.mjs",
     "test:unit": "vitest run --config vitest.config.ts",
-    "typecheck": "pnpm --filter @whiteee/mui-phone-input typecheck && tsc --noEmit -p tsconfig.tests.json",
+    "typecheck": "pnpm --filter @wh1teee/mui-phone-input typecheck && tsc --noEmit -p tsconfig.tests.json",
     "verify:consumers": "node scripts/verify-packed-consumers.mjs",
     "verify:donors": "node scripts/verify-donor-provenance.mjs",
     "verify:github-actions-pins": "node scripts/verify-github-actions-pins.mjs",

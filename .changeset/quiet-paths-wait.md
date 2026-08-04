@@ -1,5 +1,5 @@
 ---
-"@whiteee/mui-phone-input": patch
+"@wh1teee/mui-phone-input": patch
 ---
 
 Stop advertising empty future subpaths in the early canary. The implemented

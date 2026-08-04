@@ -1,4 +1,4 @@
-import { MuiPhoneInput } from '@whiteee/mui-phone-input';
+import { MuiPhoneInput } from '@wh1teee/mui-phone-input';
 
 export default function PackageBoundaryPage() {
   return (

@@ -1,5 +1,5 @@
 ---
-'@whiteee/mui-phone-input': patch
+'@wh1teee/mui-phone-input': patch
 ---
 
 Preserve explicit territory selections when pinned numbering metadata validates

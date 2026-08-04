@@ -69,6 +69,7 @@ const releaseCandidateVerifier = await readFile(
   'scripts/verify-release-candidate.mjs',
   'utf8',
 );
+const browserTestRunner = await readFile('scripts/run-browser-tests.mjs', 'utf8');
 const registryReleaseVerifier = await readFile(
   'scripts/verify-registry-release.mjs',
   'utf8',
@@ -81,18 +82,37 @@ const consumerExportContract = await readJson('apps/package-export-contract.json
 const rootReadme = await readFile('README.md', 'utf8');
 const packageReadme = await readFile('packages/mui-phone-input/README.md', 'utf8');
 const contributingGuide = await readFile('CONTRIBUTING.md', 'utf8');
+const npmIdentityVerifier = await readFile('scripts/check-npm-identity.mjs', 'utf8');
 const publicIntakePattern =
   /github\.com\/wh1teee\/mui-phone-input\/discussions\/new\?category=q-a/u;
 
 assert.equal(rootPackage.private, true);
 assert.match(rootPackage.packageManager, /^pnpm@11\./u);
 assert.match(rootPackage.engines.node, /24/u);
+assert.equal(rootPackage.scripts['test:browser'], 'node scripts/run-browser-tests.mjs');
+assert.match(browserTestRunner, /collectBrowserTests/u);
+assert.match(browserTestRunner, /for \(const \[index, file\] of files\.entries\(\)\)/u);
+assert.match(browserTestRunner, /--reporter=dot/u);
+assert.doesNotMatch(browserTestRunner, /Promise\.all/u);
 assert.match(pnpmWorkspace, /^minimumReleaseAge:\s*1440$/mu);
 assert.match(pnpmWorkspace, /^minimumReleaseAgeStrict:\s*false$/mu);
 assert.match(packedConsumersVerifier, /['"]minimumReleaseAge:\s*1440['"]/u);
 assert.match(packedConsumersVerifier, /['"]minimumReleaseAgeStrict:\s*false['"]/u);
+assert.match(packedConsumersVerifier, /expectedCommittedValue/u);
+assert.match(packedConsumersVerifier, /expectedCallbackCount:\s*index \+ 1/u);
+assert.doesNotMatch(
+  packedConsumersVerifier,
+  /composableInput\.pressSequentially\(['"]2025550123['"]\)/u,
+);
 
-assert.equal(packageManifest.name, '@whiteee/mui-phone-input');
+assert.equal(packageManifest.name, '@wh1teee/mui-phone-input');
+assert.equal(
+  packageManifest.name.match(/^@([^/]+)\//u)?.[1],
+  packageManifest.repository.url.match(/github\.com[/:]([^/]+)\//u)?.[1],
+  'The npm package scope must match the GitHub repository owner.',
+);
+assert.match(npmIdentityVerifier, /authenticated-identity-mismatch/u);
+assert.match(npmIdentityVerifier, /packageScope !== repositoryOwner/u);
 assert.match(packageManifest.version, /^0\.1\.0-next\.\d+$/u);
 assert.equal(packageManifest.type, 'module');
 assert.equal(packageManifest.sideEffects, false);
@@ -277,7 +297,7 @@ assert.match(
   /auditResult\.status\s*===\s*0\s*\|\|\s*advisories\.length\s*>\s*0/u,
 );
 assert.match(publishedRuntimeVerifier, /engine-strict=true/u);
-assert.match(publishedRuntimeVerifier, /@whiteee\/mui-phone-input\/server/u);
+assert.match(publishedRuntimeVerifier, /@wh1teee\/mui-phone-input\/server/u);
 assert.match(publishedRuntimeVerifier, /--artifact=/u);
 assert.match(packageExportVerifier, /ERR_PACKAGE_PATH_NOT_EXPORTED/u);
 assert.match(packageExportVerifier, /expectedExportContract/u);

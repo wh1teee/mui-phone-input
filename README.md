@@ -28,7 +28,9 @@ and `./locales/en` remain owned by `mpi-oan.11`; `./metadata/max`,
 `mpi-oan.25`. These future paths are intentionally absent from the early
 canary rather than published as empty modules.
 
-The target npm package name is `@whiteee/mui-phone-input`. This machine is not authenticated to npm, so scope ownership and Trusted Publishing approval are tracked as the human release gate `mpi-g7a`; implementation may proceed, but registry publication may not.
+The canonical npm package name is `@wh1teee/mui-phone-input`, matching the
+authenticated npm and GitHub identity. The first registry publication and
+Trusted Publishing proof are tracked by the release gate `mpi-g7a`.
 
 ## Reporting problems
 

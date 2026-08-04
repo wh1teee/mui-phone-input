@@ -30,7 +30,7 @@ const candidate = JSON.parse(
   await readFile(join(candidateDirectory, 'candidate.json'), 'utf8'),
 );
 assert.equal(candidate.schemaVersion, 1);
-assert.equal(candidate.package.name, '@whiteee/mui-phone-input');
+assert.equal(candidate.package.name, '@wh1teee/mui-phone-input');
 assert.match(candidate.package.version, /^0\.1\.0-next\.\d+$/u);
 assert.equal(candidate.publication.access, 'public');
 assert.equal(candidate.publication.distTag, 'next');
@@ -91,7 +91,7 @@ const sbom = JSON.parse(
   await readFile(join(candidateDirectory, 'sbom.cdx.json'), 'utf8'),
 );
 assert.equal(sbom.bomFormat, 'CycloneDX');
-assert.equal(sbom.metadata?.component?.group, '@whiteee');
+assert.equal(sbom.metadata?.component?.group, '@wh1teee');
 assert.equal(sbom.metadata?.component?.name, 'mui-phone-input');
 assert.equal(sbom.metadata?.component?.version, candidate.package.version);
 
