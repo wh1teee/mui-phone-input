@@ -7,7 +7,7 @@ import {
   getExampleNumber,
 } from 'libphonenumber-js/max';
 import maxMetadata from 'libphonenumber-js/metadata.max.json';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import {
   createPhoneCountryOptions,
@@ -15,6 +15,36 @@ import {
   resolvePhoneCountrySelection,
   selectPhoneCountryValue,
 } from '../../packages/mui-phone-input/src/country-selector';
+
+const REPRESENTATIVE_COLLATION_LOCALES = [
+  'sv',
+  'en',
+  'be',
+  'tr',
+  'az',
+  'lt',
+  'el',
+  'ja',
+  'ar',
+].filter((locale) => Intl.Collator.supportedLocalesOf([locale]).length > 0);
+
+function compareCountryCodes(left: CountryCode, right: CountryCode): number {
+  return left < right ? -1 : left > right ? 1 : 0;
+}
+
+function sortWithReferenceCollator(
+  options: readonly ReturnType<typeof createPhoneCountryOptions>[number][],
+  locale: string,
+): CountryCode[] {
+  const collator = new Intl.Collator(locale);
+  return [...options]
+    .sort(
+      (left, right) =>
+        collator.compare(left.localizedName, right.localizedName) ||
+        compareCountryCodes(left.country, right.country),
+    )
+    .map((option) => option.country);
+}
 
 function metadataForCountry(country: CountryCode): MetadataJson {
   const callingCode = getCountryCallingCode(country);
@@ -91,6 +121,100 @@ describe('country selector data', () => {
       'LT',
     ]);
     expect(options.filter((option) => option.country === 'BY')).toHaveLength(1);
+  });
+
+  it('uses explicit Swedish collation for Å and Ö country names', () => {
+    const swedishNames: Partial<Record<CountryCode, string>> = {
+      AT: 'Österrike',
+      AX: 'Åland',
+      TL: 'Östtimor',
+      ZM: 'Zambia',
+      ZW: 'Zimbabwe',
+    };
+    const swedishOptions = createPhoneCountryOptions({
+      countryFilter: (country) => country in swedishNames,
+      locale: 'sv',
+      resolveCountryName: (country, locale) =>
+        locale === 'sv' ? swedishNames[country] : undefined,
+    });
+
+    expect(swedishOptions.map((option) => option.country)).toEqual([
+      'ZM',
+      'ZW',
+      'AX',
+      'AT',
+      'TL',
+    ]);
+  });
+
+  it.each(REPRESENTATIVE_COLLATION_LOCALES)(
+    'matches an explicit Intl.Collator(%s) reference',
+    (locale) => {
+      const localizedOptions = createPhoneCountryOptions({ locale });
+
+      expect(localizedOptions.map((option) => option.country)).toEqual(
+        sortWithReferenceCollator(localizedOptions, locale),
+      );
+    },
+  );
+
+  it('does not depend on String localeCompare or the host default locale', () => {
+    const localeCompare = vi
+      .spyOn(String.prototype, 'localeCompare')
+      .mockImplementation(() => {
+        throw new Error('host-default localeCompare must not be used');
+      });
+
+    expect(() => createPhoneCountryOptions({ locale: 'sv' })).not.toThrow();
+    localeCompare.mockRestore();
+  });
+
+  it('uses an explicit ISO country-code tie break', () => {
+    const tiedOptions = createPhoneCountryOptions({
+      countryFilter: (country) => country === 'BY' || country === 'US',
+      locale: 'sv',
+      resolveCountryName: () => 'Samma namn',
+    });
+
+    expect(tiedOptions.map((option) => option.country)).toEqual(['BY', 'US']);
+  });
+
+  it('keeps preferred countries and custom ordering authoritative', () => {
+    const localizedOptions = createPhoneCountryOptions({
+      countryFilter: (country) => ['AT', 'AX', 'ZM'].includes(country),
+      countryOrder: (left, right) => compareCountryCodes(right.country, left.country),
+      locale: 'sv',
+      preferredCountries: ['AX'],
+    });
+
+    expect(localizedOptions.map((option) => option.country)).toEqual([
+      'AX',
+      'ZM',
+      'AT',
+    ]);
+  });
+
+  it('falls back deterministically for malformed and unsupported locales', () => {
+    const englishCountries = createPhoneCountryOptions({ locale: 'en' }).map(
+      (option) => option.country,
+    );
+
+    for (const locale of ['not_a_locale', 'zz-ZZ']) {
+      expect(
+        createPhoneCountryOptions({ locale }).map((option) => option.country),
+      ).toEqual(englishCountries);
+    }
+  });
+
+  it('constructs repeatably in the SSR-safe Node environment', () => {
+    const first = createPhoneCountryOptions({ locale: 'sv' }).map(
+      (option) => option.country,
+    );
+    const second = createPhoneCountryOptions({ locale: 'sv' }).map(
+      (option) => option.country,
+    );
+
+    expect(second).toEqual(first);
   });
 
   it('supports country filtering and replaceable ordering', () => {

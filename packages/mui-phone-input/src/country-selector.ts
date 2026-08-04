@@ -89,6 +89,7 @@ const AUTHORITY_CALLING_CODES = Object.freeze([
   ...Object.keys(maxMetadata.country_calling_codes),
   ...Object.keys(maxMetadata.nonGeographic),
 ]);
+const DEFAULT_INTL_LOCALE = 'en';
 
 function isPartialInternationalCallingCode(
   digits: string,
@@ -109,6 +110,17 @@ function createDisplayNames(locale: string): Intl.DisplayNames | null {
     return new Intl.DisplayNames([locale], { fallback: 'code', type: 'region' });
   } catch {
     return null;
+  }
+}
+
+function resolveIntlLocale(locale: string): string {
+  try {
+    return (
+      Intl.Collator.supportedLocalesOf([locale], { localeMatcher: 'lookup' })[0] ??
+      DEFAULT_INTL_LOCALE
+    );
+  } catch {
+    return DEFAULT_INTL_LOCALE;
   }
 }
 
@@ -156,25 +168,33 @@ function normalizeCallingCodeSearchQuery(value: string): string | null {
   return digits;
 }
 
-function defaultCountryOrder(
-  left: Readonly<PhoneCountryOption>,
-  right: Readonly<PhoneCountryOption>,
-): number {
-  if (left.preferred !== right.preferred) {
-    return left.preferred ? -1 : 1;
-  }
-  return (
-    left.localizedName.localeCompare(right.localizedName) ||
-    left.country.localeCompare(right.country)
-  );
+function compareCountryCodes(left: CountryCode, right: CountryCode): number {
+  return left < right ? -1 : left > right ? 1 : 0;
+}
+
+function createDefaultCountryOrder(
+  locale: string,
+): NonNullable<CreatePhoneCountryOptionsParameters['countryOrder']> {
+  const collator = new Intl.Collator(locale);
+
+  return (left, right) => {
+    if (left.preferred !== right.preferred) {
+      return left.preferred ? -1 : 1;
+    }
+    return (
+      collator.compare(left.localizedName, right.localizedName) ||
+      compareCountryCodes(left.country, right.country)
+    );
+  };
 }
 
 export function createPhoneCountryOptions(
   parameters: CreatePhoneCountryOptionsParameters = {},
 ): readonly PhoneCountryOption[] {
-  const locale = parameters.locale ?? 'en';
-  const localizedDisplayNames = createDisplayNames(locale);
-  const englishDisplayNames = createDisplayNames('en');
+  const requestedLocale = parameters.locale ?? DEFAULT_INTL_LOCALE;
+  const intlLocale = resolveIntlLocale(requestedLocale);
+  const localizedDisplayNames = createDisplayNames(intlLocale);
+  const englishDisplayNames = createDisplayNames(DEFAULT_INTL_LOCALE);
   const preferredCountries: CountryCode[] = [];
   const preferredSet = new Set<CountryCode>();
 
@@ -192,14 +212,14 @@ export function createPhoneCountryOptions(
       const englishName =
         resolveDisplayName(
           country,
-          'en',
+          DEFAULT_INTL_LOCALE,
           parameters.resolveCountryName,
           englishDisplayNames,
         ) ?? country;
       const localizedName =
         resolveDisplayName(
           country,
-          locale,
+          requestedLocale,
           parameters.resolveCountryName,
           localizedDisplayNames,
         ) ?? englishName;
@@ -213,7 +233,7 @@ export function createPhoneCountryOptions(
       });
     });
 
-  const order = parameters.countryOrder ?? defaultCountryOrder;
+  const order = parameters.countryOrder ?? createDefaultCountryOrder(intlLocale);
   const preferredIndex = new Map(
     preferredCountries.map((country, index) => [country, index] as const),
   );
