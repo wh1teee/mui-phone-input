@@ -399,6 +399,11 @@ function isInsideCountrySelectorSurface(element: Element): boolean {
   return false;
 }
 
+function resolveInlineDialogContainer(anchor: HTMLElement | null): HTMLElement | null {
+  const phoneInputRoot = anchor?.closest(`.${muiPhoneInputClasses.root}`);
+  return phoneInputRoot?.parentElement ?? anchor?.parentElement ?? null;
+}
+
 function resolveSlotProps<TOwnerState, TProps extends object>(
   slotProps: TProps | ((ownerState: TOwnerState) => TProps) | undefined,
   ownerState: TOwnerState,
@@ -655,6 +660,10 @@ export function PhoneInputCountrySelector({
   const searchInputRef = useRef<HTMLInputElement | null>(null);
   const listboxElementRef = useRef<HTMLUListElement | null>(null);
   const closeButtonRef = useRef<HTMLButtonElement | null>(null);
+  const inlineDialogContainer = useCallback(
+    () => resolveInlineDialogContainer(hiddenInputRef.current),
+    [],
+  );
   const setHiddenInputRef = useCallback(
     (input: HTMLInputElement | null) => {
       hiddenInputRef.current = input;
@@ -1162,8 +1171,10 @@ export function PhoneInputCountrySelector({
       {mobile ? (
         <Dialog
           aria-labelledby={dialogTitleId}
-          container={portalContainer}
-          disablePortal={disablePortal}
+          // ModalManager isolates only direct children of its container. A bounded
+          // portal keeps requested no-portal DOM in the consumer host without hiding it.
+          container={disablePortal ? inlineDialogContainer : portalContainer}
+          disablePortal={false}
           disableRestoreFocus
           fullScreen
           onClose={() => closeSelector()}

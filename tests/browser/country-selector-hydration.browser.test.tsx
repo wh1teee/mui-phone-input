@@ -279,12 +279,17 @@ describe('country selector hydration', () => {
       media.setMatches(true);
 
       await expect.element(trigger).toHaveAttribute('aria-haspopup', 'dialog');
+      const dialog = page.getByRole('dialog', { name: 'Select country' });
       const mobileSearch = page.getByTestId('hydrated-country-search');
+      await expect.element(dialog).toBeInTheDocument();
       await expect.element(mobileSearch).toHaveValue('a');
       await expect.element(mobileSearch).toHaveFocus();
       await expect
         .element(mobileSearch)
         .toHaveAttribute('aria-activedescendant', highlighted.id);
+      expect(dialog.element().closest('[aria-hidden="true"]')).toBeNull();
+      expect(mobileSearch.element().closest('[aria-hidden="true"]')).toBeNull();
+      expect(container.contains(dialog.element())).toBe(disablePortal);
       const mobileActive = activeOption(mobileSearch.element() as HTMLInputElement);
       expect(mobileActive).toBeInstanceOf(HTMLElement);
       expect(mobileActive).not.toBe(highlighted);
@@ -293,6 +298,7 @@ describe('country selector hydration', () => {
       media.setMatches(false);
 
       await expect.element(trigger).toHaveAttribute('aria-haspopup', 'listbox');
+      await expect.element(dialog).not.toBeInTheDocument();
       const restoredDesktopSearch = page.getByTestId('hydrated-country-search');
       await expect.element(restoredDesktopSearch).toHaveValue('a');
       await expect.element(restoredDesktopSearch).toHaveFocus();
@@ -305,6 +311,7 @@ describe('country selector hydration', () => {
       expect(restoredActive).toBeInstanceOf(HTMLElement);
       expect(restoredActive).not.toBe(mobileActive);
       expect(restoredActive).toHaveAttribute('data-country', highlightedCountry);
+      expect(container.closest('[aria-hidden="true"]')).toBeNull();
       expect(consoleError).not.toHaveBeenCalled();
     },
   );
