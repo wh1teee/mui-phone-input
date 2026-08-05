@@ -62,17 +62,30 @@ describe('resolveCompleteNationalPhoneValue', () => {
   );
 
   it.each([
-    { country: 'US', expected: '+12005550123', national: '2005550123' },
-    { country: 'BY', expected: '+375201234567', national: '201234567' },
+    {
+      country: 'US',
+      expected: '+12005550123',
+      expectedSelectedCountry: null,
+      national: '2005550123',
+    },
+    {
+      country: 'BY',
+      expected: '+375201234567',
+      expectedSelectedCountry: null,
+      national: '201234567',
+    },
   ] as const)(
     'keeps possible-but-not-valid $country values inside the default possibility policy',
-    ({ country, expected, national }) => {
+    ({ country, expected, expectedSelectedCountry, national }) => {
       const phoneNumber = parsePhoneNumberFromString(national, country);
       expect(phoneNumber?.number).toBe(expected);
       expect(phoneNumber?.isPossible()).toBe(true);
       expect(phoneNumber?.isValid()).toBe(false);
 
       expect(resolveCompleteNationalPhoneValue(national, country)).toBe(expected);
+      expect(
+        resolveNumberingPlan(expected, { selectedCountry: country }).selectedCountry,
+      ).toBe(expectedSelectedCountry);
     },
   );
 

@@ -59,6 +59,11 @@ callback even when normalization produces the existing canonical value. This
 is limited to the already narrow autofill gate and does not remove ordinary
 idempotence for incremental input or external controlled reconciliation.
 
+The selected country used to construct the E.164 candidate is captured in the
+pending transaction and reused by its queued commit. Callback details therefore
+cannot drift to a later reconciliation state between the native input event and
+the commit microtask.
+
 The transaction gate remains unchanged and narrow: complete-field
 `insertReplacementText`, non-composing input, known selected country, and no
 international `+` in the replacement. Ordinary input, partial replacement,
@@ -79,10 +84,11 @@ reproduction, possible-but-not-valid US/BY replacements, and the
 non-reclassification of a composing complete-field replacement.
 
 The US and BY possible-but-not-valid examples intentionally continue through
-the existing explicit-country compatibility policy after normalization. US
-`200…` is accepted while its incompatible selected-country state clears; BY
-`20…` is accepted while BY remains selected. Autofill does not create a second
-country policy.
+the existing explicit-country compatibility policy after normalization. Both
+values are accepted by the default possibility policy while their selected
+countries clear because neither complete national pattern can still become a
+valid number for that country. Autofill does not create a second country
+policy.
 
 ## Verification
 

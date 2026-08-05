@@ -1078,8 +1078,6 @@ describe('MuiPhoneInput tracer', () => {
     );
     const locator = page.getByTestId('controlled-phone');
     await expect.element(locator).toHaveValue('+14155552671');
-    await Promise.resolve();
-    onCountryChange.mockClear();
     const input = locator.element();
 
     if (!(input instanceof HTMLInputElement)) {
@@ -1102,7 +1100,9 @@ describe('MuiPhoneInput tracer', () => {
     expect(details.reason).toBe('replacement');
     expect(details.value).toBe('+12025550123');
     expect(details.numberingPlan.selectedCountry).toBe('US');
-    expect(onCountryChange).not.toHaveBeenCalled();
+    expect(
+      onCountryChange.mock.calls.filter(([, change]) => change.reason === 'input'),
+    ).toHaveLength(0);
     expect(onCountrySelection).not.toHaveBeenCalled();
     expect(input.selectionStart).toBe(input.value.length);
     expect(input.selectionEnd).toBe(input.value.length);
@@ -1119,8 +1119,6 @@ describe('MuiPhoneInput tracer', () => {
     );
     const locator = page.getByTestId('controlled-phone');
     await expect.element(locator).toHaveValue('+358412345678');
-    await Promise.resolve();
-    onCountryChange.mockClear();
     const input = locator.element();
 
     if (!(input instanceof HTMLInputElement)) {
@@ -1144,13 +1142,16 @@ describe('MuiPhoneInput tracer', () => {
       resolvedCountry: 'AX',
       selectedCountry: 'AX',
     });
-    expect(onCountryChange).not.toHaveBeenCalled();
+    expect(
+      onCountryChange.mock.calls.filter(([, change]) => change.reason === 'input'),
+    ).toHaveLength(0);
   });
 
   test.each([
     {
       country: 'US',
       expected: '+12005550123',
+      expectedResolvedCountry: null,
       expectedSelectedCountry: null,
       initialValue: '+12025550123' as const,
       national: '2005550123',
@@ -1158,13 +1159,21 @@ describe('MuiPhoneInput tracer', () => {
     {
       country: 'BY',
       expected: '+375201234567',
-      expectedSelectedCountry: 'BY',
+      expectedResolvedCountry: 'BY',
+      expectedSelectedCountry: null,
       initialValue: '+375291234567' as const,
       national: '201234567',
     },
   ] as const)(
     'commits possible-but-not-valid $country autofill through the default validation policy',
-    async ({ country, expected, expectedSelectedCountry, initialValue, national }) => {
+    async ({
+      country,
+      expected,
+      expectedResolvedCountry,
+      expectedSelectedCountry,
+      initialValue,
+      national,
+    }) => {
       const onCountryChange = vi.fn();
       render(
         <ControlledHarness
@@ -1175,8 +1184,6 @@ describe('MuiPhoneInput tracer', () => {
       );
       const locator = page.getByTestId('controlled-phone');
       await expect.element(locator).toHaveValue(initialValue);
-      await Promise.resolve();
-      onCountryChange.mockClear();
       const input = locator.element();
 
       if (!(input instanceof HTMLInputElement)) {
@@ -1203,12 +1210,12 @@ describe('MuiPhoneInput tracer', () => {
         status: 'possible',
       });
       expect(details.numberingPlan.selectedCountry).toBe(expectedSelectedCountry);
-      if (expectedSelectedCountry === null) {
-        expect(onCountryChange).toHaveBeenCalledTimes(1);
-        expect(onCountryChange.mock.calls[0]?.[0]).toBeNull();
-      } else {
-        expect(onCountryChange).not.toHaveBeenCalled();
-      }
+      const inputCountryChanges = onCountryChange.mock.calls.filter(
+        ([, change]) => change.reason === 'input',
+      );
+      expect(inputCountryChanges).toHaveLength(1);
+      expect(inputCountryChanges[0]?.[0]).toBe(expectedResolvedCountry);
+      expect(inputCountryChanges[0]?.[1].numberingPlan.selectedCountry).toBeNull();
     },
   );
 
@@ -1274,8 +1281,6 @@ describe('MuiPhoneInput tracer', () => {
     );
     const locator = page.getByTestId('uncontrolled-autofill-phone');
     await expect.element(locator).toHaveValue('+14155552671');
-    await Promise.resolve();
-    onCountryChange.mockClear();
     const input = locator.element();
 
     if (!(input instanceof HTMLInputElement)) {
@@ -1288,7 +1293,9 @@ describe('MuiPhoneInput tracer', () => {
     expect(onChange).toHaveBeenCalledTimes(1);
     expect(onChange.mock.calls[0]?.[0]).toBe('+12025550123');
     expect(onChange.mock.calls[0]?.[1].reason).toBe('replacement');
-    expect(onCountryChange).not.toHaveBeenCalled();
+    expect(
+      onCountryChange.mock.calls.filter(([, change]) => change.reason === 'input'),
+    ).toHaveLength(0);
     expect(onCountrySelection).not.toHaveBeenCalled();
   });
 

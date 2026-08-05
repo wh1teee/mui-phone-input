@@ -48,6 +48,7 @@ type PendingTransaction = Readonly<{
   authoritativeFullFieldReplacement: boolean;
   displayValue: string;
   reason: PhoneInputChangeReason;
+  selectedCountry: CountryCode | null;
 }>;
 
 type PendingBeforeInput = Readonly<{
@@ -487,6 +488,7 @@ export function usePhoneInputTransactions(
       displayValue: string,
       reason: PhoneInputChangeReason,
       authoritativeFullFieldReplacement = false,
+      selectedCountry: CountryCode | null = null,
     ) => {
       const pending = pendingTransactionRef.current;
       if (
@@ -510,6 +512,7 @@ export function usePhoneInputTransactions(
         authoritativeFullFieldReplacement,
         displayValue: nextDisplayValue,
         reason: nextReason,
+        selectedCountry,
       };
 
       if (pendingCommitScheduledRef.current) {
@@ -531,11 +534,14 @@ export function usePhoneInputTransactions(
         pendingTransactionRef.current = null;
 
         if (!composingRef.current && transaction) {
+          const selectedCountry = transaction.authoritativeFullFieldReplacement
+            ? transaction.selectedCountry
+            : currentSelectedCountryRef.current;
           commit(
             transaction.displayValue,
             transaction.reason,
-            currentSelectedCountryRef.current,
-            currentSelectedCountryRef.current,
+            selectedCountry,
+            selectedCountry,
             transaction.authoritativeFullFieldReplacement,
           );
         }
@@ -576,10 +582,11 @@ export function usePhoneInputTransactions(
         return;
       }
 
+      const selectedCountry = currentSelectedCountryRef.current;
       const completeNationalReplacement = resolveCompleteNationalReplacement(
         event.currentTarget.value,
         pendingBeforeInput,
-        currentSelectedCountryRef.current,
+        selectedCountry,
       );
       const displayValue = completeNationalReplacement ?? event.currentTarget.value;
       const nextValue = parsePhoneValue(displayValue);
@@ -595,6 +602,7 @@ export function usePhoneInputTransactions(
           ? 'replacement'
           : resolveChangeReason(inputEvent.inputType, nextValue, pasted),
         completeNationalReplacement !== null,
+        completeNationalReplacement === null ? null : selectedCountry,
       );
     },
     [currentSelectedCountryRef, scheduleCommit],
