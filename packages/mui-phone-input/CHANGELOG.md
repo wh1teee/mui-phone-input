@@ -1,5 +1,14 @@
 # @wh1teee/mui-phone-input
 
+## 0.1.0-next.3
+
+### Patch Changes
+
+- 4bca1bf: Align country-stripped complete-field autofill with the selected-country
+  numbering authority and the default possibility validation policy, including
+  one authoritative callback when autofill normalizes back to the existing
+  canonical value.
+
 ## 0.1.0-next.2
 
 ### Patch Changes
