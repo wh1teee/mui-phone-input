@@ -13,7 +13,10 @@ import {
   type PhoneValue,
   usePhoneInput,
 } from '@wh1teee/mui-phone-input';
-import { resolveNumberingPlan } from '@wh1teee/mui-phone-input/server';
+import {
+  parseNationalPhoneValue,
+  resolveNumberingPlan,
+} from '@wh1teee/mui-phone-input/server';
 import { type ComponentPropsWithRef, StrictMode, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 
@@ -22,6 +25,7 @@ import { SsrStateMatrix } from './ssr-state-matrix';
 const theme = createTheme({ cssVariables: true });
 const root = document.querySelector('#root');
 const serverPlan = resolveNumberingPlan('+80012345678');
+const serverNationalPhone = parseNationalPhoneValue('80291234567', 'BY');
 
 function PackedCountryOption({
   ownerState,
@@ -283,7 +287,9 @@ createRoot(root).render(
     <ThemeProvider theme={theme}>
       <main>
         <h1>Packed Vite consumer</h1>
-        <output data-testid="server-plan-matrix">{serverPlan.kind}</output>
+        <output data-testid="server-plan-matrix">
+          {JSON.stringify({ kind: serverPlan.kind, national: serverNationalPhone })}
+        </output>
         <PackedPhoneInput />
         <MuiPhoneInput
           defaultCountry="BY"

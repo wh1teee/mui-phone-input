@@ -11,21 +11,25 @@ import { describe, expect, it } from 'vitest';
 
 import {
   type NumberingPlanResolution,
-  resolveCompleteNationalPhoneValue,
   resolveNumberingPlan,
 } from '../../packages/mui-phone-input/src/numbering-plan';
 import type { PhoneValue } from '../../packages/mui-phone-input/src/phone-value';
+import { parseNationalPhoneValue } from '../../packages/mui-phone-input/src/server';
 
 function expectSerializableResolution(resolution: NumberingPlanResolution) {
   expect(JSON.parse(JSON.stringify(resolution))).toEqual(resolution);
 }
 
-describe('resolveCompleteNationalPhoneValue', () => {
+describe('parseNationalPhoneValue', () => {
+  it('exposes the selected-country parser through the server entrypoint', () => {
+    expect(parseNationalPhoneValue('80291234567', 'BY')).toBe('+375291234567');
+    expect(parseNationalPhoneValue('0291234567', 'BY')).toBe('+375291234567');
+    expect(parseNationalPhoneValue('8 (029) 123-45-67', 'BY')).toBe('+375291234567');
+  });
+
   it('uses the selected country as the sole authority for a complete national number', () => {
-    expect(resolveCompleteNationalPhoneValue('2025550123', 'US')).toBe('+12025550123');
-    expect(resolveCompleteNationalPhoneValue('(202) 555-0123', 'US')).toBe(
-      '+12025550123',
-    );
+    expect(parseNationalPhoneValue('2025550123', 'US')).toBe('+12025550123');
+    expect(parseNationalPhoneValue('(202) 555-0123', 'US')).toBe('+12025550123');
   });
 
   it('resolves every pinned authority mobile example from its national component', () => {
@@ -40,7 +44,7 @@ describe('resolveCompleteNationalPhoneValue', () => {
       expect(example).toBeDefined();
 
       expect(
-        resolveCompleteNationalPhoneValue(example!.nationalNumber, country),
+        parseNationalPhoneValue(example!.nationalNumber, country),
         `${country} national autofill did not preserve its authority example`,
       ).toBe(example!.number);
     }
@@ -55,7 +59,7 @@ describe('resolveCompleteNationalPhoneValue', () => {
         parsePhoneNumberFromString(example!.nationalNumber, country)?.country,
       ).not.toBe(country);
 
-      expect(resolveCompleteNationalPhoneValue(example!.nationalNumber, country)).toBe(
+      expect(parseNationalPhoneValue(example!.nationalNumber, country)).toBe(
         example!.number,
       );
     },
@@ -82,7 +86,7 @@ describe('resolveCompleteNationalPhoneValue', () => {
       expect(phoneNumber?.isPossible()).toBe(true);
       expect(phoneNumber?.isValid()).toBe(false);
 
-      expect(resolveCompleteNationalPhoneValue(national, country)).toBe(expected);
+      expect(parseNationalPhoneValue(national, country)).toBe(expected);
       expect(
         resolveNumberingPlan(expected, { selectedCountry: country }).selectedCountry,
       ).toBe(expectedSelectedCountry);
@@ -90,24 +94,22 @@ describe('resolveCompleteNationalPhoneValue', () => {
   );
 
   it('rejects structurally impossible national candidates', () => {
-    expect(resolveCompleteNationalPhoneValue('123', 'US')).toBeNull();
-    expect(resolveCompleteNationalPhoneValue('1234567890123456', 'US')).toBeNull();
-    expect(resolveCompleteNationalPhoneValue('12', 'BY')).toBeNull();
+    expect(parseNationalPhoneValue('123', 'US')).toBeNull();
+    expect(parseNationalPhoneValue('1234567890123456', 'US')).toBeNull();
+    expect(parseNationalPhoneValue('12', 'BY')).toBeNull();
   });
 
   it('rejects international, malformed, and empty input', () => {
-    expect(resolveCompleteNationalPhoneValue('+12025550123', 'US')).toBeNull();
-    expect(resolveCompleteNationalPhoneValue('phone: 2025550123', 'US')).toBeNull();
-    expect(resolveCompleteNationalPhoneValue('202+5550123', 'US')).toBeNull();
-    expect(resolveCompleteNationalPhoneValue('', 'US')).toBeNull();
-    expect(resolveCompleteNationalPhoneValue('   ', 'US')).toBeNull();
+    expect(parseNationalPhoneValue('+12025550123', 'US')).toBeNull();
+    expect(parseNationalPhoneValue('phone: 2025550123', 'US')).toBeNull();
+    expect(parseNationalPhoneValue('202+5550123', 'US')).toBeNull();
+    expect(parseNationalPhoneValue('', 'US')).toBeNull();
+    expect(parseNationalPhoneValue('   ', 'US')).toBeNull();
   });
 
   it('normalizes supported Unicode decimal digits in national autofill', () => {
-    expect(resolveCompleteNationalPhoneValue('２０２５５５０１２３', 'US')).toBe(
-      '+12025550123',
-    );
-    expect(resolveCompleteNationalPhoneValue('٢٠٢٥٥٥٠١٢٣', 'US')).toBe('+12025550123');
+    expect(parseNationalPhoneValue('２０２５５５０１２３', 'US')).toBe('+12025550123');
+    expect(parseNationalPhoneValue('٢٠٢٥٥٥٠١٢٣', 'US')).toBe('+12025550123');
   });
 });
 

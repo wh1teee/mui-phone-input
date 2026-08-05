@@ -181,7 +181,12 @@ function validateSelectedCountry(
   return selectedCountry;
 }
 
-export function resolveCompleteNationalPhoneValue(
+/**
+ * Parses one complete national number under an explicit country authority.
+ * Returns `null` for incomplete, international, malformed, or structurally
+ * impossible input.
+ */
+export function parseNationalPhoneValue(
   input: string,
   country: CountryCode,
 ): Exclude<PhoneValue, undefined> | null {

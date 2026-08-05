@@ -1,4 +1,7 @@
-import { resolveNumberingPlan } from '@wh1teee/mui-phone-input/server';
+import {
+  parseNationalPhoneValue,
+  resolveNumberingPlan,
+} from '@wh1teee/mui-phone-input/server';
 
 import { PhoneInputSmoke } from './phone-input-smoke';
 
@@ -7,6 +10,7 @@ export default function Page() {
     empty: resolveNumberingPlan(undefined).kind,
     geographic: resolveNumberingPlan('+375291234567').kind,
     nonGeographic: resolveNumberingPlan('+80012345678').kind,
+    national: parseNationalPhoneValue('80291234567', 'BY'),
     territory: resolveNumberingPlan('+358412345678', { selectedCountry: 'AX' }).kind,
     unresolved: resolveNumberingPlan('+1').kind,
   };

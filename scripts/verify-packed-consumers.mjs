@@ -472,6 +472,7 @@ async function verifyPackedBrowser(destination, consumer) {
           {
             empty: 'unresolved',
             geographic: 'geographic',
+            national: '+375291234567',
             nonGeographic: 'non-geographic',
             territory: 'geographic',
             unresolved: 'unresolved',
@@ -581,9 +582,11 @@ async function verifyPackedBrowser(destination, consumer) {
         'Next.js server HTML and hydrated phone states diverged.',
       );
     } else {
-      assert.equal(
-        await page.getByTestId('server-plan-matrix').textContent(),
-        'non-geographic',
+      assert.deepEqual(
+        JSON.parse(
+          (await page.getByTestId('server-plan-matrix').textContent()) || '{}',
+        ),
+        { kind: 'non-geographic', national: '+375291234567' },
       );
     }
     await page.waitForFunction(() =>

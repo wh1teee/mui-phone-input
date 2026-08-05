@@ -3,6 +3,7 @@ export {
   type NonGeographicNumberingPlanResolution,
   type NumberingPlanResolution,
   type NumberingPlanResolutionOptions,
+  parseNationalPhoneValue,
   resolveNumberingPlan,
   type UnresolvedNumberingPlanResolution,
 } from './numbering-plan';

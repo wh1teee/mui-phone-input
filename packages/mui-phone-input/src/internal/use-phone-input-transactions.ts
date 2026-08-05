@@ -17,10 +17,7 @@ import {
   type PhoneCountrySelectionResult,
   resolvePhoneCountrySelection,
 } from '../country-selector';
-import {
-  resolveCompleteNationalPhoneValue,
-  resolveNumberingPlan,
-} from '../numbering-plan';
+import { parseNationalPhoneValue, resolveNumberingPlan } from '../numbering-plan';
 import {
   type PhoneValidationMode,
   type PhoneValidationOptions,
@@ -164,7 +161,7 @@ function resolveCompleteNationalReplacement(
     return null;
   }
 
-  return resolveCompleteNationalPhoneValue(incomingValue, selectedCountry);
+  return parseNationalPhoneValue(incomingValue, selectedCountry);
 }
 
 function resolveChangeReason(

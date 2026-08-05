@@ -123,6 +123,7 @@ assert.deepEqual(Object.keys(server).sort(), [
   'assertPhoneValue',
   'formatPhoneValueForDisplay',
   'isPhoneValue',
+  'parseNationalPhoneValue',
   'parsePhoneValue',
   'resolveNumberingPlan',
   'validatePhoneValue',

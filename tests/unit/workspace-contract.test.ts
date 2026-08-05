@@ -10,6 +10,7 @@ describe('foundation test seam', () => {
         'MuiPhoneInput',
         'assertPhoneValue',
         'isPhoneValue',
+        'parseNationalPhoneValue',
         'parsePhoneValue',
       ]),
     );
@@ -17,6 +18,7 @@ describe('foundation test seam', () => {
       'assertPhoneValue',
       'formatPhoneValueForDisplay',
       'isPhoneValue',
+      'parseNationalPhoneValue',
       'parsePhoneValue',
       'resolveNumberingPlan',
       'validatePhoneValue',

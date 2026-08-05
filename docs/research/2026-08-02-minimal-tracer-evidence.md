@@ -113,9 +113,9 @@ externalizes declared peers.
 
 Current exact-artifact measurements are:
 
-- main closure: 23,778 bytes gzip;
-- server entry: 4,794 bytes gzip;
-- packed tarball: 91,933 bytes.
+- main closure: 23,785 bytes gzip;
+- server entry: 5,057 bytes gzip;
+- packed tarball: 92,749 bytes.
 
 CI rebuilds the artifact and requires exact byte/hash equality with the
 committed measurement.

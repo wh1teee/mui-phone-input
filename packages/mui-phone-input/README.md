@@ -340,11 +340,23 @@ import {
   assertPhoneValue,
   formatPhoneValueForDisplay,
   isPhoneValue,
+  parseNationalPhoneValue,
   parsePhoneValue,
   resolveNumberingPlan,
   validatePhoneValue,
 } from '@wh1teee/mui-phone-input/server';
+
+const passengerPhone = parseNationalPhoneValue('8 (029) 123-45-67', 'BY');
+// '+375291234567'
 ```
+
+`parseNationalPhoneValue(input, country)` accepts one complete national number
+under the explicit country authority and returns a canonical Phone Value only
+when the result is structurally possible. It shares the same metadata-backed
+implementation used by complete-field national autofill, including territory
+identity and possible-by-default semantics. It returns `null` for partial,
+international, malformed, or structurally impossible input. Use
+`parsePhoneValue` for already international formatted input.
 
 The server entrypoint imports no React, MUI, Emotion, DOM, or browser globals.
 
