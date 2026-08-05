@@ -7,6 +7,7 @@
     "@wh1teee/mui-phone-input": "0.0.0"
   },
   "changesets": [
+    "accept-national-keyboard-paste",
     "align-national-autofill-authority",
     "basic-country-selector",
     "brave-lemons-wait",
