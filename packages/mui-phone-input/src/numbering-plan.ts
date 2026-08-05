@@ -2,6 +2,7 @@ import {
   isPossiblePhoneNumber,
   Metadata,
   type MetadataJson,
+  parsePhoneNumberFromString as parsePhoneNumberFromStringWithMetadata,
 } from 'libphonenumber-js/core';
 import {
   AsYouType,
@@ -9,7 +10,6 @@ import {
   getCountries,
   getCountryCallingCode,
   isSupportedCountry,
-  parsePhoneNumberFromString,
 } from 'libphonenumber-js/max';
 import maxMetadata from 'libphonenumber-js/metadata.max.json';
 
@@ -203,8 +203,12 @@ export function resolveCompleteNationalPhoneValue(
     return null;
   }
 
-  const phoneNumber = parsePhoneNumberFromString(nationalDigits, country);
-  if (!phoneNumber || phoneNumber.country !== country || !phoneNumber.isValid()) {
+  const phoneNumber = parsePhoneNumberFromStringWithMetadata(
+    nationalDigits,
+    country,
+    metadataForSelectedCountry(country),
+  );
+  if (!phoneNumber) {
     return null;
   }
 

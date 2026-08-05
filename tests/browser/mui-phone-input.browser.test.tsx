@@ -1108,6 +1108,110 @@ describe('MuiPhoneInput tracer', () => {
     expect(input.selectionEnd).toBe(input.value.length);
   });
 
+  test('accepts country-stripped autofill once for an explicit territory whose parent plan is detected globally', async () => {
+    const onCountryChange = vi.fn();
+    render(
+      <ControlledHarness
+        initialValue="+358412345678"
+        onCountryChange={onCountryChange}
+        selectedCountry="AX"
+      />,
+    );
+    const locator = page.getByTestId('controlled-phone');
+    await expect.element(locator).toHaveValue('+358412345678');
+    await Promise.resolve();
+    onCountryChange.mockClear();
+    const input = locator.element();
+
+    if (!(input instanceof HTMLInputElement)) {
+      throw new Error('Expected the native phone input.');
+    }
+
+    replaceCompleteInputValue(input, '412345678');
+
+    await expect.element(locator).toHaveValue('+358412345678');
+    await expect
+      .element(page.getByTestId('controlled-callback-count'))
+      .toHaveTextContent('1');
+    const details = JSON.parse(
+      page.getByTestId('controlled-details').element().textContent ?? '',
+    ) as PhoneInputChangeDetails;
+    expect(details.previousValue).toBe('+358412345678');
+    expect(details.reason).toBe('replacement');
+    expect(details.value).toBe('+358412345678');
+    expect(details.numberingPlan).toMatchObject({
+      detectedCountry: 'FI',
+      resolvedCountry: 'AX',
+      selectedCountry: 'AX',
+    });
+    expect(onCountryChange).not.toHaveBeenCalled();
+  });
+
+  test.each([
+    {
+      country: 'US',
+      expected: '+12005550123',
+      expectedSelectedCountry: null,
+      initialValue: '+12025550123' as const,
+      national: '2005550123',
+    },
+    {
+      country: 'BY',
+      expected: '+375201234567',
+      expectedSelectedCountry: 'BY',
+      initialValue: '+375291234567' as const,
+      national: '201234567',
+    },
+  ] as const)(
+    'commits possible-but-not-valid $country autofill through the default validation policy',
+    async ({ country, expected, expectedSelectedCountry, initialValue, national }) => {
+      const onCountryChange = vi.fn();
+      render(
+        <ControlledHarness
+          initialValue={initialValue}
+          onCountryChange={onCountryChange}
+          selectedCountry={country}
+        />,
+      );
+      const locator = page.getByTestId('controlled-phone');
+      await expect.element(locator).toHaveValue(initialValue);
+      await Promise.resolve();
+      onCountryChange.mockClear();
+      const input = locator.element();
+
+      if (!(input instanceof HTMLInputElement)) {
+        throw new Error('Expected the native phone input.');
+      }
+
+      replaceCompleteInputValue(input, national);
+
+      await expect.element(locator).toHaveValue(expected);
+      await expect
+        .element(page.getByTestId('controlled-callback-count'))
+        .toHaveTextContent('1');
+      const details = JSON.parse(
+        page.getByTestId('controlled-details').element().textContent ?? '',
+      ) as PhoneInputChangeDetails;
+      expect(details.reason).toBe('replacement');
+      expect(details.value).toBe(expected);
+      expect(details.validation).toMatchObject({
+        accepted: true,
+        isPossible: true,
+        isValid: false,
+        mode: 'possible',
+        reason: 'possible',
+        status: 'possible',
+      });
+      expect(details.numberingPlan.selectedCountry).toBe(expectedSelectedCountry);
+      if (expectedSelectedCountry === null) {
+        expect(onCountryChange).toHaveBeenCalledTimes(1);
+        expect(onCountryChange.mock.calls[0]?.[0]).toBeNull();
+      } else {
+        expect(onCountryChange).not.toHaveBeenCalled();
+      }
+    },
+  );
+
   test('uses captured replacement evidence when the input event omits metadata', async () => {
     render(<ControlledHarness initialValue="+14155552671" selectedCountry="US" />);
     const locator = page.getByTestId('controlled-phone');
@@ -1246,6 +1350,61 @@ describe('MuiPhoneInput tracer', () => {
     expect(page.getByTestId('controlled-value').element().textContent).not.toBe(
       '+12025550123',
     );
+  });
+
+  test('does not reclassify a composing complete-field replacement as national autofill', async () => {
+    render(<ControlledHarness initialValue="+14155552671" selectedCountry="US" />);
+    const locator = page.getByTestId('controlled-phone');
+    await expect.element(locator).toHaveValue('+14155552671');
+    const input = locator.element();
+
+    if (!(input instanceof HTMLInputElement)) {
+      throw new Error('Expected the native phone input.');
+    }
+
+    input.focus();
+    input.select();
+    input.dispatchEvent(new CompositionEvent('compositionstart', { bubbles: true }));
+    input.dispatchEvent(
+      new InputEvent('beforeinput', {
+        bubbles: true,
+        cancelable: true,
+        data: '2025550123',
+        inputType: 'insertReplacementText',
+        isComposing: true,
+      }),
+    );
+    setNativeInputValue(input, '2025550123');
+    input.dispatchEvent(
+      new InputEvent('input', {
+        bubbles: true,
+        data: '2025550123',
+        inputType: 'insertReplacementText',
+        isComposing: true,
+      }),
+    );
+
+    await expect
+      .element(page.getByTestId('controlled-callback-count'))
+      .toHaveTextContent('0');
+
+    input.dispatchEvent(
+      new CompositionEvent('compositionend', {
+        bubbles: true,
+        data: '2025550123',
+      }),
+    );
+
+    await expect.element(locator).toHaveValue('+2025550123');
+    await expect
+      .element(page.getByTestId('controlled-callback-count'))
+      .toHaveTextContent('1');
+    const details = JSON.parse(
+      page.getByTestId('controlled-details').element().textContent ?? '',
+    ) as PhoneInputChangeDetails;
+    expect(details.reason).toBe('composition');
+    expect(details.value).toBe('+2025550123');
+    expect(details.value).not.toBe('+12025550123');
   });
 
   test('does not infer a country for national replacement without a selection', async () => {

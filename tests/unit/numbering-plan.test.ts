@@ -5,6 +5,7 @@ import {
   getCountries,
   getCountryCallingCode,
   getExampleNumber,
+  parsePhoneNumberFromString,
 } from 'libphonenumber-js/max';
 import { describe, expect, it } from 'vitest';
 
@@ -27,11 +28,73 @@ describe('resolveCompleteNationalPhoneValue', () => {
     );
   });
 
-  it('rejects international, invalid, and country-incompatible candidates', () => {
-    expect(resolveCompleteNationalPhoneValue('+12025550123', 'US')).toBeNull();
+  it('resolves every pinned authority mobile example from its national component', () => {
+    const countriesWithExamples = getCountries().filter((country) =>
+      Boolean(getExampleNumber(country, mobileExamples)),
+    );
+
+    expect(countriesWithExamples).toHaveLength(245);
+
+    for (const country of countriesWithExamples) {
+      const example = getExampleNumber(country, mobileExamples);
+      expect(example).toBeDefined();
+
+      expect(
+        resolveCompleteNationalPhoneValue(example!.nationalNumber, country),
+        `${country} national autofill did not preserve its authority example`,
+      ).toBe(example!.number);
+    }
+  });
+
+  it.each(['AX', 'BL', 'CC', 'CX', 'EH', 'IM', 'MF', 'SJ', 'VA'] as const)(
+    'preserves explicit territory authority for %s when global detection uses a parent plan',
+    (country) => {
+      const example = getExampleNumber(country, mobileExamples);
+      expect(example).toBeDefined();
+      expect(
+        parsePhoneNumberFromString(example!.nationalNumber, country)?.country,
+      ).not.toBe(country);
+
+      expect(resolveCompleteNationalPhoneValue(example!.nationalNumber, country)).toBe(
+        example!.number,
+      );
+    },
+  );
+
+  it.each([
+    { country: 'US', expected: '+12005550123', national: '2005550123' },
+    { country: 'BY', expected: '+375201234567', national: '201234567' },
+  ] as const)(
+    'keeps possible-but-not-valid $country values inside the default possibility policy',
+    ({ country, expected, national }) => {
+      const phoneNumber = parsePhoneNumberFromString(national, country);
+      expect(phoneNumber?.number).toBe(expected);
+      expect(phoneNumber?.isPossible()).toBe(true);
+      expect(phoneNumber?.isValid()).toBe(false);
+
+      expect(resolveCompleteNationalPhoneValue(national, country)).toBe(expected);
+    },
+  );
+
+  it('rejects structurally impossible national candidates', () => {
     expect(resolveCompleteNationalPhoneValue('123', 'US')).toBeNull();
-    expect(resolveCompleteNationalPhoneValue('2025550123', 'CA')).toBeNull();
+    expect(resolveCompleteNationalPhoneValue('1234567890123456', 'US')).toBeNull();
+    expect(resolveCompleteNationalPhoneValue('12', 'BY')).toBeNull();
+  });
+
+  it('rejects international, malformed, and empty input', () => {
+    expect(resolveCompleteNationalPhoneValue('+12025550123', 'US')).toBeNull();
     expect(resolveCompleteNationalPhoneValue('phone: 2025550123', 'US')).toBeNull();
+    expect(resolveCompleteNationalPhoneValue('202+5550123', 'US')).toBeNull();
+    expect(resolveCompleteNationalPhoneValue('', 'US')).toBeNull();
+    expect(resolveCompleteNationalPhoneValue('   ', 'US')).toBeNull();
+  });
+
+  it('normalizes supported Unicode decimal digits in national autofill', () => {
+    expect(resolveCompleteNationalPhoneValue('２０２５５５０１２３', 'US')).toBe(
+      '+12025550123',
+    );
+    expect(resolveCompleteNationalPhoneValue('٢٠٢٥٥٥٠١٢٣', 'US')).toBe('+12025550123');
   });
 });
 

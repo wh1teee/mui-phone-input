@@ -414,6 +414,7 @@ export function usePhoneInputTransactions(
       reason: PhoneInputChangeReason,
       nextSelectedCountry: CountryCode | null = currentSelectedCountryRef.current,
       previousSelectedCountry: CountryCode | null = currentSelectedCountryRef.current,
+      authoritativeFullFieldReplacement = false,
     ) => {
       const nextValue = parsePhoneValue(displayValue);
       const previousValue = currentValueRef.current;
@@ -437,7 +438,9 @@ export function usePhoneInputTransactions(
         if (!controlledRef.current) {
           setUncontrolledValue(nextValue);
         }
+      }
 
+      if (valueChanged || authoritativeFullFieldReplacement) {
         onChange?.(nextValue, {
           numberingPlan: nextNumberingPlan,
           previousValue,
@@ -528,11 +531,17 @@ export function usePhoneInputTransactions(
         pendingTransactionRef.current = null;
 
         if (!composingRef.current && transaction) {
-          commit(transaction.displayValue, transaction.reason);
+          commit(
+            transaction.displayValue,
+            transaction.reason,
+            currentSelectedCountryRef.current,
+            currentSelectedCountryRef.current,
+            transaction.authoritativeFullFieldReplacement,
+          );
         }
       });
     },
-    [commit],
+    [commit, currentSelectedCountryRef],
   );
 
   const handlePaste = useCallback((event: ClipboardEvent<HTMLInputElement>) => {
