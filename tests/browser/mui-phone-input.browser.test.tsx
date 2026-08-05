@@ -114,6 +114,28 @@ function UncontrolledHarness() {
   );
 }
 
+function UncontrolledNationalHarness() {
+  const [details, setDetails] = useState<PhoneInputChangeDetails>();
+  const [latestValue, setLatestValue] = useState<PhoneValue>();
+
+  return (
+    <>
+      <MuiPhoneInput
+        defaultCountry="BY"
+        onChange={(value, nextDetails) => {
+          setLatestValue(value);
+          setDetails(nextDetails);
+        }}
+        slotProps={{ htmlInput: { 'data-testid': 'uncontrolled-national-phone' } }}
+      />
+      <output data-testid="uncontrolled-national-value">{latestValue ?? ''}</output>
+      <output data-testid="uncontrolled-national-details">
+        {details ? JSON.stringify(details) : ''}
+      </output>
+    </>
+  );
+}
+
 function OwnershipSwitchHarness() {
   const [controlled, setControlled] = useState(false);
 
@@ -1297,6 +1319,122 @@ describe('MuiPhoneInput tracer', () => {
       onCountryChange.mock.calls.filter(([, change]) => change.reason === 'input'),
     ).toHaveLength(0);
     expect(onCountrySelection).not.toHaveBeenCalled();
+  });
+
+  test.each([
+    ['80291234567', '+375291234567'],
+    ['0291234567', '+375291234567'],
+    ['8 (029) 123-45-67', '+375291234567'],
+    ['٠٢٩١٢٣٤٥٦٧', '+375291234567'],
+  ] as const)(
+    'commits complete Belarus national keyboard input %s in controlled mode',
+    async (nationalInput, expected) => {
+      render(<ControlledHarness selectedCountry="BY" />);
+      const locator = page.getByTestId('controlled-phone');
+
+      await userEvent.type(locator, nationalInput);
+
+      await expect.element(locator).toHaveValue(expected);
+      await expect
+        .element(page.getByTestId('controlled-value'))
+        .toHaveTextContent(expected);
+      const details = JSON.parse(
+        page.getByTestId('controlled-details').element().textContent ?? '',
+      ) as PhoneInputChangeDetails;
+      expect(details.reason).toBe('input');
+      expect(details.value).toBe(expected);
+      expect(details.validation.accepted).toBe(true);
+      expect(details.numberingPlan.resolvedCountry).toBe('BY');
+    },
+  );
+
+  test.each([
+    ['80291234567', '+375291234567'],
+    ['0291234567', '+375291234567'],
+    ['8 (029) 123-45-67', '+375291234567'],
+    ['٠٢٩١٢٣٤٥٦٧', '+375291234567'],
+  ] as const)(
+    'commits complete Belarus national paste %s in controlled mode',
+    async (nationalInput, expected) => {
+      render(<ControlledHarness selectedCountry="BY" />);
+
+      await pasteText('controlled-phone', nationalInput);
+
+      await expect.element(page.getByTestId('controlled-phone')).toHaveValue(expected);
+      const details = JSON.parse(
+        page.getByTestId('controlled-details').element().textContent ?? '',
+      ) as PhoneInputChangeDetails;
+      expect(details.reason).toBe('paste');
+      expect(details.value).toBe(expected);
+      expect(details.validation.accepted).toBe(true);
+      expect(details.numberingPlan.resolvedCountry).toBe('BY');
+    },
+  );
+
+  test('commits complete Belarus national keyboard input in uncontrolled mode', async () => {
+    render(<UncontrolledNationalHarness />);
+    const locator = page.getByTestId('uncontrolled-national-phone');
+
+    await userEvent.type(locator, '0291234567');
+
+    await expect.element(locator).toHaveValue('+375291234567');
+    await expect
+      .element(page.getByTestId('uncontrolled-national-value'))
+      .toHaveTextContent('+375291234567');
+    const details = JSON.parse(
+      page.getByTestId('uncontrolled-national-details').element().textContent ?? '',
+    ) as PhoneInputChangeDetails;
+    expect(details.reason).toBe('input');
+    expect(details.validation.accepted).toBe(true);
+  });
+
+  test('commits complete Belarus national paste in uncontrolled mode', async () => {
+    render(<UncontrolledNationalHarness />);
+
+    await pasteText('uncontrolled-national-phone', '8 (029) 123-45-67');
+
+    await expect
+      .element(page.getByTestId('uncontrolled-national-phone'))
+      .toHaveValue('+375291234567');
+    const details = JSON.parse(
+      page.getByTestId('uncontrolled-national-details').element().textContent ?? '',
+    ) as PhoneInputChangeDetails;
+    expect(details.reason).toBe('paste');
+    expect(details.validation.accepted).toBe(true);
+  });
+
+  test.each(['02912', '029123'] as const)(
+    'keeps Belarus national keyboard draft %s unaccepted until structurally valid',
+    async (draft) => {
+      render(<ControlledHarness selectedCountry="BY" />);
+      const locator = page.getByTestId('controlled-phone');
+
+      await userEvent.type(locator, draft);
+
+      await expect.element(locator).toHaveValue(`+${draft}`);
+      await expect
+        .element(locator)
+        .toHaveAttribute('data-phone-input-accepted', 'false');
+      const details = JSON.parse(
+        page.getByTestId('controlled-details').element().textContent ?? '',
+      ) as PhoneInputChangeDetails;
+      expect(details.value).toBe(`+${draft}`);
+      expect(details.validation.accepted).toBe(false);
+    },
+  );
+
+  test('preserves explicit international keyboard input under a Belarus selection', async () => {
+    render(<ControlledHarness selectedCountry="BY" />);
+    const locator = page.getByTestId('controlled-phone');
+
+    await userEvent.type(locator, '+441481123456');
+
+    await expect.element(locator).toHaveValue('+441481123456');
+    const details = JSON.parse(
+      page.getByTestId('controlled-details').element().textContent ?? '',
+    ) as PhoneInputChangeDetails;
+    expect(details.value).toBe('+441481123456');
+    expect(details.validation.accepted).toBe(true);
   });
 
   test('reconciles a rejected controlled national autofill without a second callback', async () => {

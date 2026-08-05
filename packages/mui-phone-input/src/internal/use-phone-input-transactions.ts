@@ -42,7 +42,7 @@ import {
 } from './use-phone-input-ownership';
 
 type PendingTransaction = Readonly<{
-  authoritativeFullFieldReplacement: boolean;
+  authoritativeNationalInput: boolean;
   displayValue: string;
   reason: PhoneInputChangeReason;
   selectedCountry: CountryCode | null;
@@ -54,6 +54,16 @@ type PendingBeforeInput = Readonly<{
   inputType: string;
   isComposing: boolean;
   selection: readonly [start: number, end: number];
+}>;
+
+type PendingNationalInput = Readonly<{
+  displayValue: string;
+  rawValue: string;
+}>;
+
+type NationalInputResolution = Readonly<{
+  pending: PendingNationalInput | null;
+  value: Exclude<PhoneValue, undefined> | null;
 }>;
 
 type PendingCompositionSelection = Readonly<{
@@ -124,44 +134,91 @@ function findOffsetAfterDigits(value: string, digitOffset: number): number {
 }
 
 function resolveInputEventMetadata(event: Event): Readonly<{
+  data: string | null;
   inputType: string;
   isComposing: boolean;
 }> {
+  const data = 'data' in event ? event.data : null;
   const inputType = 'inputType' in event ? event.inputType : undefined;
   const isComposing = 'isComposing' in event ? event.isComposing : undefined;
 
   return {
+    data: typeof data === 'string' ? data : null,
     inputType: typeof inputType === 'string' ? inputType : '',
     isComposing: isComposing === true,
   };
 }
 
-function resolveCompleteNationalReplacement(
+function resolveCompleteNationalInput(
   displayValue: string,
   pendingBeforeInput: PendingBeforeInput | null,
   selectedCountry: CountryCode | null,
-): Exclude<PhoneValue, undefined> | null {
-  if (
-    !pendingBeforeInput ||
-    !selectedCountry ||
-    pendingBeforeInput.isComposing ||
-    pendingBeforeInput.inputType !== 'insertReplacementText' ||
-    pendingBeforeInput.selection[0] !== 0 ||
-    pendingBeforeInput.selection[1] !== pendingBeforeInput.displayValue.length
-  ) {
-    return null;
+  pendingNationalInput: PendingNationalInput | null,
+): NationalInputResolution {
+  if (!pendingBeforeInput || !selectedCountry || pendingBeforeInput.isComposing) {
+    return { pending: null, value: null };
   }
 
-  const incomingValue = pendingBeforeInput.data ?? displayValue;
+  const fullFieldEdit =
+    pendingBeforeInput.selection[0] === 0 &&
+    pendingBeforeInput.selection[1] === pendingBeforeInput.displayValue.length;
+  let incomingValue: string | null = null;
+
   if (
+    pendingBeforeInput.inputType === 'insertReplacementText' ||
+    pendingBeforeInput.inputType === 'insertFromPaste'
+  ) {
+    if (fullFieldEdit) {
+      incomingValue = pendingBeforeInput.data ?? displayValue;
+    }
+  } else if (pendingBeforeInput.inputType === 'insertText') {
+    const appendsAtEnd =
+      pendingBeforeInput.selection[0] === pendingBeforeInput.selection[1] &&
+      pendingBeforeInput.selection[1] === pendingBeforeInput.displayValue.length;
+    const data = pendingBeforeInput.data;
+
+    if (appendsAtEnd && data !== null) {
+      if (pendingNationalInput?.displayValue === pendingBeforeInput.displayValue) {
+        incomingValue = `${pendingNationalInput.rawValue}${data}`;
+      } else if (pendingBeforeInput.displayValue.length === 0 && data !== '+') {
+        incomingValue = data;
+      }
+    }
+  } else if (
+    pendingBeforeInput.inputType.startsWith('delete') &&
+    pendingNationalInput?.displayValue === pendingBeforeInput.displayValue
+  ) {
+    incomingValue = displayValue.startsWith('+') ? displayValue.slice(1) : displayValue;
+  }
+
+  if (
+    incomingValue === null ||
     incomingValue.length === 0 ||
     incomingValue.includes('+') ||
     incomingValue === pendingBeforeInput.displayValue
   ) {
-    return null;
+    return { pending: null, value: null };
   }
 
-  return parseNationalPhoneValue(incomingValue, selectedCountry);
+  const parsedValue = parseNationalPhoneValue(incomingValue, selectedCountry);
+  const value =
+    parsedValue !== null &&
+    pendingBeforeInput.inputType === 'insertText' &&
+    !validatePhoneValue(parsedValue, {
+      selectedCountry,
+      validationMode: 'valid',
+    }).accepted
+      ? null
+      : parsedValue;
+  return value === null
+    ? {
+        pending: {
+          displayValue,
+          rawValue: incomingValue,
+        },
+        value: null,
+      }
+    : { pending: null, value };
 }
 
 function resolveChangeReason(
@@ -255,6 +312,7 @@ export function usePhoneInputTransactions(
   const compositionTextRef = useRef<string | null>(null);
   const compositionDigitOffsetRef = useRef<number | null>(null);
   const pendingBeforeInputRef = useRef<PendingBeforeInput | null>(null);
+  const pendingNationalInputRef = useRef<PendingNationalInput | null>(null);
   const pendingTransactionRef = useRef<PendingTransaction | null>(null);
   const pendingCommitScheduledRef = useRef(false);
   const pasteTransactionRef = useRef(false);
@@ -310,6 +368,7 @@ export function usePhoneInputTransactions(
 
   const reset = useCallback(() => {
     resetValidationVisibility();
+    pendingNationalInputRef.current = null;
     const previousValue = currentValueRef.current;
     const previousSelectedCountry = currentSelectedCountryRef.current;
     const nextValue = controlledRef.current
@@ -360,9 +419,8 @@ export function usePhoneInputTransactions(
       if (input) {
         const handleBeforeInput = (event: Event) => {
           const metadata = resolveInputEventMetadata(event);
-          const data = 'data' in event ? event.data : null;
           const pendingBeforeInput: PendingBeforeInput = {
-            data: typeof data === 'string' ? data : null,
+            data: metadata.data,
             displayValue: input.value,
             inputType: metadata.inputType,
             isComposing: metadata.isComposing,
@@ -412,7 +470,7 @@ export function usePhoneInputTransactions(
       reason: PhoneInputChangeReason,
       nextSelectedCountry: CountryCode | null = currentSelectedCountryRef.current,
       previousSelectedCountry: CountryCode | null = currentSelectedCountryRef.current,
-      authoritativeFullFieldReplacement = false,
+      authoritativeNationalInput = false,
     ) => {
       const nextValue = parsePhoneValue(displayValue);
       const previousValue = currentValueRef.current;
@@ -438,7 +496,7 @@ export function usePhoneInputTransactions(
         }
       }
 
-      if (valueChanged || authoritativeFullFieldReplacement) {
+      if (valueChanged || authoritativeNationalInput) {
         onChange?.(nextValue, {
           numberingPlan: nextNumberingPlan,
           previousValue,
@@ -484,14 +542,11 @@ export function usePhoneInputTransactions(
     (
       displayValue: string,
       reason: PhoneInputChangeReason,
-      authoritativeFullFieldReplacement = false,
+      authoritativeNationalInput = false,
       selectedCountry: CountryCode | null = null,
     ) => {
       const pending = pendingTransactionRef.current;
-      if (
-        pending?.authoritativeFullFieldReplacement &&
-        !authoritativeFullFieldReplacement
-      ) {
+      if (pending?.authoritativeNationalInput && !authoritativeNationalInput) {
         return;
       }
       const dropsTransientEmpty =
@@ -506,7 +561,7 @@ export function usePhoneInputTransactions(
       const nextReason = dropsTransientEmpty ? pending.reason : reason;
 
       pendingTransactionRef.current = {
-        authoritativeFullFieldReplacement,
+        authoritativeNationalInput,
         displayValue: nextDisplayValue,
         reason: nextReason,
         selectedCountry,
@@ -531,7 +586,7 @@ export function usePhoneInputTransactions(
         pendingTransactionRef.current = null;
 
         if (!composingRef.current && transaction) {
-          const selectedCountry = transaction.authoritativeFullFieldReplacement
+          const selectedCountry = transaction.authoritativeNationalInput
             ? transaction.selectedCountry
             : currentSelectedCountryRef.current;
           commit(
@@ -539,7 +594,7 @@ export function usePhoneInputTransactions(
             transaction.reason,
             selectedCountry,
             selectedCountry,
-            transaction.authoritativeFullFieldReplacement,
+            transaction.authoritativeNationalInput,
           );
         }
       });
@@ -580,14 +635,37 @@ export function usePhoneInputTransactions(
       }
 
       const selectedCountry = currentSelectedCountryRef.current;
-      const completeNationalReplacement = resolveCompleteNationalReplacement(
+      const previousDisplayValue = currentValueRef.current ?? '';
+      const selectionStart = event.currentTarget.selectionStart;
+      const selectionEnd = event.currentTarget.selectionEnd;
+      const appendsAtEnd =
+        selectionStart === event.currentTarget.value.length &&
+        selectionEnd === event.currentTarget.value.length;
+      const inferredBeforeInput =
+        pendingBeforeInput === null && inputEvent.data !== null && appendsAtEnd
+          ? {
+              data: inputEvent.data,
+              displayValue: previousDisplayValue,
+              inputType: inputEvent.inputType || 'insertText',
+              isComposing: false,
+              selection: [
+                previousDisplayValue.length,
+                previousDisplayValue.length,
+              ] as const,
+            }
+          : null;
+      const inputEvidence = pendingBeforeInput ?? inferredBeforeInput;
+      const nationalInput = resolveCompleteNationalInput(
         event.currentTarget.value,
-        pendingBeforeInput,
+        inputEvidence,
         selectedCountry,
+        pendingNationalInputRef.current,
       );
-      const displayValue = completeNationalReplacement ?? event.currentTarget.value;
+      pendingNationalInputRef.current = nationalInput.pending;
+      const displayValue = nationalInput.value ?? event.currentTarget.value;
       const nextValue = parsePhoneValue(displayValue);
       const pasted = pasteTransactionRef.current;
+      const inputType = inputEvidence?.inputType || inputEvent.inputType || '';
       pasteTransactionRef.current = false;
       if (pasteResetFrameRef.current !== undefined) {
         window.cancelAnimationFrame(pasteResetFrameRef.current);
@@ -595,14 +673,12 @@ export function usePhoneInputTransactions(
       }
       scheduleCommit(
         displayValue,
-        completeNationalReplacement
-          ? 'replacement'
-          : resolveChangeReason(inputEvent.inputType, nextValue, pasted),
-        completeNationalReplacement !== null,
-        completeNationalReplacement === null ? null : selectedCountry,
+        resolveChangeReason(inputType, nextValue, pasted),
+        nationalInput.value !== null,
+        nationalInput.value === null ? null : selectedCountry,
       );
     },
-    [currentSelectedCountryRef, scheduleCommit],
+    [currentSelectedCountryRef, currentValueRef, scheduleCommit],
   );
 
   const handleInputCapture = useCallback((event: FormEvent<HTMLInputElement>) => {
@@ -620,6 +696,7 @@ export function usePhoneInputTransactions(
   const handleCompositionStart = useCallback(() => {
     pendingCommitScheduledRef.current = false;
     pendingBeforeInputRef.current = null;
+    pendingNationalInputRef.current = null;
     pendingTransactionRef.current = null;
     composingRef.current = true;
     compositionTextRef.current = null;
@@ -728,6 +805,7 @@ export function usePhoneInputTransactions(
       beforeInputCleanupRef.current?.();
       engineCleanupRef.current?.();
       pendingBeforeInputRef.current = null;
+      pendingNationalInputRef.current = null;
       pendingTransactionRef.current = null;
       pendingCommitScheduledRef.current = false;
       composingRef.current = false;
@@ -743,10 +821,14 @@ export function usePhoneInputTransactions(
   }, []);
 
   const focus = useCallback(() => inputElementRef.current?.focus(), []);
-  const clear = useCallback(() => commit('', 'clear'), [commit]);
+  const clear = useCallback(() => {
+    pendingNationalInputRef.current = null;
+    commit('', 'clear');
+  }, [commit]);
   const selectCountry = useCallback(
     (country: CountryCode) => {
       assertPhoneCountry(country, 'selected');
+      pendingNationalInputRef.current = null;
       const previousCountry = currentSelectedCountryRef.current;
       const previousValue = currentValueRef.current;
       const selection = resolvePhoneCountrySelection(previousValue, country);

@@ -2,7 +2,7 @@
 
 Date: 2026-08-02
 Bead: `mpi-oan.3`
-Revalidated: 2026-08-05 for `mpi-q19.10`
+Revalidated: 2026-08-05 for `mpi-q19.10` and `mpi-oan.18.1`
 
 ## Delivered public surface
 
@@ -27,9 +27,12 @@ built-ins.
 - Controlled and uncontrolled modes use the same transaction model.
 - Ownership is fixed at mount; development builds warn on a mode switch.
 - One committed edit emits at most one public callback.
-- A complete-field replacement may restore a selected country calling code
-  only when captured `beforeinput` evidence proves an authoritative national
-  replacement; incremental input and partial ranges are never reclassified.
+- Complete national keyboard input under an explicit selected country is
+  canonicalized only after the country number becomes structurally valid;
+  incomplete and possible-but-not-valid prefixes remain drafts.
+- Complete-field paste and replacement may restore a selected country calling
+  code when captured input evidence proves an authoritative national edit;
+  partial ranges are never reclassified.
 - Country-stripped national autofill uses selected-country metadata for every
   supported country and territory, follows the public possibility authority,
   and does not impose strict validity during normalization.
@@ -79,6 +82,9 @@ Source Browser Mode tests cover:
 - selected-country national autofill recovery across controlled,
   uncontrolled, Strict Mode, rejection, incomplete input metadata, invalid
   replacement, range replacement and unmount boundaries.
+- selected-country complete national keyboard and clipboard input across
+  controlled and uncontrolled ownership, including Unicode digits and
+  possible-but-not-valid draft preservation.
 
 The same public tarball is installed outside the workspace in production
 Next.js and Vite consumers. Their built applications are started and exercised
@@ -96,8 +102,9 @@ byte-identical repeated HTML. The Vite production smoke renders the same state
 matrix. Full details are recorded in
 `2026-08-02-ssr-packed-consumption-evidence.md`.
 
-The current combined source matrix contains 192 Browser Mode tests per engine;
-all pass in Chromium, Firefox, and WebKit. The unit suite contains 161 tests.
+The current combined source matrix contains 205 Browser Mode tests. The complete
+matrix passes in Chromium; the pre-existing 192-test cross-browser baseline
+passes in Chromium, Firefox, and WebKit. The unit suite contains 162 tests.
 Browser files run serially because focus-sensitive fixtures share
 `document.activeElement`; repeatability evidence is recorded in
 `2026-08-03-browser-focus-serialization-evidence.md`.
@@ -113,9 +120,9 @@ externalizes declared peers.
 
 Current exact-artifact measurements are:
 
-- main closure: 23,785 bytes gzip;
+- main closure: 24,121 bytes gzip;
 - server entry: 5,057 bytes gzip;
-- packed tarball: 92,749 bytes.
+- packed tarball: 94,085 bytes.
 
 CI rebuilds the artifact and requires exact byte/hash equality with the
 committed measurement.
