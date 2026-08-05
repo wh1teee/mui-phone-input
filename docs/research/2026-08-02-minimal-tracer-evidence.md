@@ -2,6 +2,7 @@
 
 Date: 2026-08-02
 Bead: `mpi-oan.3`
+Revalidated: 2026-08-05 for `mpi-q19.10`
 
 ## Delivered public surface
 
@@ -29,6 +30,9 @@ built-ins.
 - A complete-field replacement may restore a selected country calling code
   only when captured `beforeinput` evidence proves an authoritative national
   replacement; incremental input and partial ranges are never reclassified.
+- Country-stripped national autofill uses selected-country metadata for every
+  supported country and territory, follows the public possibility authority,
+  and does not impose strict validity during normalization.
 - External controlled updates and form reset reconciliation do not create
   callback loops.
 - Queued input, reset, paste and composition-related work is invalidated at
@@ -92,8 +96,8 @@ byte-identical repeated HTML. The Vite production smoke renders the same state
 matrix. Full details are recorded in
 `2026-08-02-ssr-packed-consumption-evidence.md`.
 
-The current combined source matrix contains 188 Browser Mode tests per engine;
-all pass in Chromium, Firefox, and WebKit. The unit suite contains 140 tests.
+The current combined source matrix contains 192 Browser Mode tests per engine;
+all pass in Chromium, Firefox, and WebKit. The unit suite contains 161 tests.
 Browser files run serially because focus-sensitive fixtures share
 `document.activeElement`; repeatability evidence is recorded in
 `2026-08-03-browser-focus-serialization-evidence.md`.
@@ -109,9 +113,9 @@ externalizes declared peers.
 
 Current exact-artifact measurements are:
 
-- main closure: 23,745 bytes gzip;
+- main closure: 23,778 bytes gzip;
 - server entry: 4,794 bytes gzip;
-- packed tarball: 91,690 bytes.
+- packed tarball: 91,933 bytes.
 
 CI rebuilds the artifact and requires exact byte/hash equality with the
 committed measurement.
