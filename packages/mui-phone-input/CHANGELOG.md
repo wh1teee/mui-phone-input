@@ -1,5 +1,13 @@
 # @wh1teee/mui-phone-input
 
+## 0.1.0-next.4
+
+### Patch Changes
+
+- 191f833: Expose `parseNationalPhoneValue` from the client and neutral server entrypoints
+  so applications can apply the same selected-country authority to complete
+  national input on both sides of the network boundary.
+
 ## 0.1.0-next.3
 
 ### Patch Changes
