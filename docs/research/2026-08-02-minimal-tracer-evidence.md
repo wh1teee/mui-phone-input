@@ -2,7 +2,7 @@
 
 Date: 2026-08-02
 Bead: `mpi-oan.3`
-Revalidated: 2026-08-05 for `mpi-q19.10` and `mpi-oan.18.1`
+Revalidated: 2026-08-07 for `mpi-oan.7`
 
 ## Delivered public surface
 
@@ -12,6 +12,7 @@ The main client entrypoint exports:
 - `MuiPhoneInputProps` and deterministic change-detail types;
 - `PhoneValue`;
 - `isPhoneValue`, `parsePhoneValue`, and `assertPhoneValue`;
+- `formatPhoneInputPresentation` and typed display/mask/strategy contracts;
 - `muiPhoneInputClasses` and `getMuiPhoneInputUtilityClass`.
 
 The server entrypoint exports the Phone Value type/helpers, pure Numbering Plan
@@ -46,9 +47,10 @@ built-ins.
 
 The tracer now claims authority-backed country/numbering-plan resolution,
 basic responsive Country Selector behavior, possible/strict validity, number
-type, and deterministic international formatting. It intentionally does not yet
-claim advanced display modes/masks, measured selector virtualization,
-extensions, metadata variants, or form adapters.
+type, deterministic international/national/fixed-calling-code presentation,
+declarative Display Masks, typed Format Strategy caret mapping, and custom
+metadata compatibility. It intentionally does not yet claim measured selector
+virtualization, extensions, metadata preset variants, or form adapters.
 
 ## Browser evidence
 
@@ -102,9 +104,9 @@ byte-identical repeated HTML. The Vite production smoke renders the same state
 matrix. Full details are recorded in
 `2026-08-02-ssr-packed-consumption-evidence.md`.
 
-The current combined source matrix contains 205 Browser Mode tests. The complete
+The current combined source matrix contains 218 Browser Mode tests. The complete
 matrix passes in Chromium; the pre-existing 192-test cross-browser baseline
-passes in Chromium, Firefox, and WebKit. The unit suite contains 162 tests.
+passes in Chromium, Firefox, and WebKit. The unit suite contains 178 tests.
 Browser files run serially because focus-sensitive fixtures share
 `document.activeElement`; repeatability evidence is recorded in
 `2026-08-03-browser-focus-serialization-evidence.md`.
@@ -115,14 +117,18 @@ Browser files run serially because focus-sensitive fixtures share
 from the exact artifact. The main measurement bundles runtime dependencies but
 externalizes declared peers.
 
-- Main closure budget: 25 KB gzip.
+- Main closure budget: 28 KB gzip. The previous 25 KB budget was introduced for
+  the minimal E.164 tracer; the synchronous formatting/mask capability consumes
+  the remaining headroom, and concurrent flags/localization work advanced the
+  baseline further. The budget advances with the public surface rather than
+  weakening caret or transaction behavior to fit the old tracer envelope.
 - Server entry budget: 10 KB gzip.
 
 Current exact-artifact measurements are:
 
-- main closure: 24,121 bytes gzip;
-- server entry: 5,057 bytes gzip;
-- packed tarball: 94,085 bytes.
+- main closure: 27,411 bytes gzip;
+- server entry: 5,284 bytes gzip;
+- packed tarball: 175,845 bytes.
 
 CI rebuilds the artifact and requires exact byte/hash equality with the
 committed measurement.

@@ -198,7 +198,7 @@ describe('flags and localization', () => {
 
     const input = document.querySelector<HTMLInputElement>('input[data-phone-input-plan]');
     expect(input?.dir).toBe('ltr');
-    expect(input?.value).toBe('+375291234567');
+    expect(input?.value).toBe('+375 29 123 45 67');
     expect(input?.closest('[dir="rtl"]')).not.toBeNull();
   });
 

@@ -1,5 +1,10 @@
 'use client';
 
+import {
+  getCountryCallingCode,
+  parseDigits,
+  parseIncompletePhoneNumber,
+} from 'libphonenumber-js/core';
 import type { CountryCode, PhoneNumberType } from 'libphonenumber-js/max';
 import {
   type ClipboardEvent,
@@ -19,16 +24,18 @@ import {
 } from '../country-selector';
 import { parseNationalPhoneValue, resolveNumberingPlan } from '../numbering-plan';
 import {
+  formatPhoneInputPresentation,
+  logicalCaretFromDisplayOffset,
+  parsePhoneInputPresentation,
+  type PhoneInputPresentation,
+} from '../phone-formatting';
+import {
   type PhoneValidationMode,
   type PhoneValidationOptions,
   validatePhoneValue,
 } from '../phone-validation';
 import type { PhoneMetadata } from '../phone-metadata';
-import {
-  normalizePhoneInputText,
-  type PhoneValue,
-  parsePhoneValue,
-} from '../phone-value';
+import type { PhoneValue } from '../phone-value';
 import type {
   PhoneCountryChangeReason,
   PhoneInputChangeReason,
@@ -72,6 +79,13 @@ type PendingCompositionSelection = Readonly<{
   digitOffset: number;
 }>;
 
+type PendingLogicalSelection = readonly [start: number, end: number];
+
+type CapturedInput = Readonly<{
+  displayValue: string;
+  selection: readonly [start: number, end: number];
+}>;
+
 type CountryTransitionLedger = {
   initialized: boolean;
   numberingPlan: PhoneInputNumberingPlanState;
@@ -88,6 +102,7 @@ interface PhoneInputTransactionParameters {
   inputContext: InputEngineContext;
   metadata: PhoneMetadata;
   numberingPlan: PhoneInputNumberingPlanState;
+  presentation: PhoneInputPresentation;
   onChange?: UsePhoneInputParameters['onChange'];
   onCountryChange?: UsePhoneInputParameters['onCountryChange'];
   onCountrySelection?: UsePhoneInputParameters['onCountrySelection'];
@@ -112,7 +127,41 @@ export interface PhoneInputTransactions {
 }
 
 function countDigitsBeforeOffset(value: string, offset: number): number {
-  return normalizePhoneInputText(value.slice(0, offset)).replace(/\D/gu, '').length;
+  return parseDigits(value.slice(0, offset)).length;
+}
+
+function resolveObservedLogicalPosition(
+  observedDisplayValue: string,
+  offset: number,
+  nextValue: PhoneValue,
+  country: CountryCode | undefined,
+  displayMode: InputEngineContext['displayMode'],
+  metadata: PhoneMetadata,
+): number {
+  const rawDigitOffset = countDigitsBeforeOffset(observedDisplayValue, offset);
+
+  if (
+    observedDisplayValue.trimStart().startsWith('+') ||
+    displayMode !== 'national' ||
+    !country ||
+    !nextValue
+  ) {
+    return rawDigitOffset;
+  }
+
+  const callingCode = getCountryCallingCode(country, metadata);
+  const canonicalDigits = nextValue.slice(1);
+  if (!canonicalDigits.startsWith(callingCode)) {
+    return rawDigitOffset;
+  }
+
+  const nationalDigits = canonicalDigits.slice(callingCode.length);
+  const rawDigits = parseDigits(observedDisplayValue);
+  const syntheticPrefixDigits = rawDigits.endsWith(nationalDigits)
+    ? Math.max(0, rawDigits.length - nationalDigits.length)
+    : 0;
+
+  return callingCode.length + Math.max(0, rawDigitOffset - syntheticPrefixDigits);
 }
 
 function findOffsetAfterDigits(value: string, digitOffset: number): number {
@@ -124,7 +173,7 @@ function findOffsetAfterDigits(value: string, digitOffset: number): number {
   let offset = 0;
   for (const character of value) {
     offset += character.length;
-    if (/\d/u.test(normalizePhoneInputText(character))) {
+    if (parseDigits(character)) {
       digits += 1;
       if (digits === digitOffset) {
         return offset;
@@ -227,6 +276,35 @@ function resolveCompleteNationalInput(
     : { pending: null, value };
 }
 
+function rejectsInvalidNationalReplacement(
+  pendingBeforeInput: PendingBeforeInput | null,
+  selectedCountry: CountryCode | null,
+  metadata: PhoneMetadata,
+): boolean {
+  if (!pendingBeforeInput || !selectedCountry || pendingBeforeInput.isComposing) {
+    return false;
+  }
+  if (
+    pendingBeforeInput.inputType !== 'insertReplacementText' &&
+    pendingBeforeInput.inputType !== 'insertFromPaste'
+  ) {
+    return false;
+  }
+
+  const fullFieldEdit =
+    pendingBeforeInput.selection[0] === 0 &&
+    pendingBeforeInput.selection[1] === pendingBeforeInput.displayValue.length;
+  const incomingValue = pendingBeforeInput.data;
+
+  return (
+    fullFieldEdit &&
+    incomingValue !== null &&
+    incomingValue.length > 0 &&
+    !incomingValue.includes('+') &&
+    parseNationalPhoneValue(incomingValue, selectedCountry, { metadata }) === null
+  );
+}
+
 function resolveChangeReason(
   inputType: string,
   value: PhoneValue,
@@ -293,6 +371,7 @@ export function usePhoneInputTransactions(
     inputContext,
     metadata,
     numberingPlan,
+    presentation,
     onChange,
     onCountryChange,
     onCountrySelection,
@@ -319,9 +398,11 @@ export function usePhoneInputTransactions(
   const composingRef = useRef(false);
   const compositionTextRef = useRef<string | null>(null);
   const compositionDigitOffsetRef = useRef<number | null>(null);
+  const capturedInputRef = useRef<CapturedInput | null>(null);
   const pendingBeforeInputRef = useRef<PendingBeforeInput | null>(null);
   const pendingNationalInputRef = useRef<PendingNationalInput | null>(null);
   const pendingTransactionRef = useRef<PendingTransaction | null>(null);
+  const pendingLogicalSelectionRef = useRef<PendingLogicalSelection | null>(null);
   const pendingCommitScheduledRef = useRef(false);
   const pasteTransactionRef = useRef(false);
   const pasteResetFrameRef = useRef<number | undefined>(undefined);
@@ -329,7 +410,23 @@ export function usePhoneInputTransactions(
   const lifecycleGenerationRef = useRef(0);
   const [pendingCompositionSelection, setPendingCompositionSelection] =
     useState<PendingCompositionSelection | null>(null);
-  const engineBridge = useInputTransactionEngineBridge();
+  const engineBridge = useInputTransactionEngineBridge(inputContext);
+  const previousPresentationRef = useRef(presentation);
+  const previousPresentation = previousPresentationRef.current;
+  const inputDuringRender = inputElementRef.current;
+  if (
+    previousPresentation !== presentation &&
+    previousPresentation.value === presentation.value &&
+    inputDuringRender
+  ) {
+    const start = inputDuringRender.selectionStart ?? previousPresentation.displayValue.length;
+    const end = inputDuringRender.selectionEnd ?? start;
+    pendingLogicalSelectionRef.current = [
+      logicalCaretFromDisplayOffset(previousPresentation.mapping, start),
+      logicalCaretFromDisplayOffset(previousPresentation.mapping, end),
+    ];
+  }
+  previousPresentationRef.current = presentation;
   const countryTransitionLedgerRef = useRef<CountryTransitionLedger>({
     initialized: false,
     numberingPlan: resolveNumberingPlan(undefined, { metadata }),
@@ -481,7 +578,11 @@ export function usePhoneInputTransactions(
       previousSelectedCountry: CountryCode | null = currentSelectedCountryRef.current,
       authoritativeNationalInput = false,
     ) => {
-      const nextValue = parsePhoneValue(displayValue);
+      const nextValue = parsePhoneInputPresentation(displayValue, {
+        country: inputContext.country ?? null,
+        displayMode: inputContext.displayMode,
+        metadata,
+      });
       const previousValue = currentValueRef.current;
       const valueChanged = nextValue !== previousValue;
       const previousNumberingPlan = resolvePlanForCountry(
@@ -546,6 +647,8 @@ export function usePhoneInputTransactions(
       currentSelectedCountryRef,
       currentValueRef,
       emitCountryTransition,
+      inputContext.country,
+      inputContext.displayMode,
       metadata,
       onChange,
       required,
@@ -643,6 +746,8 @@ export function usePhoneInputTransactions(
   const handleInput = useCallback(
     (event: FormEvent<HTMLInputElement>) => {
       const inputEvent = resolveInputEventMetadata(event.nativeEvent);
+      const capturedInput = capturedInputRef.current;
+      capturedInputRef.current = null;
       const pendingBeforeInput = pendingBeforeInputRef.current;
       pendingBeforeInputRef.current = null;
 
@@ -651,12 +756,14 @@ export function usePhoneInputTransactions(
       }
 
       const selectedCountry = currentSelectedCountryRef.current;
-      const previousDisplayValue = currentValueRef.current ?? '';
-      const selectionStart = event.currentTarget.selectionStart;
-      const selectionEnd = event.currentTarget.selectionEnd;
+      const previousDisplayValue = presentation.displayValue;
+      const observedDisplayValue = capturedInput?.displayValue ?? event.currentTarget.value;
+      const normalizedDisplayValue = parseIncompletePhoneNumber(observedDisplayValue);
+      const selectionStart = capturedInput?.selection[0] ?? event.currentTarget.selectionStart;
+      const selectionEnd = capturedInput?.selection[1] ?? event.currentTarget.selectionEnd;
       const appendsAtEnd =
-        selectionStart === event.currentTarget.value.length &&
-        selectionEnd === event.currentTarget.value.length;
+        selectionStart === observedDisplayValue.length &&
+        selectionEnd === observedDisplayValue.length;
       const inferredBeforeInput =
         pendingBeforeInput === null && inputEvent.data !== null && appendsAtEnd
           ? {
@@ -671,22 +778,109 @@ export function usePhoneInputTransactions(
             }
           : null;
       const inputEvidence = pendingBeforeInput ?? inferredBeforeInput;
+      if (rejectsInvalidNationalReplacement(inputEvidence, selectedCountry, metadata)) {
+        pendingNationalInputRef.current = null;
+        pasteTransactionRef.current = false;
+        if (pasteResetFrameRef.current !== undefined) {
+          window.cancelAnimationFrame(pasteResetFrameRef.current);
+          pasteResetFrameRef.current = undefined;
+        }
+        event.currentTarget.value = presentation.displayValue;
+        event.currentTarget.setSelectionRange(
+          presentation.displayValue.length,
+          presentation.displayValue.length,
+        );
+        return;
+      }
       const nationalInput = resolveCompleteNationalInput(
-        event.currentTarget.value,
+        normalizedDisplayValue,
         inputEvidence,
         selectedCountry,
         pendingNationalInputRef.current,
         metadata,
       );
-      pendingNationalInputRef.current = nationalInput.pending;
-      const displayValue = nationalInput.value ?? event.currentTarget.value;
-      const nextValue = parsePhoneValue(displayValue);
+      const displayValue = nationalInput.value ?? normalizedDisplayValue;
+      const nextValue = parsePhoneInputPresentation(displayValue, {
+        country: inputContext.country ?? null,
+        displayMode: inputContext.displayMode,
+        metadata,
+      });
+      if (
+        inputContext.displayMode === 'international-fixed-calling-code' &&
+        inputContext.country &&
+        nextValue !== undefined &&
+        !nextValue
+          .slice(1)
+          .startsWith(getCountryCallingCode(inputContext.country, metadata))
+      ) {
+        pasteTransactionRef.current = false;
+        if (pasteResetFrameRef.current !== undefined) {
+          window.cancelAnimationFrame(pasteResetFrameRef.current);
+          pasteResetFrameRef.current = undefined;
+        }
+        event.currentTarget.value = presentation.displayValue;
+        const protectedEnd =
+          presentation.mapping.logicalToDisplay[
+            getCountryCallingCode(inputContext.country, metadata).length
+          ] ?? presentation.displayValue.length;
+        event.currentTarget.setSelectionRange(protectedEnd, protectedEnd);
+        return;
+      }
       const pasted = pasteTransactionRef.current;
       const inputType = inputEvidence?.inputType || inputEvent.inputType || '';
       pasteTransactionRef.current = false;
       if (pasteResetFrameRef.current !== undefined) {
         window.cancelAnimationFrame(pasteResetFrameRef.current);
         pasteResetFrameRef.current = undefined;
+      }
+      const nextPresentation = formatPhoneInputPresentation(nextValue, {
+        country: inputContext.country ?? null,
+        displayMode: inputContext.displayMode,
+        locale: inputContext.locale,
+        metadata,
+        ...(inputContext.displayMask === undefined
+          ? {}
+          : { displayMask: inputContext.displayMask }),
+        ...(inputContext.formatStrategy === undefined
+          ? {}
+          : { formatStrategy: inputContext.formatStrategy }),
+      });
+      pendingNationalInputRef.current = nationalInput.pending
+        ? {
+            ...nationalInput.pending,
+            displayValue: nextPresentation.displayValue,
+          }
+        : null;
+      if (capturedInput) {
+        const authoritativeNationalEnd =
+          nationalInput.value !== null && nextValue ? nextValue.length - 1 : null;
+        pendingLogicalSelectionRef.current = authoritativeNationalEnd
+          ? [authoritativeNationalEnd, authoritativeNationalEnd]
+          : [
+              resolveObservedLogicalPosition(
+                observedDisplayValue,
+                capturedInput.selection[0],
+                nextValue,
+                inputContext.country,
+                inputContext.displayMode,
+                metadata,
+              ),
+              resolveObservedLogicalPosition(
+                observedDisplayValue,
+                capturedInput.selection[1],
+                nextValue,
+                inputContext.country,
+                inputContext.displayMode,
+                metadata,
+              ),
+            ];
+      } else if (nextPresentation.displayValue === event.currentTarget.value) {
+        const start = event.currentTarget.selectionStart ?? nextPresentation.displayValue.length;
+        const end = event.currentTarget.selectionEnd ?? start;
+        pendingLogicalSelectionRef.current = [
+          logicalCaretFromDisplayOffset(nextPresentation.mapping, start),
+          logicalCaretFromDisplayOffset(nextPresentation.mapping, end),
+        ];
       }
       scheduleCommit(
         displayValue,
@@ -695,7 +889,18 @@ export function usePhoneInputTransactions(
         nationalInput.value === null ? null : selectedCountry,
       );
     },
-    [currentSelectedCountryRef, currentValueRef, metadata, scheduleCommit],
+    [
+      currentSelectedCountryRef,
+      inputContext.country,
+      inputContext.displayMask,
+      inputContext.displayMode,
+      inputContext.formatStrategy,
+      inputContext.locale,
+      metadata,
+      presentation.displayValue,
+      presentation.mapping.logicalToDisplay,
+      scheduleCommit,
+    ],
   );
 
   const handleInputCapture = useCallback((event: FormEvent<HTMLInputElement>) => {
@@ -707,7 +912,16 @@ export function usePhoneInputTransactions(
         event.currentTarget.value,
         event.currentTarget.selectionStart ?? event.currentTarget.value.length,
       );
+      return;
     }
+
+    capturedInputRef.current = {
+      displayValue: event.currentTarget.value,
+      selection: [
+        event.currentTarget.selectionStart ?? event.currentTarget.value.length,
+        event.currentTarget.selectionEnd ?? event.currentTarget.value.length,
+      ],
+    };
   }, []);
 
   const handleCompositionStart = useCallback(() => {
@@ -730,7 +944,11 @@ export function usePhoneInputTransactions(
         digitOffset === null
           ? null
           : {
-              canonicalValue: parsePhoneValue(displayValue),
+              canonicalValue: parsePhoneInputPresentation(displayValue, {
+                country: inputContext.country ?? null,
+                displayMode: inputContext.displayMode,
+                metadata,
+              }),
               digitOffset,
             },
       );
@@ -738,7 +956,7 @@ export function usePhoneInputTransactions(
       compositionTextRef.current = null;
       compositionDigitOffsetRef.current = null;
     },
-    [commit],
+    [commit, inputContext.country, inputContext.displayMode, metadata],
   );
 
   useEffect(() => {
@@ -787,11 +1005,23 @@ export function usePhoneInputTransactions(
 
   useEffect(() => {
     const input = inputElementRef.current;
-    const displayValue = currentValue ?? '';
+    const displayValue = presentation.displayValue;
     const reconcilesCompositionSelection =
       pendingCompositionSelection?.canonicalValue === currentValue;
     let selection: readonly [number, number];
-    if (reconcilesCompositionSelection && pendingCompositionSelection) {
+    const pendingLogicalSelection = pendingLogicalSelectionRef.current;
+    if (pendingLogicalSelection) {
+      const maxLogical = presentation.mapping.logicalToDisplay.length - 1;
+      selection = [
+        presentation.mapping.logicalToDisplay[
+          Math.min(pendingLogicalSelection[0], maxLogical)
+        ] ?? displayValue.length,
+        presentation.mapping.logicalToDisplay[
+          Math.min(pendingLogicalSelection[1], maxLogical)
+        ] ?? displayValue.length,
+      ];
+      pendingLogicalSelectionRef.current = null;
+    } else if (reconcilesCompositionSelection && pendingCompositionSelection) {
       const offset = findOffsetAfterDigits(
         displayValue,
         pendingCompositionSelection.digitOffset,
@@ -810,7 +1040,13 @@ export function usePhoneInputTransactions(
     if (pendingCompositionSelection) {
       setPendingCompositionSelection(null);
     }
-  }, [currentValue, engineBridge, inputContext, pendingCompositionSelection]);
+  }, [
+    currentValue,
+    engineBridge,
+    inputContext,
+    pendingCompositionSelection,
+    presentation,
+  ]);
 
   useEffect(() => {
     lifecycleActiveRef.current = true;
@@ -821,9 +1057,11 @@ export function usePhoneInputTransactions(
       formCleanupRef.current?.();
       beforeInputCleanupRef.current?.();
       engineCleanupRef.current?.();
+      capturedInputRef.current = null;
       pendingBeforeInputRef.current = null;
       pendingNationalInputRef.current = null;
       pendingTransactionRef.current = null;
+      pendingLogicalSelectionRef.current = null;
       pendingCommitScheduledRef.current = false;
       composingRef.current = false;
       compositionTextRef.current = null;
@@ -848,6 +1086,15 @@ export function usePhoneInputTransactions(
       pendingNationalInputRef.current = null;
       const previousCountry = currentSelectedCountryRef.current;
       const previousValue = currentValueRef.current;
+      const input = inputElementRef.current;
+      if (input?.matches(':focus')) {
+        const start = input.selectionStart ?? presentation.displayValue.length;
+        const end = input.selectionEnd ?? start;
+        pendingLogicalSelectionRef.current = [
+          logicalCaretFromDisplayOffset(presentation.mapping, start),
+          logicalCaretFromDisplayOffset(presentation.mapping, end),
+        ];
+      }
       const selection = resolvePhoneCountrySelection(previousValue, country, {
         metadata,
       });
@@ -871,6 +1118,7 @@ export function usePhoneInputTransactions(
       currentValueRef,
       metadata,
       onCountrySelection,
+      presentation,
       setUncontrolledCountry,
     ],
   );

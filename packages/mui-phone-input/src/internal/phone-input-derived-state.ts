@@ -7,6 +7,13 @@ import type {
   PhoneInputNumberingPlanState,
   PhoneInputValidationState,
 } from '../usePhoneInput';
+import {
+  type DisplayMask,
+  type FormatStrategy,
+  formatPhoneInputPresentation,
+  type PhoneInputDisplayMode,
+  type PhoneInputPresentation,
+} from '../phone-formatting';
 import { type NumberingPlanResolution, resolveNumberingPlan } from '../numbering-plan';
 import {
   type PhoneValidationMode,
@@ -17,9 +24,10 @@ import type { PhoneMetadata } from '../phone-metadata';
 import type { PhoneValue } from '../phone-value';
 import type { InputEngineContext } from './input-transaction-engine';
 
-const E164_INPUT_CONTEXT: InputEngineContext = {
+const DEFAULT_INPUT_CONTEXT: InputEngineContext = {
+  displayMode: 'international',
   fixedCallingCode: false,
-  formatStrategyKey: 'e164',
+  formatStrategyKey: 'automatic',
   locale: 'en',
 };
 
@@ -27,7 +35,11 @@ interface PhoneInputDerivedStateParameters {
   allowedNumberTypes?: readonly PhoneNumberType[];
   currentSelectedCountry: CountryCode | null;
   currentValue: PhoneValue;
+  displayMask?: DisplayMask;
+  displayMode: PhoneInputDisplayMode;
   error: boolean;
+  formatStrategy?: FormatStrategy;
+  locale: string;
   metadata: PhoneMetadata;
   required: boolean;
   validationMessage?:
@@ -40,6 +52,7 @@ interface PhoneInputDerivedStateParameters {
 export interface PhoneInputDerivedState {
   inputContext: InputEngineContext;
   numberingPlan: NumberingPlanResolution;
+  presentation: PhoneInputPresentation;
   resolvedError: boolean;
   resolvedValidationMessage: ReactNode;
   validation: PhoneInputValidationState;
@@ -84,7 +97,11 @@ export function usePhoneInputDerivedState(
     allowedNumberTypes,
     currentSelectedCountry,
     currentValue,
+    displayMask,
+    displayMode,
     error,
+    formatStrategy,
+    locale,
     metadata,
     required,
     validationMessage,
@@ -123,19 +140,49 @@ export function usePhoneInputDerivedState(
   const resolvedValidationMessage = validationError
     ? resolveValidationMessage(validationMessage, validation)
     : null;
+  const formatCountry = currentSelectedCountry ?? numberingPlan.resolvedCountry;
+  const presentation = useMemo(
+    () =>
+      formatPhoneInputPresentation(currentValue, {
+        country: formatCountry,
+        displayMode,
+        locale,
+        metadata,
+        ...(displayMask === undefined ? {} : { displayMask }),
+        ...(formatStrategy === undefined ? {} : { formatStrategy }),
+      }),
+    [
+      currentValue,
+      displayMask,
+      displayMode,
+      formatCountry,
+      formatStrategy,
+      locale,
+      metadata,
+    ],
+  );
   const inputContext = useMemo<InputEngineContext>(
     () => ({
-      ...E164_INPUT_CONTEXT,
-      ...(numberingPlan.resolvedCountry
-        ? { country: numberingPlan.resolvedCountry }
-        : {}),
+      ...DEFAULT_INPUT_CONTEXT,
+      displayMode,
+      fixedCallingCode: displayMode === 'international-fixed-calling-code',
+      formatStrategyKey: formatStrategy
+        ? 'custom'
+        : displayMask
+          ? `mask:${displayMask.pattern}`
+          : 'automatic',
+      locale,
+      ...(formatCountry ? { country: formatCountry } : {}),
+      ...(displayMask === undefined ? {} : { displayMask }),
+      ...(formatStrategy === undefined ? {} : { formatStrategy }),
     }),
-    [numberingPlan.resolvedCountry],
+    [displayMask, displayMode, formatCountry, formatStrategy, locale],
   );
 
   return {
     inputContext,
     numberingPlan,
+    presentation,
     resolvedError,
     resolvedValidationMessage,
     validation,

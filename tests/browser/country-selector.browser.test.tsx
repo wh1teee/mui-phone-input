@@ -883,7 +883,7 @@ describe('responsive country selector', () => {
         await expect
           .element(input)
           .toHaveAttribute('data-phone-input-plan', 'geographic');
-        await expect.element(input).toHaveValue('+375291234567');
+        await expect.element(input).toHaveValue('+375 29 123 45 67');
       }
       await view.unmount();
     },

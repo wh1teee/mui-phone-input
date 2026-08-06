@@ -9,7 +9,6 @@ import {
   useCallback,
 } from 'react';
 
-import type { PhoneValue } from '../phone-value';
 import type {
   PhoneInputInputExternalProps,
   PhoneInputNumberingPlanState,
@@ -23,8 +22,8 @@ import type {
 
 interface PhoneInputPropGetterParameters {
   controlled: boolean;
-  currentValue: PhoneValue;
   disabled: boolean;
+  displayValue: string;
   error: boolean;
   handleBlur(event: FocusEvent<HTMLInputElement>): void;
   handleCompositionEnd(event: CompositionEvent<HTMLInputElement>): void;
@@ -70,8 +69,8 @@ export function usePhoneInputPropGetters(
 ): PhoneInputPropGetters {
   const {
     controlled,
-    currentValue,
     disabled,
+    displayValue,
     error,
     handleBlur,
     handleCompositionEnd,
@@ -146,12 +145,12 @@ export function usePhoneInputPropGetters(
         readOnly,
         ref: setInputRef,
         required,
-        value: currentValue ?? '',
+        value: displayValue,
       };
     },
     [
-      currentValue,
       disabled,
+      displayValue,
       error,
       handleBlur,
       handleCompositionEnd,

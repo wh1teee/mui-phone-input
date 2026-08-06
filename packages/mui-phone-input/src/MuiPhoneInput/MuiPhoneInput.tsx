@@ -20,6 +20,11 @@ import {
 } from '../PhoneInputCountrySelector';
 import { PhoneInputProvider } from '../PhoneInputPrimitives';
 import type { PhoneMetadata } from '../phone-metadata';
+import type {
+  DisplayMask,
+  FormatStrategy,
+  PhoneInputDisplayMode,
+} from '../phone-formatting';
 import type { PhoneValidationMode } from '../phone-validation';
 import type { PhoneValue } from '../phone-value';
 import {
@@ -73,6 +78,10 @@ export type MuiPhoneInputProps = Omit<
   defaultCountry?: CountryCode | null;
   defaultValue?: PhoneValue;
   disableCountrySelector?: boolean;
+  displayMask?: DisplayMask;
+  displayMode?: PhoneInputDisplayMode;
+  formatStrategy?: FormatStrategy;
+  locale?: string;
   metadata?: PhoneMetadata;
   onChange?: (value: PhoneValue, details: PhoneInputChangeDetails) => void;
   onCountryChange?: (
@@ -264,9 +273,13 @@ export function MuiPhoneInput(inProps: MuiPhoneInputProps): ReactNode {
     disabled = false,
     defaultCountry,
     disableCountrySelector = false,
+    displayMask,
+    displayMode = 'international',
     error = false,
+    formatStrategy,
     helperText,
     id,
+    locale = 'en',
     metadata,
     onChange,
     onCountryChange,
@@ -285,7 +298,9 @@ export function MuiPhoneInput(inProps: MuiPhoneInputProps): ReactNode {
   } = props;
   const phone = useMuiPhoneInput({
     disabled,
+    displayMode,
     error,
+    locale,
     readOnly,
     required,
     validationDisplay,
@@ -295,6 +310,8 @@ export function MuiPhoneInput(inProps: MuiPhoneInputProps): ReactNode {
     ...(Object.hasOwn(props, 'defaultCountry') ? { defaultCountry } : {}),
     ...(Object.hasOwn(props, 'value') ? { value } : {}),
     ...(allowedNumberTypes === undefined ? {} : { allowedNumberTypes }),
+    ...(displayMask === undefined ? {} : { displayMask }),
+    ...(formatStrategy === undefined ? {} : { formatStrategy }),
     ...(id === undefined ? {} : { id }),
     ...(onChange === undefined ? {} : { onChange }),
     ...(onCountryChange === undefined ? {} : { onCountryChange }),

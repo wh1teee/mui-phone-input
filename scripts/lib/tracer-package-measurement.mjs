@@ -11,7 +11,7 @@ import {
   repositoryRoot,
 } from './package-artifact.mjs';
 
-const MAIN_GZIP_BUDGET_BYTES = 25 * 1024;
+const MAIN_GZIP_BUDGET_BYTES = 28 * 1024;
 const SERVER_GZIP_BUDGET_BYTES = 10 * 1024;
 
 const MAIN_BUDGET_EXTERNALS = [

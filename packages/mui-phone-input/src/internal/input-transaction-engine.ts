@@ -1,3 +1,11 @@
+import type { CountryCode } from 'libphonenumber-js/max';
+
+import type {
+  DisplayMask,
+  FormatStrategy,
+  PhoneInputDisplayMode,
+} from '../phone-formatting';
+
 export const INPUT_TRANSACTION_ENGINE_CONTRACT_VERSION = 1 as const;
 export const SELECTED_INPUT_TRANSACTION_ENGINE = 'maskito' as const;
 
@@ -28,8 +36,11 @@ export type CommittedInputTransaction = Readonly<{
 }>;
 
 export type InputEngineContext = Readonly<{
-  country?: string;
+  country?: CountryCode;
+  displayMask?: DisplayMask;
+  displayMode: PhoneInputDisplayMode;
   fixedCallingCode: boolean;
+  formatStrategy?: FormatStrategy;
   formatStrategyKey: string;
   locale: string;
 }>;
