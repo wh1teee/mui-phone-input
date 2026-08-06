@@ -144,7 +144,8 @@ function UncontrolledNationalHarness() {
 }
 
 function FormattingModeHarness() {
-  const [displayMode, setDisplayMode] = useState<PhoneInputDisplayMode>('international');
+  const [displayMode, setDisplayMode] =
+    useState<PhoneInputDisplayMode>('international');
   const [locale, setLocale] = useState('en');
   const [masked, setMasked] = useState(false);
   const [selectedCountry, setSelectedCountry] = useState<CountryCode>('US');
@@ -1132,7 +1133,9 @@ describe('MuiPhoneInput tracer', () => {
 
       await expect
         .element(locator)
-        .toHaveValue(formatPhoneInputPresentation(nextValue as PhoneValue).displayValue);
+        .toHaveValue(
+          formatPhoneInputPresentation(nextValue as PhoneValue).displayValue,
+        );
       await expect
         .element(page.getByTestId('controlled-callback-count'))
         .toHaveTextContent('1');

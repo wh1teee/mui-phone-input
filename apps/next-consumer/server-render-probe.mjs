@@ -21,11 +21,25 @@ Intl.DateTimeFormat.prototype.resolvedOptions = function forbiddenLocaleDetectio
 };
 
 const states = [
-  ['empty', undefined, 'unresolved', 'empty', undefined],
-  ['geographic', '+375291234567', 'geographic', 'valid', undefined],
-  ['territory', '+358412345678', 'geographic', 'valid', 'AX'],
-  ['unresolved', '+1', 'unresolved', 'incomplete', undefined],
-  ['non-geographic', '+80012345678', 'non-geographic', 'valid', undefined],
+  ['empty', undefined, 'unresolved', 'empty', undefined, ''],
+  [
+    'geographic',
+    '+375291234567',
+    'geographic',
+    'valid',
+    undefined,
+    '+375 29 123 45 67',
+  ],
+  ['territory', '+358412345678', 'geographic', 'valid', 'AX', '+358 41 2345678'],
+  ['unresolved', '+1', 'unresolved', 'incomplete', undefined, '+1'],
+  [
+    'non-geographic',
+    '+80012345678',
+    'non-geographic',
+    'valid',
+    undefined,
+    '+800 1234 5678',
+  ],
 ];
 try {
   const [muiStyles, phoneInputModule, reactModule, reactDomServer] = await Promise.all([
@@ -102,7 +116,7 @@ try {
   const second = renderMatrix();
   assert.equal(first, second, 'Two isolated server renders must be byte-identical.');
 
-  for (const [kind, value, plan, status, selectedCountry] of states) {
+  for (const [kind, value, plan, status, selectedCountry, displayValue] of states) {
     const isolatedHtml = renderState(kind, value, selectedCountry);
     const inputTag = isolatedHtml.match(
       new RegExp(`<input(?=[^>]*\\bid="probe-${kind}")[^>]*>`, 'u'),
@@ -117,7 +131,7 @@ try {
       `Unexpected ${kind} server-rendered status.`,
     );
     assert.ok(
-      inputTag.includes(`value="${value ?? ''}"`),
+      inputTag.includes(`value="${displayValue}"`),
       `Unexpected ${kind} server-rendered value.`,
     );
     if (selectedCountry) {

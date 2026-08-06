@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { readFile, readdir } from 'node:fs/promises';
+import { rmSync } from 'node:fs';
+import { mkdtemp, readFile, readdir } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
@@ -25,11 +26,20 @@ run('pnpm', [
   '--exclude-entrypoints',
   './flags.css',
 ]);
-await verifyPackageExportContract(tarball);
-
-const contents = execFileSync('tar', ['-tf', tarball], {
+const extractionRoot = await mkdtemp(
+  join(repositoryRoot, 'packages/mui-phone-input/.verify-package-'),
+);
+process.once('exit', () => {
+  rmSync(extractionRoot, { force: true, recursive: true });
+});
+execFileSync('tar', ['-xzf', tarball, '-C', extractionRoot], {
   cwd: repositoryRoot,
-  encoding: 'utf8',
+});
+const packageRoot = join(extractionRoot, 'package');
+const packageEntries = await readdir(packageRoot, { recursive: true });
+const contents = packageEntries.map((entry) => `package/${entry}`).join('\n');
+await verifyPackageExportContract(tarball, {
+  extractedPackageRoot: packageRoot,
 });
 
 for (const requiredFile of [
@@ -80,10 +90,7 @@ assert.equal(
 );
 
 const packedManifest = JSON.parse(
-  execFileSync('tar', ['-xOf', tarball, 'package/package.json'], {
-    cwd: repositoryRoot,
-    encoding: 'utf8',
-  }),
+  await readFile(join(packageRoot, 'package.json'), 'utf8'),
 );
 assert.equal(
   packedManifest.engines,
@@ -119,19 +126,15 @@ assert.equal(
   '1.6.20',
   'Local flag generation must stay pinned to the reviewed country-flag-icons release.',
 );
-const packedReadme = execFileSync('tar', ['-xOf', tarball, 'package/README.md'], {
-  cwd: repositoryRoot,
-  encoding: 'utf8',
-});
+const packedReadme = await readFile(join(packageRoot, 'README.md'), 'utf8');
 assert.match(
   packedReadme,
   /github\.com\/wh1teee\/mui-phone-input\/discussions\/new\?category=q-a/u,
 );
 assert.doesNotMatch(packedReadme, /github\.com\/wh1teee\/mui-phone-input\/issues/u);
-const packedThirdPartyNotices = execFileSync(
-  'tar',
-  ['-xOf', tarball, 'package/THIRD_PARTY_NOTICES.md'],
-  { cwd: repositoryRoot, encoding: 'utf8' },
+const packedThirdPartyNotices = await readFile(
+  join(packageRoot, 'THIRD_PARTY_NOTICES.md'),
+  'utf8',
 );
 assert.match(packedThirdPartyNotices, /country-flag-icons@1\.6\.20/u);
 assert.match(
@@ -140,16 +143,10 @@ assert.match(
 );
 
 const packedClientSourceMap = JSON.parse(
-  execFileSync('tar', ['-xOf', tarball, 'package/dist/index.js.map'], {
-    cwd: repositoryRoot,
-    encoding: 'utf8',
-  }),
+  await readFile(join(packageRoot, 'dist/index.js.map'), 'utf8'),
 );
 const packedServerSourceMap = JSON.parse(
-  execFileSync('tar', ['-xOf', tarball, 'package/dist/server.js.map'], {
-    cwd: repositoryRoot,
-    encoding: 'utf8',
-  }),
+  await readFile(join(packageRoot, 'dist/server.js.map'), 'utf8'),
 );
 for (const requiredClientSource of [
   '../src/PhoneInputCountrySelector.tsx',
@@ -183,7 +180,7 @@ for (const forbiddenServerSource of [
   );
 }
 
-const packageDist = join(repositoryRoot, 'packages/mui-phone-input/dist');
+const packageDist = join(packageRoot, 'dist');
 const serverBundle = await readFile(join(packageDist, 'server.js'), 'utf8');
 const clientBundle = await readFile(join(packageDist, 'index.js'), 'utf8');
 const serverMetadataChunk = serverBundle.match(
@@ -250,9 +247,15 @@ assert.doesNotMatch(flagsBundle, /<svg/u);
 assert.doesNotMatch(flagsBundle, /country-flag-icons/u);
 assert.doesNotMatch(flagsBundle, /import\s+["'][^"']*flags\.css["']/u);
 assert.doesNotMatch(flagsStylesheet, /data:image\/svg\+xml/u);
-assert.match(flagsStylesheet, /\.flag\\:BY\{background-image:url\("\.\/flags\/3x2\/BY\.svg"\)\}/u);
+assert.match(
+  flagsStylesheet,
+  /\.flag\\:BY\{background-image:url\("\.\/flags\/3x2\/BY\.svg"\)\}/u,
+);
 for (const [locale, source] of Object.entries(localeBundles)) {
-  assert.ok(source.length < 1_024, `${locale} locale entrypoint is unexpectedly large.`);
+  assert.ok(
+    source.length < 1_024,
+    `${locale} locale entrypoint is unexpectedly large.`,
+  );
   assert.doesNotMatch(source, /@mui\/|react|\.\/locales\//u);
   for (const otherLocale of Object.keys(localeBundles).filter(
     (candidate) => candidate !== locale,
@@ -546,12 +549,6 @@ assert.doesNotMatch(
   /function shouldWarnInDevelopment\(\)\s*\{\s*return true/u,
 );
 
-run('pnpm', [
-  '--dir',
-  'packages/mui-phone-input',
-  'publish',
-  '--dry-run',
-  '--no-git-checks',
-]);
+run('pnpm', ['publish', tarball, '--dry-run', '--no-git-checks']);
 
 console.log(`Package artifact verified: ${tarball}`);

@@ -12,4 +12,3 @@ export const ru: PhoneInputLocale = {
     selectCountry: 'Выбрать страну',
   },
 };
-

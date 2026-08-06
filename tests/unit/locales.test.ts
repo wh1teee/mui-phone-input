@@ -33,4 +33,3 @@ describe('locale packs', () => {
     expect(belarus?.localizedName).toBe('Беларусь — consumer');
   });
 });
-

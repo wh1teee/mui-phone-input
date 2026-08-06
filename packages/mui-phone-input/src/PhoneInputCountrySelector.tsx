@@ -164,11 +164,7 @@ export interface PhoneCountrySelectorSlotProps {
     PhoneCountrySelectorDataAttributes,
     PhoneCountrySelectorOwnerState
   >;
-  flag?: SlotProps<
-    'span',
-    PhoneCountryFlagProps,
-    PhoneCountrySelectorFlagOwnerState
-  >;
+  flag?: SlotProps<'span', PhoneCountryFlagProps, PhoneCountrySelectorFlagOwnerState>;
   group?: SlotProps<
     'li',
     PhoneCountrySelectorDataAttributes,
@@ -729,7 +725,9 @@ export function PhoneInputCountrySelector({
   const closeButtonRef = useRef<HTMLButtonElement | null>(null);
   const ensureHighlightedOptionVisible = useCallback(() => {
     const listbox = listboxElementRef.current;
-    const activeOptionId = searchInputRef.current?.getAttribute('aria-activedescendant');
+    const activeOptionId = searchInputRef.current?.getAttribute(
+      'aria-activedescendant',
+    );
     const activeOptionElement = activeOptionId
       ? document.getElementById(activeOptionId)
       : null;
@@ -1195,10 +1193,14 @@ export function PhoneInputCountrySelector({
                           'aria-hidden': true,
                           className: classes.countrySelectorFlag,
                           country: option.country,
-                          ...(externalFlag === undefined ? {} : { external: externalFlag }),
+                          ...(externalFlag === undefined
+                            ? {}
+                            : { external: externalFlag }),
                           mode: flagMode,
                           placement: 'option' as const,
-                          ...(flagProvider === undefined ? {} : { provider: flagProvider }),
+                          ...(flagProvider === undefined
+                            ? {}
+                            : { provider: flagProvider }),
                         }),
                         'aria-hidden': true,
                         country: option.country,
@@ -1349,7 +1351,9 @@ export function PhoneInputCountrySelector({
   return (
     <>
       <TriggerSlot {...triggerSlotProps}>
-        {activeOption && (flagMode !== 'none' || flagProvider) && triggerFlagSlotProps ? (
+        {activeOption &&
+        (flagMode !== 'none' || flagProvider) &&
+        triggerFlagSlotProps ? (
           <FlagSlot {...triggerFlagSlotProps} />
         ) : null}
         <CountryCodeSlot {...triggerCountryCodeSlotProps}>

@@ -83,6 +83,15 @@ assert.deepEqual(packedManifest.publishConfig, {
 });
 assert.deepEqual(Object.keys(packedManifest.exports).sort(), [
   '.',
+  './flags',
+  './flags.css',
+  './locales/be',
+  './locales/en',
+  './locales/ru',
+  './metadata/custom',
+  './metadata/max',
+  './metadata/min',
+  './metadata/mobile',
   './package.json',
   './server',
 ]);

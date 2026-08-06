@@ -4,4 +4,3 @@ export interface PhoneInputLocale {
   locale: string;
   messages: Readonly<PhoneCountrySelectorMessages>;
 }
-

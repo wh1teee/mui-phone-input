@@ -196,7 +196,9 @@ describe('flags and localization', () => {
       </ThemeProvider>,
     );
 
-    const input = document.querySelector<HTMLInputElement>('input[data-phone-input-plan]');
+    const input = document.querySelector<HTMLInputElement>(
+      'input[data-phone-input-plan]',
+    );
     expect(input?.dir).toBe('ltr');
     expect(input?.value).toBe('+375 29 123 45 67');
     expect(input?.closest('[dir="rtl"]')).not.toBeNull();
@@ -211,4 +213,3 @@ describe('flags and localization', () => {
     expect(results.violations.map(({ id }) => id)).toEqual([]);
   });
 });
-

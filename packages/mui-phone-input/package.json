@@ -13,7 +13,9 @@
     "url": "https://github.com/wh1teee/mui-phone-input/discussions/new?category=q-a"
   },
   "type": "module",
-  "sideEffects": ["./dist/flags.css"],
+  "sideEffects": [
+    "./dist/flags.css"
+  ],
   "files": [
     "dist",
     "LICENSE",

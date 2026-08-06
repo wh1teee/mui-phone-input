@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import {
+  cp,
   mkdir,
   mkdtemp,
   readFile,
@@ -23,11 +24,7 @@ import {
 const scriptsDirectory = dirname(fileURLToPath(import.meta.url));
 const repositoryRoot = resolve(scriptsDirectory, '../..');
 const packageName = '@wh1teee/mui-phone-input';
-const semanticExceptionKinds = new Set([
-  'asset-only',
-  'data-only',
-  'side-effect-only',
-]);
+const semanticExceptionKinds = new Set(['asset-only', 'data-only', 'side-effect-only']);
 
 const expectedExportContract = {
   '.': {
@@ -267,10 +264,7 @@ const expectedExportContract = {
   },
 };
 
-const absentFutureSubpaths = [
-  './react-hook-form',
-  './zod',
-];
+const absentFutureSubpaths = ['./react-hook-form', './zod'];
 
 function packageSpecifier(subpath) {
   return subpath === '.' ? packageName : `${packageName}/${subpath.slice(2)}`;
@@ -344,7 +338,10 @@ function resolveTypeExports(consumerRoot, subpath, expectedTypesTarget) {
     .sort();
 }
 
-export async function verifyPackageExportContract(tarball) {
+export async function verifyPackageExportContract(
+  tarball,
+  { extractedPackageRoot } = {},
+) {
   const temporaryRoot = await mkdtemp(join(tmpdir(), 'mui-phone-input-exports-'));
   const packageRoot = join(
     temporaryRoot,
@@ -354,10 +351,18 @@ export async function verifyPackageExportContract(tarball) {
   );
 
   try {
-    await mkdir(packageRoot, { recursive: true });
-    execFileSync('tar', ['-xzf', tarball, '--strip-components=1', '-C', packageRoot], {
-      cwd: repositoryRoot,
-    });
+    if (extractedPackageRoot) {
+      await cp(resolve(extractedPackageRoot), packageRoot, { recursive: true });
+    } else {
+      await mkdir(packageRoot, { recursive: true });
+      execFileSync(
+        'tar',
+        ['-xzf', tarball, '--strip-components=1', '-C', packageRoot],
+        {
+          cwd: repositoryRoot,
+        },
+      );
+    }
 
     const manifest = JSON.parse(
       await readFile(join(packageRoot, 'package.json'), 'utf8'),

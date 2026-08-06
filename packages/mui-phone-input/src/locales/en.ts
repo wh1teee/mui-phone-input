@@ -12,4 +12,3 @@ export const en: PhoneInputLocale = {
     selectCountry: 'Select country',
   },
 };
-

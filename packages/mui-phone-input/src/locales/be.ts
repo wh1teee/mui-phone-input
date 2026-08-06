@@ -12,4 +12,3 @@ export const be: PhoneInputLocale = {
     selectCountry: 'Выбраць краіну',
   },
 };
-

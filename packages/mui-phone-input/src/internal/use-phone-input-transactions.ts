@@ -419,7 +419,8 @@ export function usePhoneInputTransactions(
     previousPresentation.value === presentation.value &&
     inputDuringRender
   ) {
-    const start = inputDuringRender.selectionStart ?? previousPresentation.displayValue.length;
+    const start =
+      inputDuringRender.selectionStart ?? previousPresentation.displayValue.length;
     const end = inputDuringRender.selectionEnd ?? start;
     pendingLogicalSelectionRef.current = [
       logicalCaretFromDisplayOffset(previousPresentation.mapping, start),
@@ -757,10 +758,13 @@ export function usePhoneInputTransactions(
 
       const selectedCountry = currentSelectedCountryRef.current;
       const previousDisplayValue = presentation.displayValue;
-      const observedDisplayValue = capturedInput?.displayValue ?? event.currentTarget.value;
+      const observedDisplayValue =
+        capturedInput?.displayValue ?? event.currentTarget.value;
       const normalizedDisplayValue = parseIncompletePhoneNumber(observedDisplayValue);
-      const selectionStart = capturedInput?.selection[0] ?? event.currentTarget.selectionStart;
-      const selectionEnd = capturedInput?.selection[1] ?? event.currentTarget.selectionEnd;
+      const selectionStart =
+        capturedInput?.selection[0] ?? event.currentTarget.selectionStart;
+      const selectionEnd =
+        capturedInput?.selection[1] ?? event.currentTarget.selectionEnd;
       const appendsAtEnd =
         selectionStart === observedDisplayValue.length &&
         selectionEnd === observedDisplayValue.length;
@@ -875,7 +879,8 @@ export function usePhoneInputTransactions(
               ),
             ];
       } else if (nextPresentation.displayValue === event.currentTarget.value) {
-        const start = event.currentTarget.selectionStart ?? nextPresentation.displayValue.length;
+        const start =
+          event.currentTarget.selectionStart ?? nextPresentation.displayValue.length;
         const end = event.currentTarget.selectionEnd ?? start;
         pendingLogicalSelectionRef.current = [
           logicalCaretFromDisplayOffset(nextPresentation.mapping, start),
