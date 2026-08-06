@@ -3,9 +3,11 @@
 import type { CountryCode, PhoneNumberType } from 'libphonenumber-js/max';
 import {
   type ComponentPropsWithoutRef,
+  type FormEvent,
   type ReactNode,
   type RefCallback,
   type RefObject,
+  useCallback,
   useId,
   useMemo,
 } from 'react';
@@ -17,6 +19,11 @@ import { usePhoneInputPropGetters } from './internal/use-phone-input-prop-getter
 import { usePhoneInputTransactions } from './internal/use-phone-input-transactions';
 import { usePhoneInputValidationVisibility } from './internal/use-phone-input-validation-visibility';
 import type { NumberingPlanResolution } from './numbering-plan';
+import {
+  assertPhoneExtension,
+  parsePhoneExtension,
+  type PhoneExtension,
+} from './phone-extension';
 import type {
   DisplayMask,
   FormatStrategy,
@@ -51,6 +58,14 @@ export interface PhoneInputChangeDetails {
   value: PhoneValue;
 }
 
+export type PhoneExtensionChangeReason = 'clear' | 'input' | 'paste';
+
+export interface PhoneExtensionChangeDetails {
+  extension: PhoneExtension;
+  previousExtension: PhoneExtension;
+  reason: PhoneExtensionChangeReason;
+}
+
 export type PhoneCountryChangeReason =
   | 'default'
   | 'external-value'
@@ -72,11 +87,16 @@ export interface PhoneCountryChangeDetails {
 export interface UsePhoneInputParameters {
   allowedNumberTypes?: readonly PhoneNumberType[];
   defaultCountry?: CountryCode | null;
+  defaultExtension?: PhoneExtension;
   defaultValue?: PhoneValue;
   disabled?: boolean;
   displayMask?: DisplayMask;
   displayMode?: PhoneInputDisplayMode;
   error?: boolean;
+  extension?: PhoneExtension;
+  extensionError?: boolean;
+  extensionMaxLength?: number;
+  extensionRequired?: boolean;
   formatStrategy?: FormatStrategy;
   id?: string;
   locale?: string;
@@ -87,6 +107,10 @@ export interface UsePhoneInputParameters {
     details: PhoneCountryChangeDetails,
   ) => void;
   onCountrySelection?: (result: PhoneCountrySelectionResult) => void;
+  onExtensionChange?: (
+    extension: PhoneExtension,
+    details: PhoneExtensionChangeDetails,
+  ) => void;
   readOnly?: boolean;
   required?: boolean;
   selectedCountry?: CountryCode | null;
@@ -105,6 +129,13 @@ export interface PhoneInputState {
   displayValue: string;
   empty: boolean;
   error: boolean;
+  extension: PhoneExtension;
+  extensionControlled: boolean;
+  extensionError: boolean;
+  extensionInputId: string;
+  extensionMaxLength: number | undefined;
+  extensionRequired: boolean;
+  extensionValidationMessageId: string;
   inputId: string;
   metadata: PhoneMetadata;
   numberingPlan: PhoneInputNumberingPlanState;
@@ -135,6 +166,36 @@ export type PhoneInputInputExternalProps = Omit<
   'defaultValue' | 'disabled' | 'id' | 'onChange' | 'readOnly' | 'required' | 'value'
 > &
   PhoneInputDataAttributes;
+
+export type PhoneExtensionInputExternalProps = Omit<
+  ComponentPropsWithoutRef<'input'>,
+  | 'defaultValue'
+  | 'disabled'
+  | 'id'
+  | 'maxLength'
+  | 'onChange'
+  | 'onInput'
+  | 'readOnly'
+  | 'required'
+  | 'value'
+> &
+  PhoneInputDataAttributes & {
+    onInput?: (event: FormEvent<HTMLInputElement>) => void;
+  };
+
+export type PhoneInputResolvedExtensionInputProps = PhoneExtensionInputExternalProps & {
+  'aria-invalid': boolean;
+  'data-phone-extension-controlled': 'false' | 'true';
+  disabled: boolean;
+  id: string;
+  inputMode: 'numeric' | (string & {});
+  maxLength?: number | undefined;
+  onInput(event: FormEvent<HTMLInputElement>): void;
+  readOnly: boolean;
+  ref: RefCallback<HTMLInputElement>;
+  required: boolean;
+  value: string;
+};
 
 export type PhoneInputResolvedInputProps = PhoneInputInputExternalProps & {
   'aria-describedby'?: string | undefined;
@@ -174,6 +235,10 @@ export type PhoneInputResolvedValidationMessageProps =
 
 export interface UsePhoneInputReturn {
   actions: PhoneInputActions;
+  extensionInputElementRef: RefObject<HTMLInputElement | null>;
+  getExtensionInputProps(
+    externalProps?: PhoneExtensionInputExternalProps,
+  ): PhoneInputResolvedExtensionInputProps;
   getInputProps(
     externalProps?: PhoneInputInputExternalProps,
   ): PhoneInputResolvedInputProps;
@@ -184,8 +249,23 @@ export interface UsePhoneInputReturn {
     externalProps?: PhoneInputValidationMessageExternalProps,
   ): PhoneInputResolvedValidationMessageProps;
   inputElementRef: RefObject<HTMLInputElement | null>;
+  setExtensionInputRef: RefCallback<HTMLInputElement>;
   setInputRef: RefCallback<HTMLInputElement>;
   state: PhoneInputState;
+}
+
+function assertExtensionPolicyValue(
+  value: PhoneExtension,
+  label: 'defaultExtension' | 'extension',
+  maxLength: number | undefined,
+): void {
+  assertPhoneExtension(value);
+  if (maxLength === undefined || value === undefined) {
+    return;
+  }
+  if (parsePhoneExtension(value, { maxLength }) !== value) {
+    throw new TypeError(`${label} exceeds extensionMaxLength.`);
+  }
 }
 
 function usePhoneInputInternal(
@@ -195,11 +275,16 @@ function usePhoneInputInternal(
   const {
     allowedNumberTypes,
     defaultCountry,
+    defaultExtension,
     defaultValue,
     disabled = false,
     displayMask,
     displayMode = 'international',
     error = false,
+    extension,
+    extensionError = false,
+    extensionMaxLength,
+    extensionRequired = false,
     formatStrategy,
     id,
     locale = 'en',
@@ -207,6 +292,7 @@ function usePhoneInputInternal(
     onChange,
     onCountryChange,
     onCountrySelection,
+    onExtensionChange,
     readOnly = false,
     required = false,
     selectedCountry,
@@ -216,12 +302,29 @@ function usePhoneInputInternal(
     value,
   } = parameters;
   const generatedId = useId();
+  parsePhoneExtension(undefined, {
+    ...(extensionMaxLength === undefined ? {} : { maxLength: extensionMaxLength }),
+  });
+  if (Object.hasOwn(parameters, 'defaultExtension')) {
+    assertExtensionPolicyValue(
+      defaultExtension,
+      'defaultExtension',
+      extensionMaxLength,
+    );
+  }
+  if (Object.hasOwn(parameters, 'extension')) {
+    assertExtensionPolicyValue(extension, 'extension', extensionMaxLength);
+  }
   const inputId = id ?? `mui-phone-input-${generatedId}`;
+  const extensionInputId = `${inputId}-extension`;
+  const extensionValidationMessageId = `${inputId}-extension-helper-text`;
   const validationMessageId = `${inputId}-helper-text`;
   const ownership = usePhoneInputOwnership(
     {
       ...(Object.hasOwn(parameters, 'defaultCountry') ? { defaultCountry } : {}),
+      ...(Object.hasOwn(parameters, 'defaultExtension') ? { defaultExtension } : {}),
       ...(Object.hasOwn(parameters, 'defaultValue') ? { defaultValue } : {}),
+      ...(Object.hasOwn(parameters, 'extension') ? { extension } : {}),
       ...(Object.hasOwn(parameters, 'selectedCountry') ? { selectedCountry } : {}),
       ...(Object.hasOwn(parameters, 'value') ? { value } : {}),
     },
@@ -253,9 +356,12 @@ function usePhoneInputInternal(
     handleInput,
     handleInputCapture,
     handlePaste,
+    handleExtensionInput,
+    extensionInputElementRef,
     inputElementRef,
     reset,
     selectCountry,
+    setExtensionInputRef,
     setInputRef,
   } = usePhoneInputTransactions({
     inputContext: derivedState.inputContext,
@@ -267,9 +373,11 @@ function usePhoneInputInternal(
     resetValidationVisibility,
     validationMode,
     ...(allowedNumberTypes === undefined ? {} : { allowedNumberTypes }),
+    ...(extensionMaxLength === undefined ? {} : { extensionMaxLength }),
     ...(onChange === undefined ? {} : { onChange }),
     ...(onCountryChange === undefined ? {} : { onCountryChange }),
     ...(onCountrySelection === undefined ? {} : { onCountrySelection }),
+    ...(onExtensionChange === undefined ? {} : { onExtensionChange }),
   });
   const actions = useMemo<PhoneInputActions>(
     () => ({
@@ -288,6 +396,13 @@ function usePhoneInputInternal(
       displayValue: derivedState.presentation.displayValue,
       empty: ownership.currentValue === undefined,
       error: derivedState.resolvedError,
+      extension: ownership.currentExtension,
+      extensionControlled: ownership.extensionControlledRef.current,
+      extensionError,
+      extensionInputId,
+      extensionMaxLength,
+      extensionRequired,
+      extensionValidationMessageId,
       inputId,
       metadata,
       numberingPlan: derivedState.numberingPlan,
@@ -309,11 +424,18 @@ function usePhoneInputInternal(
       derivedState.validation,
       derivedState.validationError,
       disabled,
+      extensionError,
+      extensionInputId,
+      extensionMaxLength,
+      extensionRequired,
+      extensionValidationMessageId,
       inputId,
       metadata,
       ownership.controlledRef,
       ownership.countryControlledRef,
+      ownership.currentExtension,
       ownership.currentValue,
+      ownership.extensionControlledRef,
       readOnly,
       required,
       validationMessageId,
@@ -341,24 +463,71 @@ function usePhoneInputInternal(
       validationError: derivedState.validationError,
       validationMessageId,
     });
+  const getExtensionInputProps = useCallback(
+    (
+      externalProps: PhoneExtensionInputExternalProps = {},
+    ): PhoneInputResolvedExtensionInputProps => {
+      const { onInput, ...rest } = externalProps;
+      return {
+        ...rest,
+        'aria-invalid': extensionError,
+        'data-phone-extension-controlled': ownership.extensionControlledRef.current
+          ? 'true'
+          : 'false',
+        autoComplete: externalProps.autoComplete ?? 'tel-extension',
+        disabled,
+        id: extensionInputId,
+        inputMode: externalProps.inputMode ?? 'numeric',
+        ...(extensionMaxLength === undefined ? {} : { maxLength: extensionMaxLength }),
+        onInput: (event) => {
+          onInput?.(event);
+          if (!event.defaultPrevented) {
+            handleExtensionInput(event);
+          }
+        },
+        readOnly,
+        ref: setExtensionInputRef,
+        required: extensionRequired,
+        value: ownership.currentExtension ?? '',
+      };
+    },
+    [
+      disabled,
+      extensionError,
+      extensionInputId,
+      extensionMaxLength,
+      extensionRequired,
+      handleExtensionInput,
+      ownership.currentExtension,
+      ownership.extensionControlledRef,
+      readOnly,
+      setExtensionInputRef,
+    ],
+  );
 
   return useMemo(
     () => ({
       actions,
+      extensionInputElementRef,
+      getExtensionInputProps,
       getInputProps,
       getRootProps,
       getValidationMessageProps,
       inputElementRef,
       setInputRef,
+      setExtensionInputRef,
       state,
     }),
     [
       actions,
+      extensionInputElementRef,
+      getExtensionInputProps,
       getInputProps,
       getRootProps,
       getValidationMessageProps,
       inputElementRef,
       setInputRef,
+      setExtensionInputRef,
       state,
     ],
   );

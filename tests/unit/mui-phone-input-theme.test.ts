@@ -45,6 +45,15 @@ describe('MuiPhoneInput MUI contract', () => {
             input: {
               fontVariantNumeric: 'tabular-nums',
             },
+            extension: {
+              minWidth: 80,
+            },
+            extensionInput: {
+              fontVariantNumeric: 'tabular-nums',
+            },
+            extensionValidationMessage: {
+              fontWeight: 500,
+            },
             root: {
               minWidth: 240,
             },
@@ -62,6 +71,10 @@ describe('MuiPhoneInput MUI contract', () => {
     expect(theme.components?.MuiPhoneInput?.defaultProps?.fullWidth).toBe(true);
     expect(theme.components?.MuiPhoneInput?.styleOverrides).toHaveProperty('root');
     expect(theme.components?.MuiPhoneInput?.styleOverrides).toHaveProperty('input');
+    expect(theme.components?.MuiPhoneInput?.styleOverrides).toHaveProperty('extension');
+    expect(theme.components?.MuiPhoneInput?.styleOverrides).toHaveProperty(
+      'extensionInput',
+    );
     expect(theme.components?.MuiPhoneInput?.styleOverrides).toHaveProperty(
       'countrySelectorOptionLabel',
     );
@@ -73,6 +86,11 @@ describe('MuiPhoneInput MUI contract', () => {
     expect(muiPhoneInputClasses.input).toBe('MuiPhoneInput-input');
     expect(muiPhoneInputClasses.validationMessage).toBe(
       'MuiPhoneInput-validationMessage',
+    );
+    expect(muiPhoneInputClasses.extension).toBe('MuiPhoneInput-extension');
+    expect(muiPhoneInputClasses.extensionInput).toBe('MuiPhoneInput-extensionInput');
+    expect(muiPhoneInputClasses.extensionValidationMessage).toBe(
+      'MuiPhoneInput-extensionValidationMessage',
     );
     expect(muiPhoneInputClasses.countrySelector).toBe('MuiPhoneInput-countrySelector');
     expect(muiPhoneInputClasses.countrySelectorOption).toBe(
@@ -94,6 +112,11 @@ describe('MuiPhoneInput MUI contract', () => {
       disabled: false,
       empty: false,
       error: false,
+      extensionControlled: true,
+      extensionError: false,
+      extensionPresent: true,
+      extensionPresentation: 'separate',
+      extensionRequired: false,
       numberingPlanKind: 'geographic',
       readOnly: false,
       required: true,
@@ -103,5 +126,6 @@ describe('MuiPhoneInput MUI contract', () => {
 
     expect(ownerState.validationStatus).toBe('valid');
     expect(ownerState.numberingPlanKind).toBe('geographic');
+    expect(ownerState.extensionPresentation).toBe('separate');
   });
 });

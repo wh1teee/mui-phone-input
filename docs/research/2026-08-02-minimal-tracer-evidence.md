@@ -2,7 +2,7 @@
 
 Date: 2026-08-02
 Bead: `mpi-oan.3`
-Revalidated: 2026-08-07 for `mpi-oan.7`
+Revalidated: 2026-08-07 for `mpi-oan.8`
 
 ## Delivered public surface
 
@@ -11,19 +11,26 @@ The main client entrypoint exports:
 - `MuiPhoneInput`;
 - `MuiPhoneInputProps` and deterministic change-detail types;
 - `PhoneValue`;
+- `PhoneExtension`, extension presentation/slot contracts, and
+  `PhoneInputExtensionInput`;
 - `isPhoneValue`, `parsePhoneValue`, and `assertPhoneValue`;
+- `parsePhoneExtension`, `parseRfc3966`, and `serializeRfc3966`;
 - `formatPhoneInputPresentation` and typed display/mask/strategy contracts;
 - `muiPhoneInputClasses` and `getMuiPhoneInputUtilityClass`.
 
-The server entrypoint exports the Phone Value type/helpers, pure Numbering Plan
-resolver, possible-by-default validation, and deterministic formatting. It
-imports no React, MUI, Emotion, Maskito, DOM, browser globals, or Node-only
-built-ins.
+The server entrypoint exports the Phone Value and extension/RFC 3966
+type/helpers, pure Numbering Plan resolver, possible-by-default validation, and
+deterministic formatting. It imports no React, MUI, Emotion, Maskito, DOM,
+browser globals, or Node-only built-ins.
 
 ## Tracer contract
 
 - Empty input is `undefined`.
 - Every non-empty Phone Value begins with `+` and contains only digits.
+- Extension canonical state is independent from Phone Value and contains only
+  digits; no universal extension length is imposed.
+- RFC 3966 and recognized extension-bearing paste split phone and extension
+  before the existing phone transaction commits the canonical Phone Value.
 - Incomplete candidates such as `+` and `+37529` are preserved.
 - Controlled and uncontrolled modes use the same transaction model.
 - Ownership is fixed at mount; development builds warn on a mode switch.
@@ -50,7 +57,7 @@ basic responsive Country Selector behavior, possible/strict validity, number
 type, deterministic international/national/fixed-calling-code presentation,
 declarative Display Masks, typed Format Strategy caret mapping, and custom
 metadata compatibility. It intentionally does not yet claim measured selector
-virtualization, extensions, metadata preset variants, or form adapters.
+virtualization, metadata preset variants, or form adapters.
 
 ## Browser evidence
 
@@ -87,6 +94,11 @@ Source Browser Mode tests cover:
 - selected-country complete national keyboard and clipboard input across
   controlled and uncontrolled ownership, including Unicode digits and
   possible-but-not-valid draft preservation.
+- extension controlled/uncontrolled ownership, optional max-length policy,
+  none/separate/inline/custom presentation, reset/external reconciliation,
+  RFC 3966 and human-readable extension paste, SSR/hydration, keyboard focus,
+  slots/slotProps and WCAG-oriented error association. The focused 19-test
+  extension matrix passes in Chromium, Firefox, and WebKit.
 
 The same public tarball is installed outside the workspace in production
 Next.js and Vite consumers. Their built applications are started and exercised
@@ -104,11 +116,12 @@ byte-identical repeated HTML. The Vite production smoke renders the same state
 matrix. Full details are recorded in
 `2026-08-02-ssr-packed-consumption-evidence.md`.
 
-The current combined source matrix contains 218 Browser Mode tests. The complete
-matrix passes in Chromium; the pre-existing 192-test cross-browser baseline
-passes in Chromium, Firefox, and WebKit. The unit suite contains 178 tests.
-Browser files run serially because focus-sensitive fixtures share
-`document.activeElement`; repeatability evidence is recorded in
+The pre-extension main baseline contains 218 Browser Mode tests and passes as a
+complete Chromium matrix; its pre-existing 192-test cross-browser baseline
+passes in Chromium, Firefox, and WebKit. This slice adds a focused 19-test
+extension matrix that passes in Chromium, Firefox, and WebKit. The current unit
+suite contains 209 tests. Browser files run serially because focus-sensitive
+fixtures share `document.activeElement`; repeatability evidence is recorded in
 `2026-08-03-browser-focus-serialization-evidence.md`.
 
 ## Package budgets
@@ -117,18 +130,18 @@ Browser files run serially because focus-sensitive fixtures share
 from the exact artifact. The main measurement bundles runtime dependencies but
 externalizes declared peers.
 
-- Main closure budget: 28 KB gzip. The previous 25 KB budget was introduced for
-  the minimal E.164 tracer; the synchronous formatting/mask capability consumes
-  the remaining headroom, and concurrent flags/localization work advanced the
-  baseline further. The budget advances with the public surface rather than
-  weakening caret or transaction behavior to fit the old tracer envelope.
+- Main closure budget: 32 KB gzip. The previous 28 KB budget covered the
+  formatting/mask surface; the extension UI, independent ownership state and
+  standards-based import/export advance the production-shaped public surface.
+  The budget remains bounded instead of weakening transaction or accessibility
+  behavior to fit the earlier tracer envelope.
 - Server entry budget: 10 KB gzip.
 
 Current exact-artifact measurements are:
 
-- main closure: 27,710 bytes gzip;
-- server entry: 5,284 bytes gzip;
-- packed tarball: 177,128 bytes.
+- main closure: 30,495 bytes gzip;
+- server entry: 6,126 bytes gzip;
+- packed tarball: 191,954 bytes.
 
 CI creates one immutable package artifact, reuses that same tarball across the
 package/runtime/tracer/consumer gates, and requires exact byte/hash equality

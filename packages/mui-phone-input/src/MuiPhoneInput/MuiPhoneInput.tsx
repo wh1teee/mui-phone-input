@@ -13,6 +13,7 @@ import type { CountryCode, PhoneNumberType } from 'libphonenumber-js/max';
 import { type ElementType, type ReactNode, type Ref, useMemo } from 'react';
 
 import type { PhoneCountrySelectionResult } from '../country-selector';
+import type { PhoneExtension } from '../phone-extension';
 import {
   type PhoneCountrySelectorClasses,
   PhoneInputCountrySelector,
@@ -30,11 +31,14 @@ import type { PhoneValue } from '../phone-value';
 import {
   type PhoneCountryChangeDetails,
   type PhoneCountryChangeReason,
+  type PhoneExtensionChangeDetails,
+  type PhoneExtensionInputExternalProps,
   type PhoneInputChangeDetails,
   type PhoneInputChangeReason,
   type PhoneInputInputExternalProps,
   type PhoneInputNumberingPlanState,
   type PhoneInputValidationState,
+  type PhoneInputResolvedExtensionInputProps,
   type PhoneValidationDisplay,
   useMuiPhoneInput,
 } from '../usePhoneInput';
@@ -54,12 +58,39 @@ export type {
   PhoneValidationDisplay,
 };
 
+export type PhoneExtensionPresentation = 'none' | 'separate' | 'inline' | 'custom';
+
+export interface MuiPhoneInputExtensionRenderContext {
+  inputProps: PhoneInputResolvedExtensionInputProps;
+  ownerState: MuiPhoneInputOwnerState;
+}
+
+export type MuiPhoneInputExtensionSlotProps = Omit<
+  TextFieldProps,
+  | 'defaultValue'
+  | 'error'
+  | 'inputRef'
+  | 'onChange'
+  | 'required'
+  | 'slotProps'
+  | 'value'
+> & {
+  htmlInput?: PhoneExtensionInputExternalProps;
+  slotProps?: Omit<NonNullable<TextFieldProps['slotProps']>, 'htmlInput'>;
+};
+
+export type MuiPhoneInputExtensionSlotComponentProps = TextFieldProps & {
+  ownerState: MuiPhoneInputOwnerState;
+};
+
 export type MuiPhoneInputSlots = NonNullable<TextFieldProps['slots']> & {
   countrySelector?: ElementType<PhoneInputCountrySelectorProps>;
+  extension?: ElementType<MuiPhoneInputExtensionSlotComponentProps>;
 };
 
 export type MuiPhoneInputSlotProps = NonNullable<TextFieldProps['slotProps']> & {
   countrySelector?: PhoneInputCountrySelectorProps;
+  extension?: MuiPhoneInputExtensionSlotProps;
 };
 
 export type MuiPhoneInputProps = Omit<
@@ -76,10 +107,18 @@ export type MuiPhoneInputProps = Omit<
   allowedNumberTypes?: readonly PhoneNumberType[];
   classes?: Partial<MuiPhoneInputClasses>;
   defaultCountry?: CountryCode | null;
+  defaultExtension?: PhoneExtension;
   defaultValue?: PhoneValue;
   disableCountrySelector?: boolean;
   displayMask?: DisplayMask;
   displayMode?: PhoneInputDisplayMode;
+  extension?: PhoneExtension;
+  extensionError?: boolean;
+  extensionHelperText?: ReactNode;
+  extensionLabel?: string;
+  extensionMaxLength?: number;
+  extensionPresentation?: PhoneExtensionPresentation;
+  extensionRequired?: boolean;
   formatStrategy?: FormatStrategy;
   locale?: string;
   metadata?: PhoneMetadata;
@@ -89,8 +128,13 @@ export type MuiPhoneInputProps = Omit<
     details: PhoneCountryChangeDetails,
   ) => void;
   onCountrySelection?: (result: PhoneCountrySelectionResult) => void;
+  onExtensionChange?: (
+    extension: PhoneExtension,
+    details: PhoneExtensionChangeDetails,
+  ) => void;
   readOnly?: boolean;
   ref?: Ref<HTMLInputElement>;
+  renderExtension?: (context: MuiPhoneInputExtensionRenderContext) => ReactNode;
   selectedCountry?: CountryCode | null;
   slotProps?: MuiPhoneInputSlotProps;
   slots?: MuiPhoneInputSlots;
@@ -108,6 +152,11 @@ export interface MuiPhoneInputOwnerState {
   disabled: boolean;
   empty: boolean;
   error: boolean;
+  extensionControlled: boolean;
+  extensionError: boolean;
+  extensionPresent: boolean;
+  extensionPresentation: PhoneExtensionPresentation;
+  extensionRequired: boolean;
   numberingPlanKind: PhoneInputNumberingPlanState['kind'];
   readOnly: boolean;
   required: boolean;
@@ -128,6 +177,43 @@ const MuiPhoneInputRoot = styled(TextField, {
     },
   ],
 })<{ ownerState: MuiPhoneInputOwnerState }>({});
+
+const MuiPhoneInputExtension = styled(TextField, {
+  name: 'MuiPhoneInput',
+  slot: 'Extension',
+  overridesResolver: (_props, styles) => [
+    styles.extension,
+    styles.extensionInput && {
+      [`& .${muiPhoneInputClasses.extensionInput}`]: styles.extensionInput,
+    },
+    styles.extensionValidationMessage && {
+      [`& .${muiPhoneInputClasses.extensionValidationMessage}`]:
+        styles.extensionValidationMessage,
+    },
+  ],
+})<{ ownerState: MuiPhoneInputOwnerState }>(({ theme }) => ({
+  marginInlineStart: theme.spacing(1),
+  '&[data-phone-extension-presentation="inline"]': {
+    marginInlineStart: theme.spacing(0.5),
+    width: theme.spacing(10),
+  },
+}));
+
+const MuiPhoneInputExtensionValidationMessage = styled('span', {
+  name: 'MuiPhoneInput',
+  slot: 'ExtensionValidationMessage',
+  overridesResolver: (_props, styles) => [styles.extensionValidationMessage],
+})({
+  border: 0,
+  clip: 'rect(0 0 0 0)',
+  height: 1,
+  margin: -1,
+  overflow: 'hidden',
+  padding: 0,
+  position: 'absolute',
+  whiteSpace: 'nowrap',
+  width: 1,
+});
 
 function joinClassNames(...values: Array<string | undefined>): string | undefined {
   const className = values.filter(Boolean).join(' ');
@@ -252,6 +338,15 @@ function useUtilityClasses(
         muiPhoneInputClasses.countrySelectorSearchInput,
         classes?.countrySelectorSearchInput,
       ) ?? '',
+    extension: joinClassNames(muiPhoneInputClasses.extension, classes?.extension) ?? '',
+    extensionInput:
+      joinClassNames(muiPhoneInputClasses.extensionInput, classes?.extensionInput) ??
+      '',
+    extensionValidationMessage:
+      joinClassNames(
+        muiPhoneInputClasses.extensionValidationMessage,
+        classes?.extensionValidationMessage,
+      ) ?? '',
     input: joinClassNames(muiPhoneInputClasses.input, classes?.input) ?? '',
     root: joinClassNames(muiPhoneInputClasses.root, classes?.root) ?? '',
     validationMessage:
@@ -269,6 +364,7 @@ export function MuiPhoneInput(inProps: MuiPhoneInputProps): ReactNode {
     autoComplete,
     classes: classesProp,
     className,
+    defaultExtension,
     defaultValue,
     disabled = false,
     defaultCountry,
@@ -276,6 +372,13 @@ export function MuiPhoneInput(inProps: MuiPhoneInputProps): ReactNode {
     displayMask,
     displayMode = 'international',
     error = false,
+    extension,
+    extensionError = false,
+    extensionHelperText,
+    extensionLabel = 'Extension',
+    extensionMaxLength,
+    extensionPresentation = 'none',
+    extensionRequired = false,
     formatStrategy,
     helperText,
     id,
@@ -284,8 +387,10 @@ export function MuiPhoneInput(inProps: MuiPhoneInputProps): ReactNode {
     onChange,
     onCountryChange,
     onCountrySelection,
+    onExtensionChange,
     readOnly = false,
     ref: inputRefProp,
+    renderExtension,
     required = false,
     selectedCountry,
     slotProps,
@@ -300,6 +405,8 @@ export function MuiPhoneInput(inProps: MuiPhoneInputProps): ReactNode {
     disabled,
     displayMode,
     error,
+    extensionError,
+    extensionRequired,
     locale,
     readOnly,
     required,
@@ -308,14 +415,18 @@ export function MuiPhoneInput(inProps: MuiPhoneInputProps): ReactNode {
     ...(metadata === undefined ? {} : { metadata }),
     ...(Object.hasOwn(props, 'defaultValue') ? { defaultValue } : {}),
     ...(Object.hasOwn(props, 'defaultCountry') ? { defaultCountry } : {}),
+    ...(Object.hasOwn(props, 'defaultExtension') ? { defaultExtension } : {}),
     ...(Object.hasOwn(props, 'value') ? { value } : {}),
+    ...(Object.hasOwn(props, 'extension') ? { extension } : {}),
     ...(allowedNumberTypes === undefined ? {} : { allowedNumberTypes }),
     ...(displayMask === undefined ? {} : { displayMask }),
+    ...(extensionMaxLength === undefined ? {} : { extensionMaxLength }),
     ...(formatStrategy === undefined ? {} : { formatStrategy }),
     ...(id === undefined ? {} : { id }),
     ...(onChange === undefined ? {} : { onChange }),
     ...(onCountryChange === undefined ? {} : { onCountryChange }),
     ...(onCountrySelection === undefined ? {} : { onCountrySelection }),
+    ...(onExtensionChange === undefined ? {} : { onExtensionChange }),
     ...(Object.hasOwn(props, 'selectedCountry') ? { selectedCountry } : {}),
     ...(validationMessage === undefined ? {} : { validationMessage }),
   });
@@ -326,6 +437,11 @@ export function MuiPhoneInput(inProps: MuiPhoneInputProps): ReactNode {
     disabled,
     empty: phone.state.empty,
     error: phone.state.error,
+    extensionControlled: phone.state.extensionControlled,
+    extensionError,
+    extensionPresent: phone.state.extension !== undefined,
+    extensionPresentation,
+    extensionRequired,
     numberingPlanKind: phone.state.numberingPlan.kind,
     readOnly,
     required,
@@ -342,6 +458,108 @@ export function MuiPhoneInput(inProps: MuiPhoneInputProps): ReactNode {
     ? phone.state.validationMessageId
     : undefined;
   const setInputRef = useForkRef(phone.setInputRef, inputRefProp);
+  const ExtensionSlot = slots?.extension ?? MuiPhoneInputExtension;
+  const extensionSlotProps = slotProps?.extension;
+  const {
+    htmlInput: externalExtensionHtmlInput,
+    slotProps: extensionTextFieldSlotProps,
+    ...extensionTextFieldProps
+  } = extensionSlotProps ?? {};
+  const {
+    htmlInput: _ignoredNestedExtensionHtmlInput,
+    ...safeExtensionTextFieldSlotProps
+  } = (extensionTextFieldSlotProps ?? {}) as NonNullable<TextFieldProps['slotProps']>;
+  const extensionValidationMessageId = extensionHelperText
+    ? phone.state.extensionValidationMessageId
+    : undefined;
+  const resolvedExtensionInputProps = phone.getExtensionInputProps({
+    ...externalExtensionHtmlInput,
+    className: joinClassNames(
+      classes.extensionInput,
+      externalExtensionHtmlInput?.className,
+    ),
+    ...(extensionPresentation === 'inline' || extensionPresentation === 'custom'
+      ? { 'aria-label': externalExtensionHtmlInput?.['aria-label'] ?? extensionLabel }
+      : {}),
+    ...(extensionValidationMessageId
+      ? {
+          'aria-describedby': joinAttributeTokens(
+            externalExtensionHtmlInput?.['aria-describedby'],
+            extensionValidationMessageId,
+          ),
+        }
+      : {}),
+    ...(extensionError && extensionValidationMessageId
+      ? { 'aria-errormessage': extensionValidationMessageId }
+      : {}),
+  });
+  const {
+    ref: _extensionPreparedRef,
+    value: _extensionPreparedValue,
+    ...extensionHtmlInputProps
+  } = resolvedExtensionInputProps;
+  const extensionField =
+    extensionPresentation === 'separate' || extensionPresentation === 'inline' ? (
+      <ExtensionSlot
+        {...extensionTextFieldProps}
+        className={joinClassNames(classes.extension, extensionTextFieldProps.className)}
+        data-phone-extension-presentation={extensionPresentation}
+        disabled={disabled}
+        error={extensionError}
+        helperText={
+          extensionPresentation === 'separate' ? extensionHelperText : undefined
+        }
+        hiddenLabel={
+          extensionPresentation === 'inline'
+            ? true
+            : extensionTextFieldProps.hiddenLabel
+        }
+        id={phone.state.extensionInputId}
+        inputRef={phone.setExtensionInputRef}
+        label={extensionPresentation === 'separate' ? extensionLabel : undefined}
+        ownerState={ownerState}
+        placeholder={
+          extensionPresentation === 'inline'
+            ? (extensionTextFieldProps.placeholder ?? extensionLabel)
+            : extensionTextFieldProps.placeholder
+        }
+        required={extensionRequired}
+        size={extensionTextFieldProps.size ?? 'small'}
+        slotProps={{
+          ...safeExtensionTextFieldSlotProps,
+          formHelperText: mergeSlotProps(
+            safeExtensionTextFieldSlotProps.formHelperText,
+            {
+              className: classes.extensionValidationMessage,
+              id: phone.state.extensionValidationMessageId,
+            },
+          ),
+          htmlInput: extensionHtmlInputProps,
+        }}
+        value={phone.state.extension ?? ''}
+        variant={
+          extensionPresentation === 'inline'
+            ? 'standard'
+            : extensionTextFieldProps.variant
+        }
+      />
+    ) : null;
+  const customExtension =
+    extensionPresentation === 'custom'
+      ? (renderExtension?.({ inputProps: resolvedExtensionInputProps, ownerState }) ??
+        null)
+      : null;
+  const hiddenExtensionValidationMessage =
+    extensionHelperText &&
+    (extensionPresentation === 'inline' || extensionPresentation === 'custom') ? (
+      <MuiPhoneInputExtensionValidationMessage
+        aria-live="polite"
+        className={classes.extensionValidationMessage}
+        id={phone.state.extensionValidationMessageId}
+      >
+        {extensionHelperText}
+      </MuiPhoneInputExtensionValidationMessage>
+    ) : null;
   const htmlInputSlotProps = useMemo(() => {
     const externalSlotProps = slotProps?.htmlInput;
 
@@ -415,9 +633,17 @@ export function MuiPhoneInput(inProps: MuiPhoneInputProps): ReactNode {
       />
     </InputAdornment>
   );
+  const extensionAdornment =
+    extensionPresentation === 'inline' && extensionField ? (
+      <InputAdornment position="end">{extensionField}</InputAdornment>
+    ) : null;
   const inputSlotProps = useMemo(
-    () => mergeSlotProps(slotProps?.input, { startAdornment: countrySelector }),
-    [countrySelector, slotProps?.input],
+    () =>
+      mergeSlotProps(slotProps?.input, {
+        startAdornment: countrySelector,
+        ...(extensionAdornment === null ? {} : { endAdornment: extensionAdornment }),
+      }),
+    [countrySelector, extensionAdornment, slotProps?.input],
   );
   const formHelperTextSlotProps = useMemo(() => {
     const externalSlotProps = slotProps?.formHelperText;
@@ -448,9 +674,16 @@ export function MuiPhoneInput(inProps: MuiPhoneInputProps): ReactNode {
     phone.state.validationMessageId,
     slotProps?.formHelperText,
   ]);
-  const { countrySelector: _countrySelectorSlotProps, ...textFieldSlotProps } =
-    slotProps ?? {};
-  const { countrySelector: _countrySelectorSlot, ...textFieldSlots } = slots ?? {};
+  const {
+    countrySelector: _countrySelectorSlotProps,
+    extension: _extensionSlotProps,
+    ...textFieldSlotProps
+  } = slotProps ?? {};
+  const {
+    countrySelector: _countrySelectorSlot,
+    extension: _extensionSlot,
+    ...textFieldSlots
+  } = slots ?? {};
 
   return (
     <PhoneInputProvider value={phone}>
@@ -473,6 +706,9 @@ export function MuiPhoneInput(inProps: MuiPhoneInputProps): ReactNode {
         slots={textFieldSlots}
         value={phone.state.displayValue}
       />
+      {extensionPresentation === 'separate' ? extensionField : null}
+      {customExtension}
+      {hiddenExtensionValidationMessage}
     </PhoneInputProvider>
   );
 }

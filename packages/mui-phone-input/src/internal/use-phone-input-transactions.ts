@@ -24,6 +24,13 @@ import {
 } from '../country-selector';
 import { parseNationalPhoneValue, resolveNumberingPlan } from '../numbering-plan';
 import {
+  hasPhoneExtensionSyntax,
+  parsePhoneExtension,
+  parsePhoneExtensionBearingText,
+  parseRfc3966,
+  type PhoneExtension,
+} from '../phone-extension';
+import {
   formatPhoneInputPresentation,
   logicalCaretFromDisplayOffset,
   parsePhoneInputPresentation,
@@ -38,6 +45,7 @@ import type { PhoneMetadata } from '../phone-metadata';
 import type { PhoneValue } from '../phone-value';
 import type {
   PhoneCountryChangeReason,
+  PhoneExtensionChangeReason,
   PhoneInputChangeReason,
   PhoneInputNumberingPlanState,
   UsePhoneInputParameters,
@@ -99,6 +107,7 @@ type PendingCountryReconciliation = Readonly<{
 
 interface PhoneInputTransactionParameters {
   allowedNumberTypes?: readonly PhoneNumberType[];
+  extensionMaxLength?: number;
   inputContext: InputEngineContext;
   metadata: PhoneMetadata;
   numberingPlan: PhoneInputNumberingPlanState;
@@ -106,6 +115,7 @@ interface PhoneInputTransactionParameters {
   onChange?: UsePhoneInputParameters['onChange'];
   onCountryChange?: UsePhoneInputParameters['onCountryChange'];
   onCountrySelection?: UsePhoneInputParameters['onCountrySelection'];
+  onExtensionChange?: UsePhoneInputParameters['onExtensionChange'];
   ownership: PhoneInputOwnership;
   required: boolean;
   resetValidationVisibility(): void;
@@ -114,15 +124,18 @@ interface PhoneInputTransactionParameters {
 
 export interface PhoneInputTransactions {
   clear(): void;
+  extensionInputElementRef: RefObject<HTMLInputElement | null>;
   focus(): void;
   handleCompositionEnd(event: CompositionEvent<HTMLInputElement>): void;
   handleCompositionStart(): void;
   handleInput(event: FormEvent<HTMLInputElement>): void;
   handleInputCapture(event: FormEvent<HTMLInputElement>): void;
+  handleExtensionInput(event: FormEvent<HTMLInputElement>): void;
   handlePaste(event: ClipboardEvent<HTMLInputElement>): void;
   inputElementRef: RefObject<HTMLInputElement | null>;
   reset(): void;
   selectCountry(country: CountryCode): PhoneCountrySelectionResult;
+  setExtensionInputRef: RefCallback<HTMLInputElement>;
   setInputRef: RefCallback<HTMLInputElement>;
 }
 
@@ -368,6 +381,7 @@ export function usePhoneInputTransactions(
 ): PhoneInputTransactions {
   const {
     allowedNumberTypes,
+    extensionMaxLength,
     inputContext,
     metadata,
     numberingPlan,
@@ -375,6 +389,7 @@ export function usePhoneInputTransactions(
     onChange,
     onCountryChange,
     onCountrySelection,
+    onExtensionChange,
     ownership,
     required,
     resetValidationVisibility,
@@ -383,14 +398,19 @@ export function usePhoneInputTransactions(
   const {
     controlledRef,
     countryControlledRef,
+    currentExtensionRef,
     currentSelectedCountryRef,
     currentValue,
     currentValueRef,
     initialDefaultCountryRef,
+    initialDefaultExtensionRef,
     initialDefaultValueRef,
+    extensionControlledRef,
     setUncontrolledCountry,
+    setUncontrolledExtension,
     setUncontrolledValue,
   } = ownership;
+  const extensionInputElementRef = useRef<HTMLInputElement | null>(null);
   const inputElementRef = useRef<HTMLInputElement | null>(null);
   const beforeInputCleanupRef = useRef<(() => void) | null>(null);
   const engineCleanupRef = useRef<(() => void) | null>(null);
@@ -472,10 +492,36 @@ export function usePhoneInputTransactions(
     [onCountryChange],
   );
 
+  const commitExtension = useCallback(
+    (nextExtension: PhoneExtension, reason: PhoneExtensionChangeReason) => {
+      const previousExtension = currentExtensionRef.current;
+      if (nextExtension === previousExtension) {
+        return;
+      }
+
+      currentExtensionRef.current = nextExtension;
+      if (!extensionControlledRef.current) {
+        setUncontrolledExtension(nextExtension);
+      }
+      onExtensionChange?.(nextExtension, {
+        extension: nextExtension,
+        previousExtension,
+        reason,
+      });
+    },
+    [
+      currentExtensionRef,
+      extensionControlledRef,
+      onExtensionChange,
+      setUncontrolledExtension,
+    ],
+  );
+
   const reset = useCallback(() => {
     resetValidationVisibility();
     pendingNationalInputRef.current = null;
     const previousValue = currentValueRef.current;
+    const previousExtension = currentExtensionRef.current;
     const previousSelectedCountry = currentSelectedCountryRef.current;
     const nextValue = controlledRef.current
       ? previousValue
@@ -483,6 +529,9 @@ export function usePhoneInputTransactions(
     const nextSelectedCountry = countryControlledRef.current
       ? previousSelectedCountry
       : initialDefaultCountryRef.current;
+    const nextExtension = extensionControlledRef.current
+      ? previousExtension
+      : initialDefaultExtensionRef.current;
 
     if (!controlledRef.current) {
       currentValueRef.current = nextValue;
@@ -491,6 +540,10 @@ export function usePhoneInputTransactions(
     if (!countryControlledRef.current) {
       currentSelectedCountryRef.current = nextSelectedCountry;
       setUncontrolledCountry(nextSelectedCountry);
+    }
+    if (!extensionControlledRef.current) {
+      currentExtensionRef.current = nextExtension;
+      setUncontrolledExtension(nextExtension);
     }
     emitCountryTransition(
       resolvePlanForCountry(previousValue, previousSelectedCountry, metadata),
@@ -502,16 +555,46 @@ export function usePhoneInputTransactions(
   }, [
     controlledRef,
     countryControlledRef,
+    currentExtensionRef,
     currentSelectedCountryRef,
     currentValueRef,
     emitCountryTransition,
+    extensionControlledRef,
     initialDefaultCountryRef,
+    initialDefaultExtensionRef,
     initialDefaultValueRef,
     metadata,
     resetValidationVisibility,
     setUncontrolledCountry,
+    setUncontrolledExtension,
     setUncontrolledValue,
   ]);
+
+  const setExtensionInputRef = useCallback<RefCallback<HTMLInputElement>>((input) => {
+    extensionInputElementRef.current = input;
+  }, []);
+
+  const handleExtensionInput = useCallback(
+    (event: FormEvent<HTMLInputElement>) => {
+      let nextExtension: PhoneExtension;
+      try {
+        nextExtension = parsePhoneExtension(event.currentTarget.value, {
+          ...(extensionMaxLength === undefined
+            ? {}
+            : { maxLength: extensionMaxLength }),
+        });
+      } catch {
+        event.currentTarget.value = currentExtensionRef.current ?? '';
+        return;
+      }
+
+      if (event.currentTarget.value !== (nextExtension ?? '')) {
+        event.currentTarget.value = nextExtension ?? '';
+      }
+      commitExtension(nextExtension, nextExtension === undefined ? 'clear' : 'input');
+    },
+    [commitExtension, currentExtensionRef, extensionMaxLength],
+  );
 
   const setInputRef = useCallback<RefCallback<HTMLInputElement>>(
     (input) => {
@@ -722,8 +805,52 @@ export function usePhoneInputTransactions(
     [commit, currentSelectedCountryRef],
   );
 
-  const handlePaste = useCallback((event: ClipboardEvent<HTMLInputElement>) => {
-    if (!event.defaultPrevented) {
+  const handlePaste = useCallback(
+    (event: ClipboardEvent<HTMLInputElement>) => {
+      if (event.defaultPrevented) {
+        return;
+      }
+
+      const clipboardText = event.clipboardData.getData('text/plain').trim();
+      const isRfc3966 = /^tel:/iu.test(clipboardText);
+      const parsedImport = isRfc3966
+        ? parseRfc3966(clipboardText)
+        : parsePhoneExtensionBearingText(
+            clipboardText,
+            numberingPlan.selectedCountry ?? undefined,
+          );
+      if (
+        isRfc3966 ||
+        parsedImport !== null ||
+        hasPhoneExtensionSyntax(clipboardText)
+      ) {
+        event.preventDefault();
+        if (!parsedImport) {
+          return;
+        }
+
+        pendingNationalInputRef.current = null;
+        pendingBeforeInputRef.current = null;
+        pasteTransactionRef.current = false;
+        if (pasteResetFrameRef.current !== undefined) {
+          window.cancelAnimationFrame(pasteResetFrameRef.current);
+          pasteResetFrameRef.current = undefined;
+        }
+        const logicalEnd = parsedImport.value.length - 1;
+        pendingLogicalSelectionRef.current = [logicalEnd, logicalEnd];
+        const importedExtension =
+          parsedImport.extension === undefined
+            ? undefined
+            : parsePhoneExtension(parsedImport.extension, {
+                ...(extensionMaxLength === undefined
+                  ? {}
+                  : { maxLength: extensionMaxLength }),
+              });
+        commit(parsedImport.value, 'paste');
+        commitExtension(importedExtension, 'paste');
+        return;
+      }
+
       pasteTransactionRef.current = true;
       const lifecycleGeneration = lifecycleGenerationRef.current;
 
@@ -741,8 +868,9 @@ export function usePhoneInputTransactions(
         pasteTransactionRef.current = false;
         pasteResetFrameRef.current = undefined;
       });
-    }
-  }, []);
+    },
+    [commit, commitExtension, extensionMaxLength, numberingPlan.selectedCountry],
+  );
 
   const handleInput = useCallback(
     (event: FormEvent<HTMLInputElement>) => {
@@ -1130,15 +1258,18 @@ export function usePhoneInputTransactions(
 
   return {
     clear,
+    extensionInputElementRef,
     focus,
     handleCompositionEnd,
     handleCompositionStart,
     handleInput,
     handleInputCapture,
+    handleExtensionInput,
     handlePaste,
     inputElementRef,
     reset,
     selectCountry,
+    setExtensionInputRef,
     setInputRef,
   };
 }

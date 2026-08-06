@@ -8,20 +8,29 @@ describe('foundation test seam', () => {
     expect(Object.keys(clientEntry)).toEqual(
       expect.arrayContaining([
         'MuiPhoneInput',
+        'assertPhoneExtension',
         'assertPhoneValue',
         'isPhoneValue',
+        'parsePhoneExtension',
         'parseNationalPhoneValue',
+        'parseRfc3966',
         'parsePhoneValue',
+        'serializeRfc3966',
         'validatePhoneMetadata',
       ]),
     );
     expect(Object.keys(serverEntry).sort()).toEqual([
+      'assertPhoneExtension',
       'assertPhoneValue',
       'formatPhoneValueForDisplay',
+      'isPhoneExtension',
       'isPhoneValue',
       'parseNationalPhoneValue',
+      'parsePhoneExtension',
       'parsePhoneValue',
+      'parseRfc3966',
       'resolveNumberingPlan',
+      'serializeRfc3966',
       'validatePhoneMetadata',
       'validatePhoneValue',
     ]);
