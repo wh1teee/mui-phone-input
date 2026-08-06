@@ -21,6 +21,12 @@ for (const subpath of contract.implemented) {
   );
 }
 
+for (const subpath of contract.implementedAssets ?? []) {
+  const resolved = import.meta.resolve(packageSpecifier(subpath));
+  const contents = await readFile(new URL(resolved), 'utf8');
+  assert.ok(contents.length > 0, `${subpath} must expose a nonempty asset.`);
+}
+
 for (const [subpath, owner] of Object.entries(contract.intentionallyAbsent)) {
   try {
     await import(packageSpecifier(subpath));
@@ -35,5 +41,5 @@ for (const [subpath, owner] of Object.entries(contract.intentionallyAbsent)) {
 }
 
 console.log(
-  `Consumer export contract verified: ${contract.implemented.length} implemented, ${Object.keys(contract.intentionallyAbsent).length} intentionally absent.`,
+  `Consumer export contract verified: ${contract.implemented.length} implemented modules, ${(contract.implementedAssets ?? []).length} implemented assets, ${Object.keys(contract.intentionallyAbsent).length} intentionally absent.`,
 );

@@ -126,6 +126,7 @@ assert.deepEqual(Object.keys(server).sort(), [
   'parseNationalPhoneValue',
   'parsePhoneValue',
   'resolveNumberingPlan',
+  'validatePhoneMetadata',
   'validatePhoneValue',
 ]);
 

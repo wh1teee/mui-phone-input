@@ -36,6 +36,13 @@ import {
   type PhoneCountryNameResolver,
   type PhoneCountryOption,
 } from './country-selector';
+import {
+  type PhoneCountryFlagProps,
+  type PhoneExternalFlagOptions,
+  type PhoneFlagMode,
+  type PhoneFlagProvider,
+  PhoneCountryFlag,
+} from './flags';
 import type { MuiPhoneInputOwnerState } from './MuiPhoneInput/MuiPhoneInput';
 import type { MuiPhoneInputClasses } from './MuiPhoneInput/muiPhoneInputClasses';
 import { muiPhoneInputClasses } from './MuiPhoneInput/muiPhoneInputClasses';
@@ -60,6 +67,7 @@ export type PhoneCountrySelectorClasses = Pick<
   | 'countrySelectorCloseButton'
   | 'countrySelectorCountryCode'
   | 'countrySelectorEmpty'
+  | 'countrySelectorFlag'
   | 'countrySelectorGroup'
   | 'countrySelectorGroupLabel'
   | 'countrySelectorListbox'
@@ -105,11 +113,18 @@ export interface PhoneCountrySelectorIndicatorOwnerState
   placement: 'option' | 'trigger';
 }
 
+export interface PhoneCountrySelectorFlagOwnerState
+  extends PhoneCountrySelectorIndicatorOwnerState {
+  country: CountryCode;
+  flagMode: PhoneFlagMode;
+}
+
 export interface PhoneCountrySelectorSlots {
   callingCode?: ElementType;
   closeButton?: ElementType;
   countryCode?: ElementType;
   empty?: ElementType;
+  flag?: ElementType;
   group?: ElementType;
   groupLabel?: ElementType;
   listbox?: ElementType;
@@ -148,6 +163,11 @@ export interface PhoneCountrySelectorSlotProps {
     'div',
     PhoneCountrySelectorDataAttributes,
     PhoneCountrySelectorOwnerState
+  >;
+  flag?: SlotProps<
+    'span',
+    PhoneCountryFlagProps,
+    PhoneCountrySelectorFlagOwnerState
   >;
   group?: SlotProps<
     'li',
@@ -203,6 +223,9 @@ export type PhoneInputCountrySelectorProps = Omit<
       right: Readonly<PhoneCountryOption>,
     ) => number;
     disablePortal?: boolean;
+    externalFlag?: PhoneExternalFlagOptions;
+    flagMode?: PhoneFlagMode;
+    flagProvider?: PhoneFlagProvider;
     locale?: string;
     messages?: Partial<PhoneCountrySelectorMessages>;
     metadata?: PhoneMetadata;
@@ -323,7 +346,7 @@ const CountrySelectorOption = styled('li', {
   cursor: 'pointer',
   display: 'grid',
   gap: theme.spacing(1),
-  gridTemplateColumns: 'minmax(0, 1fr) auto auto',
+  gridTemplateColumns: 'auto minmax(0, 1fr) auto auto',
   minHeight: 40,
   padding: theme.spacing(0.75, 1),
   '&.Mui-focused': {
@@ -338,7 +361,27 @@ const CountrySelectorOptionLabel = styled('span', {
   name: 'MuiPhoneInput',
   overridesResolver: (_props, styles) => styles.countrySelectorOptionLabel,
   slot: 'CountrySelectorOptionLabel',
-})<{ ownerState: PhoneCountrySelectorOptionOwnerState }>({});
+})<{ ownerState: PhoneCountrySelectorOptionOwnerState }>({
+  gridColumn: 2,
+});
+
+const CountrySelectorFlag = styled(PhoneCountryFlag, {
+  name: 'MuiPhoneInput',
+  overridesResolver: (_props, styles) => styles.countrySelectorFlag,
+  slot: 'CountrySelectorFlag',
+})({
+  alignItems: 'center',
+  display: 'inline-flex',
+  flexShrink: 0,
+  justifyContent: 'center',
+  lineHeight: 1,
+  '& > img': {
+    blockSize: '1em',
+    display: 'block',
+    inlineSize: '1.5em',
+    objectFit: 'cover',
+  },
+});
 
 const CountrySelectorCountryCode = styled('span', {
   name: 'MuiPhoneInput',
@@ -427,6 +470,9 @@ export function PhoneInputCountrySelector({
   countryFilter,
   countryOrder,
   disablePortal = false,
+  externalFlag,
+  flagMode = 'local',
+  flagProvider,
   locale = 'en',
   messages: messagesProp,
   metadata,
@@ -451,6 +497,7 @@ export function PhoneInputCountrySelector({
   const CloseButtonSlot = slots?.closeButton ?? CountrySelectorCloseButton;
   const CountryCodeSlot = slots?.countryCode ?? CountrySelectorCountryCode;
   const EmptySlot = slots?.empty ?? CountrySelectorEmpty;
+  const FlagSlot = slots?.flag ?? CountrySelectorFlag;
   const GroupSlot = slots?.group ?? CountrySelectorGroup;
   const GroupLabelSlot = slots?.groupLabel ?? CountrySelectorGroupLabel;
   const ListboxSlot = slots?.listbox ?? CountrySelectorListbox;
@@ -489,6 +536,11 @@ export function PhoneInputCountrySelector({
         joinClassNames(
           muiPhoneInputClasses.countrySelectorEmpty,
           classesProp?.countrySelectorEmpty,
+        ) ?? '',
+      countrySelectorFlag:
+        joinClassNames(
+          muiPhoneInputClasses.countrySelectorFlag,
+          classesProp?.countrySelectorFlag,
         ) ?? '',
       countrySelectorGroup:
         joinClassNames(
@@ -1066,6 +1118,35 @@ export function PhoneInputCountrySelector({
                         option,
                         placement: 'option',
                       };
+                    const flagOwnerState: PhoneCountrySelectorFlagOwnerState = {
+                      ...indicatorOwnerState,
+                      country: option.country,
+                      flagMode,
+                    };
+                    const externalFlagSlotProps = resolveSlotProps(
+                      slotProps?.flag,
+                      flagOwnerState,
+                    );
+                    const flagSlotProps = appendOwnerState(
+                      FlagSlot,
+                      {
+                        ...mergeSlotProps(externalFlagSlotProps, {
+                          'aria-hidden': true,
+                          className: classes.countrySelectorFlag,
+                          country: option.country,
+                          ...(externalFlag === undefined ? {} : { external: externalFlag }),
+                          mode: flagMode,
+                          placement: 'option' as const,
+                          ...(flagProvider === undefined ? {} : { provider: flagProvider }),
+                        }),
+                        'aria-hidden': true,
+                        country: option.country,
+                        mode: flagMode,
+                        placement: 'option' as const,
+                        ref: externalFlagSlotProps?.ref,
+                      },
+                      flagOwnerState,
+                    );
                     const externalCountryCodeSlotProps = resolveSlotProps(
                       slotProps?.countryCode,
                       indicatorOwnerState,
@@ -1101,6 +1182,9 @@ export function PhoneInputCountrySelector({
 
                     return (
                       <OptionSlot {...optionSlotProps} key={key}>
+                        {flagMode === 'none' && !flagProvider ? null : (
+                          <FlagSlot {...flagSlotProps} />
+                        )}
                         <OptionLabelSlot {...optionLabelSlotProps}>
                           {option.localizedName}
                         </OptionLabelSlot>
@@ -1135,6 +1219,39 @@ export function PhoneInputCountrySelector({
     option: activeOption,
     placement: 'trigger',
   };
+  const triggerFlagOwnerState: PhoneCountrySelectorFlagOwnerState | null = activeOption
+    ? {
+        ...triggerIndicatorOwnerState,
+        country: activeOption.country,
+        flagMode,
+      }
+    : null;
+  const externalTriggerFlagSlotProps = triggerFlagOwnerState
+    ? resolveSlotProps(slotProps?.flag, triggerFlagOwnerState)
+    : undefined;
+  const triggerFlagSlotProps =
+    triggerFlagOwnerState && activeOption
+      ? appendOwnerState(
+          FlagSlot,
+          {
+            ...mergeSlotProps(externalTriggerFlagSlotProps, {
+              'aria-hidden': true,
+              className: classes.countrySelectorFlag,
+              country: activeOption.country,
+              ...(externalFlag === undefined ? {} : { external: externalFlag }),
+              mode: flagMode,
+              placement: 'trigger' as const,
+              ...(flagProvider === undefined ? {} : { provider: flagProvider }),
+            }),
+            'aria-hidden': true,
+            country: activeOption.country,
+            mode: flagMode,
+            placement: 'trigger' as const,
+            ref: externalTriggerFlagSlotProps?.ref,
+          },
+          triggerFlagOwnerState,
+        )
+      : null;
   const externalTriggerCountryCodeSlotProps = resolveSlotProps(
     slotProps?.countryCode,
     triggerIndicatorOwnerState,
@@ -1171,6 +1288,9 @@ export function PhoneInputCountrySelector({
   return (
     <>
       <TriggerSlot {...triggerSlotProps}>
+        {activeOption && (flagMode !== 'none' || flagProvider) && triggerFlagSlotProps ? (
+          <FlagSlot {...triggerFlagSlotProps} />
+        ) : null}
         <CountryCodeSlot {...triggerCountryCodeSlotProps}>
           {activeOption?.country ?? '—'}
         </CountryCodeSlot>

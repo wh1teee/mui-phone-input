@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { readFile } from 'node:fs/promises';
+import { readFile, readdir } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
@@ -16,7 +16,15 @@ const tarball = artifactArgument
 await readFile(tarball);
 
 run('pnpm', ['exec', 'publint', 'run', tarball, '--strict']);
-run('pnpm', ['exec', 'attw', tarball, '--profile', 'esm-only']);
+run('pnpm', [
+  'exec',
+  'attw',
+  tarball,
+  '--profile',
+  'esm-only',
+  '--exclude-entrypoints',
+  './flags.css',
+]);
 await verifyPackageExportContract(tarball);
 
 const contents = execFileSync('tar', ['-tf', tarball], {
@@ -43,6 +51,20 @@ for (const requiredFile of [
   'package/dist/metadata/mobile.js',
   'package/dist/metadata/mobile.d.ts',
   'package/dist/metadata/mobile.js.map',
+  'package/dist/flags.css',
+  'package/dist/flags.js',
+  'package/dist/flags.d.ts',
+  'package/dist/flags.js.map',
+  'package/dist/flags/3x2/BY.svg',
+  'package/dist/locales/be.js',
+  'package/dist/locales/be.d.ts',
+  'package/dist/locales/be.js.map',
+  'package/dist/locales/en.js',
+  'package/dist/locales/en.d.ts',
+  'package/dist/locales/en.js.map',
+  'package/dist/locales/ru.js',
+  'package/dist/locales/ru.d.ts',
+  'package/dist/locales/ru.js.map',
   'package/dist/server.js',
   'package/dist/server.d.ts',
   'package/dist/server.js.map',
@@ -51,6 +73,11 @@ for (const requiredFile of [
 }
 
 assert.doesNotMatch(contents, /^package\/src\//mu);
+assert.equal(
+  contents.match(/^package\/dist\/flags\/3x2\/[^/]+\.svg$/gmu)?.length ?? 0,
+  265,
+  'Packed local flag assets must match the pinned country-flag-icons 1.6.20 3x2 set.',
+);
 
 const packedManifest = JSON.parse(
   execFileSync('tar', ['-xOf', tarball, 'package/package.json'], {
@@ -62,6 +89,11 @@ assert.equal(
   packedManifest.engines,
   undefined,
   'Published package metadata must not expose the maintainer Node floor.',
+);
+assert.deepEqual(
+  packedManifest.sideEffects,
+  ['./dist/flags.css'],
+  'Only the generated local flag stylesheet may be marked as a package side effect.',
 );
 assert.equal(
   packedManifest.bugs?.url,
@@ -77,6 +109,16 @@ assert.equal(
   '6.5.0',
   'Published package metadata must pin the reviewed tabbable runtime.',
 );
+assert.equal(
+  packedManifest.dependencies?.['country-flag-icons'],
+  undefined,
+  'Generated local flag assets must not create a runtime country-flag-icons dependency.',
+);
+assert.equal(
+  packedManifest.devDependencies?.['country-flag-icons'],
+  '1.6.20',
+  'Local flag generation must stay pinned to the reviewed country-flag-icons release.',
+);
 const packedReadme = execFileSync('tar', ['-xOf', tarball, 'package/README.md'], {
   cwd: repositoryRoot,
   encoding: 'utf8',
@@ -86,6 +128,16 @@ assert.match(
   /github\.com\/wh1teee\/mui-phone-input\/discussions\/new\?category=q-a/u,
 );
 assert.doesNotMatch(packedReadme, /github\.com\/wh1teee\/mui-phone-input\/issues/u);
+const packedThirdPartyNotices = execFileSync(
+  'tar',
+  ['-xOf', tarball, 'package/THIRD_PARTY_NOTICES.md'],
+  { cwd: repositoryRoot, encoding: 'utf8' },
+);
+assert.match(packedThirdPartyNotices, /country-flag-icons@1\.6\.20/u);
+assert.match(
+  packedThirdPartyNotices,
+  /Copyright \(c\) 2020 @catamphetamine <purecatamphetamine@gmail\.com>/u,
+);
 
 const packedClientSourceMap = JSON.parse(
   execFileSync('tar', ['-xOf', tarball, 'package/dist/index.js.map'], {
@@ -145,7 +197,24 @@ const serverMetadataBundle = await readFile(
   join(packageDist, serverMetadataChunk),
   'utf8',
 );
-const clientTypes = await readFile(join(packageDist, 'index.d.ts'), 'utf8');
+const declarationFiles = (await readdir(packageDist, { recursive: true })).filter(
+  (filename) => filename.endsWith('.d.ts'),
+);
+const clientTypes = (
+  await Promise.all(
+    declarationFiles.map((filename) => readFile(join(packageDist, filename), 'utf8')),
+  )
+).join('\n');
+const flagsBundle = await readFile(join(packageDist, 'flags.js'), 'utf8');
+const flagsStylesheet = await readFile(join(packageDist, 'flags.css'), 'utf8');
+const localeBundles = Object.fromEntries(
+  await Promise.all(
+    ['be', 'en', 'ru'].map(async (locale) => [
+      locale,
+      await readFile(join(packageDist, 'locales', `${locale}.js`), 'utf8'),
+    ]),
+  ),
+);
 const serverModule = await import(
   `${pathToFileURL(join(packageDist, 'server.js')).href}?verification=${Date.now()}`
 );
@@ -174,6 +243,27 @@ for (const forbiddenServerGlobal of [
 assert.doesNotMatch(serverBundle, /from\s+['"]node:/u);
 assert.doesNotMatch(serverMetadataBundle, /from\s+['"]node:/u);
 assert.doesNotMatch(clientBundle, /from\s+['"]node:/u);
+assert.doesNotMatch(clientBundle, /data:image\/svg\+xml/u);
+assert.doesNotMatch(clientBundle, /<svg/u);
+assert.doesNotMatch(flagsBundle, /data:image\/svg\+xml/u);
+assert.doesNotMatch(flagsBundle, /<svg/u);
+assert.doesNotMatch(flagsBundle, /country-flag-icons/u);
+assert.doesNotMatch(flagsBundle, /import\s+["'][^"']*flags\.css["']/u);
+assert.doesNotMatch(flagsStylesheet, /data:image\/svg\+xml/u);
+assert.match(flagsStylesheet, /\.flag\\:BY\{background-image:url\("\.\/flags\/3x2\/BY\.svg"\)\}/u);
+for (const [locale, source] of Object.entries(localeBundles)) {
+  assert.ok(source.length < 1_024, `${locale} locale entrypoint is unexpectedly large.`);
+  assert.doesNotMatch(source, /@mui\/|react|\.\/locales\//u);
+  for (const otherLocale of Object.keys(localeBundles).filter(
+    (candidate) => candidate !== locale,
+  )) {
+    assert.doesNotMatch(
+      source,
+      new RegExp(`locales\\/${otherLocale}|${otherLocale}\\.js`, 'u'),
+      `${locale} locale entrypoint imports ${otherLocale}.`,
+    );
+  }
+}
 assert.match(serverBundle, /from\s+["']libphonenumber-js\/core["']/u);
 assert.match(serverMetadataBundle, /from\s+["']libphonenumber-js\/core["']/u);
 assert.match(

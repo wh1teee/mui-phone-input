@@ -6,12 +6,15 @@
     "./metadata/min",
     "./metadata/mobile",
     "./metadata/custom",
+    "./flags",
+    "./locales/be",
+    "./locales/en",
+    "./locales/ru",
     "./package.json"
   ],
+  "implementedAssets": ["./flags.css"],
   "intentionallyAbsent": {
     "./react-hook-form": "mpi-oan.12",
-    "./zod": "mpi-oan.12",
-    "./flags/local": "mpi-oan.11",
-    "./locales/en": "mpi-oan.11"
+    "./zod": "mpi-oan.12"
   }
 }

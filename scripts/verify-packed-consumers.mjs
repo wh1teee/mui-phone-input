@@ -574,6 +574,18 @@ async function verifyPackedBrowser(destination, consumer) {
       .getByTestId('hydration-marker')
       .filter({ hasText: 'hydrated' })
       .waitFor();
+    const packedLocalFlag = page
+      .locator('.MuiPhoneInput-countrySelectorFlag > [class~="flag:BY"]')
+      .first();
+    await packedLocalFlag.waitFor({ state: 'attached' });
+    const packedLocalFlagBackground = await packedLocalFlag.evaluate(
+      (element) => getComputedStyle(element).backgroundImage,
+    );
+    assert.notEqual(
+      packedLocalFlagBackground,
+      'none',
+      'Packed consumer did not apply the generated local SVG flag stylesheet.',
+    );
     const hydratedSnapshot = await collectSsrStateSnapshot(page);
     if (consumer === 'next-consumer') {
       assert.deepEqual(

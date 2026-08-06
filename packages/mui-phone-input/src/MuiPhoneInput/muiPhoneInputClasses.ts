@@ -7,6 +7,7 @@ export interface MuiPhoneInputClasses {
   countrySelectorCloseButton: string;
   countrySelectorCountryCode: string;
   countrySelectorEmpty: string;
+  countrySelectorFlag: string;
   countrySelectorGroup: string;
   countrySelectorGroupLabel: string;
   countrySelectorListbox: string;
@@ -43,5 +44,6 @@ export const muiPhoneInputClasses: MuiPhoneInputClasses = generateUtilityClasses
     'countrySelectorGroup',
     'countrySelectorGroupLabel',
     'countrySelectorEmpty',
+    'countrySelectorFlag',
   ],
 );
