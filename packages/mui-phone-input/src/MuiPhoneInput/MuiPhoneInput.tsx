@@ -150,6 +150,7 @@ const COUNTRY_SELECTOR_CLASS_KEYS = [
   'countrySelectorCloseButton',
   'countrySelectorCountryCode',
   'countrySelectorEmpty',
+  'countrySelectorFlag',
   'countrySelectorGroup',
   'countrySelectorGroupLabel',
   'countrySelectorListbox',
@@ -201,6 +202,11 @@ function useUtilityClasses(
       joinClassNames(
         muiPhoneInputClasses.countrySelectorEmpty,
         classes?.countrySelectorEmpty,
+      ) ?? '',
+    countrySelectorFlag:
+      joinClassNames(
+        muiPhoneInputClasses.countrySelectorFlag,
+        classes?.countrySelectorFlag,
       ) ?? '',
     countrySelectorGroup:
       joinClassNames(

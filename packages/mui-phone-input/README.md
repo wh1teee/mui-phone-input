@@ -5,11 +5,11 @@ provides a canonical international candidate, controlled and uncontrolled
 ownership, authority-backed numbering-plan resolution, possible-by-default
 validation, a shared headless controller, supported composable primitives, MUI
 theme registration, a searchable responsive Country Selector, stable utility
-classes, and deterministic event-independent change details.
+classes, local/opt-in external flag modes, locale packs, and deterministic
+event-independent change details.
 
 The package is still under active 1.0 development. Advanced display modes and
-masks, extensions, packaged locale/flag modes, and form adapters are delivered
-in later gated slices.
+masks, extensions, and form adapters are delivered in later gated slices.
 
 ## Published subpaths
 
@@ -23,14 +23,16 @@ The current canary publishes only these implemented paths:
 - `@wh1teee/mui-phone-input/metadata/min` — min metadata;
 - `@wh1teee/mui-phone-input/metadata/mobile` — mobile metadata;
 - `@wh1teee/mui-phone-input/metadata/custom` — custom-metadata validation;
+- `@wh1teee/mui-phone-input/flags` — typed flag renderer/provider contracts;
+- `@wh1teee/mui-phone-input/flags.css` — generated local SVG flag stylesheet;
+- `@wh1teee/mui-phone-input/locales/{en,be,ru}` — independent locale packs;
 - `@wh1teee/mui-phone-input/package.json` — package metadata.
 
 The following future paths are intentionally not exported until their owning
 feature ships atomically with implementation, documentation, tests and release
 evidence:
 
-- `./react-hook-form` and `./zod` (`mpi-oan.12`);
-- `./flags/local` and `./locales/en` (`mpi-oan.11`).
+- `./react-hook-form` and `./zod` (`mpi-oan.12`).
 
 React Hook Form and Zod remain optional peer declarations so their owning
 adapter slice can preserve the planned package contract without forcing either
@@ -62,6 +64,7 @@ release tooling requires Node 24 LTS.
 'use client';
 
 import { MuiPhoneInput, type PhoneValue } from '@wh1teee/mui-phone-input';
+import '@wh1teee/mui-phone-input/flags.css';
 import { useState } from 'react';
 
 export function PhoneField() {
@@ -102,6 +105,63 @@ accepts the same ASCII, Arabic-Indic, Extended Arabic-Indic, Devanagari, and
 fullwidth decimal digits as phone entry. Localized names use the selector
 locale for case-insensitive matching, while English fallback names keep stable
 English casing semantics.
+
+Local SVG flags are the default presentation. Import the generated stylesheet
+once when using local flags:
+
+```ts
+import '@wh1teee/mui-phone-input/flags.css';
+```
+
+The stylesheet and SVG files are generated from pinned `country-flag-icons`
+`1.6.20`; the package does not maintain a second country artwork table. The
+SVGs stay outside initial JavaScript. Products using `emoji`, `none`, a custom
+provider, or explicit external URLs can omit the stylesheet entirely.
+
+External flags are opt-in and are the only built-in mode that receives an
+external URL resolver. CORS and referrer policy are explicit, external images
+always load lazily, and `fallback` accepts a React node. When no fallback is
+provided, a failed external image falls back to the country emoji:
+
+```tsx
+<MuiPhoneInput
+  slotProps={{
+    countrySelector: {
+      flagMode: 'external',
+      externalFlag: {
+        crossOrigin: 'anonymous',
+        fallback: '?',
+        referrerPolicy: 'no-referrer',
+        resolveUrl: (country) => `https://example.invalid/flags/${country}.svg`,
+      },
+    },
+  }}
+/>
+```
+
+Without `flagMode="external"`, the flag layer does not resolve external URLs or
+call fetch/XHR. Non-geographic numbering plans render no fabricated country or
+flag.
+
+Locale packs contain selector messages only. Country names still come from
+`Intl.DisplayNames` (or `resolveCountryName`), so sorting/search keep the same
+locale-aware authority:
+
+```tsx
+import { be } from '@wh1teee/mui-phone-input/locales/be';
+
+<MuiPhoneInput
+  slotProps={{
+    countrySelector: {
+      locale: be.locale,
+      messages: be.messages,
+    },
+  }}
+/>
+```
+
+Each locale is a separate entrypoint and does not import other locale packs.
+RTL themes mirror selector UI while the telephone input itself remains `dir=ltr`.
 
 ```tsx
 <MuiPhoneInput

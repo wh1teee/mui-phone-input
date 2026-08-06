@@ -19,7 +19,12 @@ export default defineConfig([
     },
     dts: true,
     entry: {
+      flags: 'src/flags.tsx',
       index: 'src/index.ts',
+      'locales/be': 'src/locales/be.ts',
+      'locales/en': 'src/locales/en.ts',
+      'locales/index': 'src/locales/index.ts',
+      'locales/ru': 'src/locales/ru.ts',
     },
     deps: {
       neverBundle: externalDependencies,

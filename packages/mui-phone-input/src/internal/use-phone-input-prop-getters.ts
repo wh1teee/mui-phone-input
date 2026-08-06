@@ -116,6 +116,7 @@ export function usePhoneInputPropGetters(
         'data-phone-input-status': validation.status,
         autoComplete: externalProps.autoComplete ?? 'tel',
         disabled,
+        dir: 'ltr',
         id: inputId,
         inputMode: externalProps.inputMode ?? 'tel',
         onBlur: (event) => {

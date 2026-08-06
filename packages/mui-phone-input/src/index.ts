@@ -18,6 +18,15 @@ export {
 } from './country-selector';
 export * from './MuiPhoneInput';
 export {
+  type PhoneCountryFlagProps,
+  type PhoneExternalFlagFallback,
+  type PhoneExternalFlagOptions,
+  type PhoneFlagMode,
+  type PhoneFlagPlacement,
+  type PhoneFlagProvider,
+  type PhoneFlagProviderContext,
+} from './flags';
+export {
   type GeographicNumberingPlanResolution,
   type NationalPhoneValueOptions,
   type NonGeographicNumberingPlanResolution,
@@ -30,6 +39,7 @@ export {
 export {
   type PhoneCountrySelectorClasses,
   type PhoneCountrySelectorGroupOwnerState,
+  type PhoneCountrySelectorFlagOwnerState,
   type PhoneCountrySelectorIndicatorOwnerState,
   type PhoneCountrySelectorMessages,
   type PhoneCountrySelectorMode,

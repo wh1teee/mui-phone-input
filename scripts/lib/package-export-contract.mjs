@@ -23,7 +23,11 @@ import {
 const scriptsDirectory = dirname(fileURLToPath(import.meta.url));
 const repositoryRoot = resolve(scriptsDirectory, '../..');
 const packageName = '@wh1teee/mui-phone-input';
-const semanticExceptionKinds = new Set(['data-only', 'side-effect-only']);
+const semanticExceptionKinds = new Set([
+  'asset-only',
+  'data-only',
+  'side-effect-only',
+]);
 
 const expectedExportContract = {
   '.': {
@@ -68,6 +72,7 @@ const expectedExportContract = {
       'NumberingPlanResolutionOptions',
       'PhoneCountryChangeDetails',
       'PhoneCountryChangeReason',
+      'PhoneCountryFlagProps',
       'PhoneCountryNameResolver',
       'PhoneCountryOption',
       'PhoneCountrySelectionAppliedReason',
@@ -77,6 +82,7 @@ const expectedExportContract = {
       'PhoneCountrySelectionOptions',
       'PhoneCountrySelectionResult',
       'PhoneCountrySelectorClasses',
+      'PhoneCountrySelectorFlagOwnerState',
       'PhoneCountrySelectorGroupOwnerState',
       'PhoneCountrySelectorIndicatorOwnerState',
       'PhoneCountrySelectorMessages',
@@ -86,6 +92,12 @@ const expectedExportContract = {
       'PhoneCountrySelectorPresentation',
       'PhoneCountrySelectorSlotProps',
       'PhoneCountrySelectorSlots',
+      'PhoneExternalFlagFallback',
+      'PhoneExternalFlagOptions',
+      'PhoneFlagMode',
+      'PhoneFlagPlacement',
+      'PhoneFlagProvider',
+      'PhoneFlagProviderContext',
       'PhoneInputActions',
       'PhoneInputChangeDetails',
       'PhoneInputChangeReason',
@@ -198,6 +210,43 @@ const expectedExportContract = {
     runtime: ['default', 'validatePhoneMetadata'],
     types: ['PhoneMetadata', 'default', 'validatePhoneMetadata'],
   },
+  './flags': {
+    boundary: 'client',
+    runtime: ['PhoneCountryFlag'],
+    types: [
+      'PhoneCountryFlag',
+      'PhoneCountryFlagProps',
+      'PhoneExternalFlagFallback',
+      'PhoneExternalFlagOptions',
+      'PhoneFlagMode',
+      'PhoneFlagPlacement',
+      'PhoneFlagProvider',
+      'PhoneFlagProviderContext',
+    ],
+  },
+  './flags.css': {
+    boundary: 'data-only',
+    exception: {
+      kind: 'asset-only',
+      reason:
+        'The generated local flag stylesheet is a static package asset with no JavaScript export names.',
+    },
+  },
+  './locales/be': {
+    boundary: 'neutral',
+    runtime: ['be'],
+    types: ['be'],
+  },
+  './locales/en': {
+    boundary: 'neutral',
+    runtime: ['en'],
+    types: ['en'],
+  },
+  './locales/ru': {
+    boundary: 'neutral',
+    runtime: ['ru'],
+    types: ['ru'],
+  },
   './package.json': {
     boundary: 'data-only',
     exception: {
@@ -211,8 +260,6 @@ const expectedExportContract = {
 const absentFutureSubpaths = [
   './react-hook-form',
   './zod',
-  './locales/en',
-  './flags/local',
 ];
 
 function packageSpecifier(subpath) {
@@ -388,6 +435,24 @@ try {
             ['default'],
             `${subpath} JSON import failed.`,
           );
+        } else if (contract.exception.kind === 'asset-only') {
+          assert.equal(
+            contract.boundary,
+            'data-only',
+            `${subpath} asset-only exceptions must declare a data-only boundary.`,
+          );
+          assert.equal(
+            typeof manifestExport,
+            'string',
+            `${subpath} asset-only export must be a direct package target.`,
+          );
+          assert.match(
+            manifestExport,
+            /\.css$/u,
+            `${subpath} asset-only export must resolve to CSS.`,
+          );
+          const asset = await readFile(join(packageRoot, manifestExport), 'utf8');
+          assert.ok(asset.length > 0, `${subpath} asset-only export is empty.`);
         } else {
           assert.equal(
             contract.boundary,

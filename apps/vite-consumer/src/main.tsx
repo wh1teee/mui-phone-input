@@ -13,6 +13,7 @@ import {
   type PhoneValue,
   usePhoneInput,
 } from '@wh1teee/mui-phone-input';
+import '@wh1teee/mui-phone-input/flags.css';
 import {
   parseNationalPhoneValue,
   resolveNumberingPlan,
