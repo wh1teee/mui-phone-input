@@ -363,6 +363,8 @@ const CountrySelectorOptionLabel = styled('span', {
   slot: 'CountrySelectorOptionLabel',
 })<{ ownerState: PhoneCountrySelectorOptionOwnerState }>({
   gridColumn: 2,
+  minWidth: 0,
+  overflowWrap: 'anywhere',
 });
 
 const CountrySelectorFlag = styled(PhoneCountryFlag, {
@@ -725,6 +727,24 @@ export function PhoneInputCountrySelector({
   const searchInputRef = useRef<HTMLInputElement | null>(null);
   const listboxElementRef = useRef<HTMLUListElement | null>(null);
   const closeButtonRef = useRef<HTMLButtonElement | null>(null);
+  const ensureHighlightedOptionVisible = useCallback(() => {
+    const listbox = listboxElementRef.current;
+    const activeOptionId = searchInputRef.current?.getAttribute('aria-activedescendant');
+    const activeOptionElement = activeOptionId
+      ? document.getElementById(activeOptionId)
+      : null;
+    if (!listbox || !activeOptionElement || !listbox.contains(activeOptionElement)) {
+      return;
+    }
+
+    const listboxRect = listbox.getBoundingClientRect();
+    const optionRect = activeOptionElement.getBoundingClientRect();
+    if (optionRect.top < listboxRect.top) {
+      listbox.scrollTop -= listboxRect.top - optionRect.top;
+    } else if (optionRect.bottom > listboxRect.bottom) {
+      listbox.scrollTop += optionRect.bottom - listboxRect.bottom;
+    }
+  }, []);
   const inlineDialogContainer = useCallback(
     () => resolveInlineDialogContainer(hiddenInputRef.current),
     [],
@@ -808,6 +828,47 @@ export function PhoneInputCountrySelector({
     });
     return () => window.cancelAnimationFrame(frame);
   }, [open, presentation, restoreHighlightAfterPresentationChange]);
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    let frame = 0;
+    const scheduleVisibilityCheck = () => {
+      window.cancelAnimationFrame(frame);
+      frame = window.requestAnimationFrame(ensureHighlightedOptionVisible);
+    };
+    const resizeObserver =
+      typeof ResizeObserver === 'undefined'
+        ? null
+        : new ResizeObserver(scheduleVisibilityCheck);
+    window.addEventListener('resize', scheduleVisibilityCheck);
+    window.visualViewport?.addEventListener('resize', scheduleVisibilityCheck);
+    frame = window.requestAnimationFrame(() => {
+      if (
+        searchInputRef.current?.dataset.countrySelectorPresentation !== presentation ||
+        searchInputRef.current?.value !== query
+      ) {
+        return;
+      }
+      const listbox = listboxElementRef.current;
+      if (listbox) {
+        resizeObserver?.observe(listbox);
+        for (const group of listbox.querySelectorAll<HTMLElement>('[role="group"]')) {
+          resizeObserver?.observe(group);
+        }
+      }
+      ensureHighlightedOptionVisible();
+    });
+
+    return () => {
+      window.cancelAnimationFrame(frame);
+      resizeObserver?.disconnect();
+      window.removeEventListener('resize', scheduleVisibilityCheck);
+      window.visualViewport?.removeEventListener('resize', scheduleVisibilityCheck);
+    };
+  }, [ensureHighlightedOptionVisible, open, presentation, query]);
 
   const externalTriggerSlotProps = resolveSlotProps(slotProps?.trigger, ownerState);
   const triggerSlotRef = useForkRef(
