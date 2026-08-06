@@ -18,6 +18,7 @@ import { usePhoneInputTransactions } from './internal/use-phone-input-transactio
 import { usePhoneInputValidationVisibility } from './internal/use-phone-input-validation-visibility';
 import type { NumberingPlanResolution } from './numbering-plan';
 import type { PhoneValidationMode, PhoneValidationResult } from './phone-validation';
+import { DEFAULT_PHONE_METADATA, type PhoneMetadata } from './phone-metadata';
 import type { PhoneValue } from './phone-value';
 
 export type PhoneInputChangeReason =
@@ -70,6 +71,7 @@ export interface UsePhoneInputParameters {
   disabled?: boolean;
   error?: boolean;
   id?: string;
+  metadata?: PhoneMetadata;
   onChange?: (value: PhoneValue, details: PhoneInputChangeDetails) => void;
   onCountryChange?: (
     country: CountryCode | null,
@@ -95,6 +97,7 @@ export interface PhoneInputState {
   empty: boolean;
   error: boolean;
   inputId: string;
+  metadata: PhoneMetadata;
   numberingPlan: PhoneInputNumberingPlanState;
   readOnly: boolean;
   required: boolean;
@@ -187,6 +190,7 @@ function usePhoneInputInternal(
     disabled = false,
     error = false,
     id,
+    metadata = DEFAULT_PHONE_METADATA,
     onChange,
     onCountryChange,
     onCountrySelection,
@@ -209,6 +213,7 @@ function usePhoneInputInternal(
       ...(Object.hasOwn(parameters, 'value') ? { value } : {}),
     },
     diagnosticName,
+    metadata,
   );
   const { handleBlur, resetValidationVisibility, validationVisible } =
     usePhoneInputValidationVisibility(validationDisplay);
@@ -216,6 +221,7 @@ function usePhoneInputInternal(
     currentSelectedCountry: ownership.currentSelectedCountry,
     currentValue: ownership.currentValue,
     error,
+    metadata,
     required,
     validationMode,
     validationVisible,
@@ -236,6 +242,7 @@ function usePhoneInputInternal(
     setInputRef,
   } = usePhoneInputTransactions({
     inputContext: derivedState.inputContext,
+    metadata,
     numberingPlan: derivedState.numberingPlan,
     ownership,
     required,
@@ -264,6 +271,7 @@ function usePhoneInputInternal(
       empty: ownership.currentValue === undefined,
       error: derivedState.resolvedError,
       inputId,
+      metadata,
       numberingPlan: derivedState.numberingPlan,
       readOnly,
       required,
@@ -283,6 +291,7 @@ function usePhoneInputInternal(
       derivedState.validationError,
       disabled,
       inputId,
+      metadata,
       ownership.controlledRef,
       ownership.countryControlledRef,
       ownership.currentValue,

@@ -141,7 +141,12 @@ assert.deepEqual(packageManifest.publishConfig, {
 });
 assert.equal(packageManifest.dependencies['@maskito/core'], '5.3.1');
 assert.equal(packageManifest.dependencies['@maskito/react'], '5.3.1');
-assert.equal(packageManifest.dependencies['libphonenumber-js'], '1.13.10');
+assert.match(rootPackage.devDependencies['libphonenumber-js'], /^\d+\.\d+\.\d+$/u);
+assert.equal(
+  packageManifest.dependencies['libphonenumber-js'],
+  rootPackage.devDependencies['libphonenumber-js'],
+  'Root tooling and published package must use the same exact libphonenumber-js authority.',
+);
 for (const virtualizationDependency of [
   '@tanstack/react-virtual',
   'react-virtualized',
@@ -152,16 +157,20 @@ for (const virtualizationDependency of [
   assert.equal(packageManifest.peerDependencies[virtualizationDependency], undefined);
 }
 
-for (const exportPath of ['.', './server', './package.json']) {
+for (const exportPath of [
+  '.',
+  './server',
+  './metadata/max',
+  './metadata/min',
+  './metadata/mobile',
+  './metadata/custom',
+  './package.json',
+]) {
   assert.ok(packageManifest.exports[exportPath], `Missing export ${exportPath}`);
 }
 for (const futureExportPath of [
   './react-hook-form',
   './zod',
-  './metadata/max',
-  './metadata/min',
-  './metadata/mobile',
-  './metadata/custom',
   './locales/en',
   './flags/local',
 ]) {
@@ -174,15 +183,15 @@ for (const futureExportPath of [
 assert.deepEqual(consumerExportContract.implemented, [
   '.',
   './server',
+  './metadata/max',
+  './metadata/min',
+  './metadata/mobile',
+  './metadata/custom',
   './package.json',
 ]);
 assert.deepEqual(Object.keys(consumerExportContract.intentionallyAbsent).sort(), [
   './flags/local',
   './locales/en',
-  './metadata/custom',
-  './metadata/max',
-  './metadata/min',
-  './metadata/mobile',
   './react-hook-form',
   './zod',
 ]);

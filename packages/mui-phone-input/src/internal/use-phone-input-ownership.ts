@@ -1,6 +1,6 @@
 'use client';
 
-import { type CountryCode, isSupportedCountry } from 'libphonenumber-js/max';
+import { type CountryCode, isSupportedCountry } from 'libphonenumber-js/core';
 import {
   type Dispatch,
   type RefObject,
@@ -11,6 +11,7 @@ import {
 } from 'react';
 
 import { assertPhoneValue, type PhoneValue } from '../phone-value';
+import type { PhoneMetadata } from '../phone-metadata';
 
 type PhoneInputDiagnosticName = 'MuiPhoneInput' | 'usePhoneInput';
 
@@ -49,8 +50,9 @@ function shouldWarnInDevelopment(): boolean {
 export function assertPhoneCountry(
   country: CountryCode | null | undefined,
   label: string,
+  metadata: PhoneMetadata,
 ): void {
-  if (country != null && !isSupportedCountry(country)) {
+  if (country != null && !isSupportedCountry(country, metadata)) {
     throw new TypeError(`Unsupported ${label} country: ${country}`);
   }
 }
@@ -58,6 +60,7 @@ export function assertPhoneCountry(
 export function usePhoneInputOwnership(
   parameters: PhoneInputOwnershipParameters,
   diagnosticName: PhoneInputDiagnosticName,
+  metadata: PhoneMetadata,
 ): PhoneInputOwnership {
   const { defaultCountry, defaultValue, selectedCountry, value } = parameters;
   const hasValueProp = Object.hasOwn(parameters, 'value');
@@ -80,13 +83,13 @@ export function usePhoneInputOwnership(
   });
   const [uncontrolledCountry, setUncontrolledCountry] = useState<CountryCode | null>(
     () => {
-      assertPhoneCountry(defaultCountry, 'default');
+      assertPhoneCountry(defaultCountry, 'default', metadata);
       return defaultCountry ?? null;
     },
   );
 
   assertPhoneValue(value);
-  assertPhoneCountry(selectedCountry, 'selected');
+  assertPhoneCountry(selectedCountry, 'selected', metadata);
 
   const currentValue = controlledRef.current ? value : uncontrolledValue;
   const currentValueRef = useRef(currentValue);

@@ -1,0 +1,11 @@
+{
+  "numbers": [
+    { "id": "belarus-mobile", "value": "+375291234567" },
+    { "id": "nanp-us", "value": "+12025550123" },
+    { "id": "nanp-shared-prefix", "value": "+1" },
+    { "id": "uk-territory-possible", "value": "+441481123456" },
+    { "id": "kazakhstan-mobile", "value": "+77011234567" },
+    { "id": "non-geographic-toll-free", "value": "+80012345678" }
+  ],
+  "exampleCountries": ["AX", "BY", "CA", "GB", "GG", "IM", "KZ", "RU", "US"]
+}

@@ -5,9 +5,10 @@ import {
   parsePhoneNumberFromString,
   type ValidatePhoneNumberLengthResult,
   validatePhoneNumberLength,
-} from 'libphonenumber-js/max';
+} from 'libphonenumber-js/core';
 
 import { type NumberingPlanResolution, resolveNumberingPlan } from './numbering-plan';
+import { DEFAULT_PHONE_METADATA, type PhoneMetadata } from './phone-metadata';
 import { assertPhoneValue, type PhoneValue } from './phone-value';
 
 export type PhoneValidationStatus =
@@ -54,6 +55,7 @@ export type PhoneValidationMode = BuiltInPhoneValidationMode | PhoneValidationSt
 
 export interface PhoneValidationOptions {
   allowedNumberTypes?: readonly PhoneNumberType[];
+  metadata?: PhoneMetadata;
   required?: boolean;
   selectedCountry?: CountryCode | null;
   validationMode?: PhoneValidationMode;
@@ -132,7 +134,10 @@ function validationReasonFromLength(
   }
 }
 
-function inspectStructure(value: PhoneValue): StructuralValidation {
+function inspectStructure(
+  value: PhoneValue,
+  metadata: PhoneMetadata,
+): StructuralValidation {
   if (value === undefined) {
     return {
       isPossible: null,
@@ -153,11 +158,11 @@ function inspectStructure(value: PhoneValue): StructuralValidation {
     };
   }
 
-  const phoneNumber = parsePhoneNumberFromString(value);
+  const phoneNumber = parsePhoneNumberFromString(value, metadata);
   const isPossible = phoneNumber?.isPossible() ?? null;
   const isValid = phoneNumber?.isValid() ?? null;
   const numberType = phoneNumber?.getType() ?? null;
-  const lengthResult = validatePhoneNumberLength(value);
+  const lengthResult = validatePhoneNumberLength(value, metadata);
 
   if (lengthResult) {
     const { reason, status } = validationReasonFromLength(lengthResult);
@@ -199,10 +204,11 @@ export function validatePhoneValue(
 ): PhoneValidationResult {
   assertPhoneValue(value);
 
+  const metadata = options.metadata ?? DEFAULT_PHONE_METADATA;
   const validationMode = options.validationMode ?? 'possible';
   validatePolicyConfiguration(validationMode, options.allowedNumberTypes);
 
-  const structure = inspectStructure(value);
+  const structure = inspectStructure(value, metadata);
   const mode = typeof validationMode === 'function' ? 'custom' : validationMode;
 
   if (structure.status === 'empty') {
@@ -228,8 +234,8 @@ export function validatePhoneValue(
   if (typeof validationMode === 'function') {
     const numberingPlanOptions =
       options.selectedCountry == null
-        ? {}
-        : { selectedCountry: options.selectedCountry };
+        ? { metadata }
+        : { metadata, selectedCountry: options.selectedCountry };
     const strategyResult = validationMode(
       Object.freeze({
         isPossible: structure.isPossible,
@@ -294,7 +300,10 @@ export function validatePhoneValue(
   };
 }
 
-export function formatPhoneValueForDisplay(value: PhoneValue): string {
+export function formatPhoneValueForDisplay(
+  value: PhoneValue,
+  metadata: PhoneMetadata = DEFAULT_PHONE_METADATA,
+): string {
   assertPhoneValue(value);
-  return value === undefined ? '' : formatIncompletePhoneNumber(value);
+  return value === undefined ? '' : formatIncompletePhoneNumber(value, metadata);
 }

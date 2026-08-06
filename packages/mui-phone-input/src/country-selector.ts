@@ -4,14 +4,14 @@ import {
   getCountryCallingCode,
   isPossiblePhoneNumber,
   isSupportedCountry,
-} from 'libphonenumber-js/max';
-import maxMetadata from 'libphonenumber-js/metadata.max.json';
+} from 'libphonenumber-js/core';
 
 import {
   isPhoneValuePossibleForCountry,
   type NumberingPlanResolution,
   resolveNumberingPlan,
 } from './numbering-plan';
+import { DEFAULT_PHONE_METADATA, type PhoneMetadata } from './phone-metadata';
 import {
   assertPhoneValue,
   normalizePhoneInputDigit,
@@ -38,8 +38,13 @@ export interface CreatePhoneCountryOptionsParameters {
     right: Readonly<PhoneCountryOption>,
   ) => number;
   locale?: string;
+  metadata?: PhoneMetadata;
   preferredCountries?: readonly CountryCode[];
   resolveCountryName?: PhoneCountryNameResolver;
+}
+
+export interface PhoneCountrySelectionOptions {
+  metadata?: PhoneMetadata;
 }
 
 export interface FilterPhoneCountryOptionsParameters {
@@ -93,10 +98,7 @@ export type PhoneCountrySelectionResult =
   | PhoneCountrySelectionAppliedResult
   | PhoneCountrySelectionConflictResult;
 
-const AUTHORITY_CALLING_CODES = Object.freeze([
-  ...Object.keys(maxMetadata.country_calling_codes),
-  ...Object.keys(maxMetadata.nonGeographic),
-]);
+const authorityCallingCodesByMetadata = new WeakMap<PhoneMetadata, readonly string[]>();
 const DEFAULT_INTL_LOCALE = 'en';
 const COUNTRY_SEARCH_METADATA = new WeakMap<
   Readonly<PhoneCountryOption>,
@@ -106,11 +108,20 @@ const COUNTRY_SEARCH_METADATA = new WeakMap<
 function isPartialInternationalCallingCode(
   digits: string,
   numberingPlan: NumberingPlanResolution,
+  metadata: PhoneMetadata,
 ): boolean {
+  let authorityCallingCodes = authorityCallingCodesByMetadata.get(metadata);
+  if (!authorityCallingCodes) {
+    authorityCallingCodes = Object.freeze([
+      ...Object.keys(metadata.country_calling_codes),
+      ...Object.keys(metadata.nonGeographic),
+    ]);
+    authorityCallingCodesByMetadata.set(metadata, authorityCallingCodes);
+  }
   return (
     numberingPlan.countryCallingCode === null &&
     digits.length > 0 &&
-    AUTHORITY_CALLING_CODES.some(
+    authorityCallingCodes.some(
       (callingCode) =>
         callingCode.length > digits.length && callingCode.startsWith(digits),
     )
@@ -154,8 +165,12 @@ function resolveDisplayName(
   return resolved && resolved !== country ? resolved : undefined;
 }
 
-function assertSupportedCountry(country: CountryCode, label: string): void {
-  if (!isSupportedCountry(country)) {
+function assertSupportedCountry(
+  country: CountryCode,
+  label: string,
+  metadata: PhoneMetadata,
+): void {
+  if (!isSupportedCountry(country, metadata)) {
     throw new TypeError(`Unsupported ${label} country: ${country}`);
   }
 }
@@ -233,6 +248,7 @@ function createDefaultCountryOrder(
 export function createPhoneCountryOptions(
   parameters: CreatePhoneCountryOptionsParameters = {},
 ): readonly PhoneCountryOption[] {
+  const metadata = parameters.metadata ?? DEFAULT_PHONE_METADATA;
   const requestedLocale = parameters.locale ?? DEFAULT_INTL_LOCALE;
   const intlLocale = resolveIntlLocale(requestedLocale);
   const caseLocale = resolveCaseLocale(requestedLocale);
@@ -242,14 +258,14 @@ export function createPhoneCountryOptions(
   const preferredSet = new Set<CountryCode>();
 
   for (const country of parameters.preferredCountries ?? []) {
-    assertSupportedCountry(country, 'preferred');
+    assertSupportedCountry(country, 'preferred', metadata);
     if (!preferredSet.has(country)) {
       preferredSet.add(country);
       preferredCountries.push(country);
     }
   }
 
-  const options = getCountries()
+  const options = getCountries(metadata)
     .filter((country) => parameters.countryFilter?.(country) ?? true)
     .map<PhoneCountryOption>((country) => {
       const englishName =
@@ -268,7 +284,7 @@ export function createPhoneCountryOptions(
         ) ?? englishName;
 
       const option = Object.freeze({
-        callingCode: getCountryCallingCode(country),
+        callingCode: getCountryCallingCode(country, metadata),
         country,
         englishName,
         localizedName,
@@ -395,16 +411,19 @@ export function filterPhoneCountryOptions(
 export function resolvePhoneCountrySelection(
   value: PhoneValue,
   country: CountryCode,
+  options: PhoneCountrySelectionOptions = {},
 ): PhoneCountrySelectionResult {
+  const metadata = options.metadata ?? DEFAULT_PHONE_METADATA;
   assertPhoneValue(value);
-  assertSupportedCountry(country, 'selected');
+  assertSupportedCountry(country, 'selected', metadata);
 
-  const callingCode = getCountryCallingCode(country);
+  const callingCode = getCountryCallingCode(country, metadata);
   const currentDigits = value?.slice(1) ?? '';
-  const previousNumberingPlan = resolveNumberingPlan(value);
+  const previousNumberingPlan = resolveNumberingPlan(value, { metadata });
   const replacesPartialCallingCode = isPartialInternationalCallingCode(
     currentDigits,
     previousNumberingPlan,
+    metadata,
   );
   const nationalDigits = replacesPartialCallingCode
     ? ''
@@ -416,14 +435,16 @@ export function resolvePhoneCountrySelection(
     undefined
   >;
   const candidateNumberingPlan = resolveNumberingPlan(candidate, {
+    metadata,
     selectedCountry: country,
   });
   const sourceIsPossible =
-    value !== undefined && value !== '+' && isPossiblePhoneNumber(value);
+    value !== undefined && value !== '+' && isPossiblePhoneNumber(value, metadata);
   const conflictReason =
     previousNumberingPlan.kind === 'non-geographic' && nationalDigits.length > 0
       ? 'non-geographic-draft'
-      : sourceIsPossible && !isPhoneValuePossibleForCountry(candidate, country)
+      : sourceIsPossible &&
+          !isPhoneValuePossibleForCountry(candidate, country, metadata)
         ? 'impossible-target-draft'
         : candidateNumberingPlan.selectedCountry !== country
           ? 'incompatible-draft'
@@ -467,6 +488,7 @@ export function resolvePhoneCountrySelection(
 export function selectPhoneCountryValue(
   value: PhoneValue,
   country: CountryCode,
+  options: PhoneCountrySelectionOptions = {},
 ): PhoneValue {
-  return resolvePhoneCountrySelection(value, country).value;
+  return resolvePhoneCountrySelection(value, country, options).value;
 }

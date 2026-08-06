@@ -34,6 +34,10 @@ export default defineConfig([
     clean: false,
     dts: true,
     entry: {
+      'metadata/custom': 'src/metadata/custom.ts',
+      'metadata/max': 'src/metadata/max.ts',
+      'metadata/min': 'src/metadata/min.ts',
+      'metadata/mobile': 'src/metadata/mobile.ts',
       server: 'src/server.ts',
     },
     deps: {

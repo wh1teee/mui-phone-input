@@ -1,23 +1,26 @@
 import {
-  isPossiblePhoneNumber,
-  Metadata,
-  type MetadataJson,
-  parsePhoneNumberFromString as parsePhoneNumberFromStringWithMetadata,
-} from 'libphonenumber-js/core';
-import {
   AsYouType,
   type CountryCode,
   getCountries,
   getCountryCallingCode,
+  isPossiblePhoneNumber,
   isSupportedCountry,
-} from 'libphonenumber-js/max';
-import maxMetadata from 'libphonenumber-js/metadata.max.json';
+  Metadata,
+  type MetadataJson,
+  parsePhoneNumberFromString as parsePhoneNumberFromStringWithMetadata,
+} from 'libphonenumber-js/core';
 
 import { canDigitPatternMatchPrefix } from './digit-pattern-prefix';
+import { DEFAULT_PHONE_METADATA, type PhoneMetadata } from './phone-metadata';
 import { assertPhoneValue, type PhoneValue, parsePhoneValue } from './phone-value';
 
 export interface NumberingPlanResolutionOptions {
+  metadata?: PhoneMetadata;
   selectedCountry?: CountryCode | null;
+}
+
+export interface NationalPhoneValueOptions {
+  metadata?: PhoneMetadata;
 }
 
 interface NumberingPlanResolutionBase {
@@ -65,30 +68,60 @@ const PHONE_NUMBER_TYPES = [
   'VOICEMAIL',
 ] as const;
 
-const countriesByCallingCode = new Map<string, readonly CountryCode[]>();
-const metadataBySelectedCountry = new Map<CountryCode, MetadataJson>();
-const validPatternsBySelectedCountry = new Map<CountryCode, readonly string[]>();
+const countriesByCallingCodeByMetadata = new WeakMap<
+  PhoneMetadata,
+  Map<string, readonly CountryCode[]>
+>();
+const selectedCountryMetadataByMetadata = new WeakMap<
+  PhoneMetadata,
+  Map<CountryCode, MetadataJson>
+>();
+const validPatternsByMetadata = new WeakMap<
+  PhoneMetadata,
+  Map<CountryCode, readonly string[]>
+>();
 
-for (const country of getCountries()) {
-  const callingCode = getCountryCallingCode(country);
-  const countries = countriesByCallingCode.get(callingCode) ?? [];
-  countriesByCallingCode.set(callingCode, Object.freeze([...countries, country]));
+function countriesByCallingCode(
+  metadata: PhoneMetadata,
+): Map<string, readonly CountryCode[]> {
+  const cached = countriesByCallingCodeByMetadata.get(metadata);
+  if (cached) {
+    return cached;
+  }
+
+  const countriesByCallingCode = new Map<string, readonly CountryCode[]>();
+  for (const country of getCountries(metadata)) {
+    const callingCode = getCountryCallingCode(country, metadata);
+    const countries = countriesByCallingCode.get(callingCode) ?? [];
+    countriesByCallingCode.set(callingCode, Object.freeze([...countries, country]));
+  }
+  countriesByCallingCodeByMetadata.set(metadata, countriesByCallingCode);
+  return countriesByCallingCode;
 }
 
-function metadataForSelectedCountry(country: CountryCode): MetadataJson {
+function metadataForSelectedCountry(
+  country: CountryCode,
+  authorityMetadata: PhoneMetadata,
+): MetadataJson {
+  let metadataBySelectedCountry =
+    selectedCountryMetadataByMetadata.get(authorityMetadata);
+  if (!metadataBySelectedCountry) {
+    metadataBySelectedCountry = new Map();
+    selectedCountryMetadataByMetadata.set(authorityMetadata, metadataBySelectedCountry);
+  }
   const cached = metadataBySelectedCountry.get(country);
   if (cached) {
     return cached;
   }
 
-  const callingCode = getCountryCallingCode(country);
-  const countryMetadata = maxMetadata.countries[country];
+  const callingCode = getCountryCallingCode(country, authorityMetadata);
+  const countryMetadata = authorityMetadata.countries[country];
   if (!countryMetadata) {
     throw new TypeError(`Missing numbering metadata for selected country: ${country}`);
   }
 
   const metadata: MetadataJson = {
-    version: maxMetadata.version,
+    version: authorityMetadata.version,
     country_calling_codes: { [callingCode]: [country] },
     countries: { [country]: countryMetadata },
     nonGeographic: {},
@@ -107,13 +140,21 @@ interface AuthorityNumberingPlan {
   type(type: (typeof PHONE_NUMBER_TYPES)[number]): AuthorityNumberType | undefined;
 }
 
-function validPatternsForSelectedCountry(country: CountryCode): readonly string[] {
+function validPatternsForSelectedCountry(
+  country: CountryCode,
+  authorityMetadata: PhoneMetadata,
+): readonly string[] {
+  let validPatternsBySelectedCountry = validPatternsByMetadata.get(authorityMetadata);
+  if (!validPatternsBySelectedCountry) {
+    validPatternsBySelectedCountry = new Map();
+    validPatternsByMetadata.set(authorityMetadata, validPatternsBySelectedCountry);
+  }
   const cached = validPatternsBySelectedCountry.get(country);
   if (cached) {
     return cached;
   }
 
-  const metadata = new Metadata(metadataForSelectedCountry(country));
+  const metadata = new Metadata(metadataForSelectedCountry(country, authorityMetadata));
   metadata.selectNumberingPlan(country);
   const numberingPlan = metadata.numberingPlan as
     | (NonNullable<typeof metadata.numberingPlan> & AuthorityNumberingPlan)
@@ -145,13 +186,14 @@ function canStillBecomeValidForSelectedCountry(
   value: PhoneValue,
   country: CountryCode,
   countryCallingCode: string,
+  metadata: PhoneMetadata,
 ): boolean {
   if (value === undefined) {
     return true;
   }
 
   const nationalNumber = value.slice(countryCallingCode.length + 1);
-  return validPatternsForSelectedCountry(country).some((pattern) =>
+  return validPatternsForSelectedCountry(country, metadata).some((pattern) =>
     canDigitPatternMatchPrefix(pattern, nationalNumber),
   );
 }
@@ -169,12 +211,13 @@ function includeCountry(
 
 function validateSelectedCountry(
   selectedCountry: CountryCode | null | undefined,
+  metadata: PhoneMetadata,
 ): CountryCode | null {
   if (selectedCountry == null) {
     return null;
   }
 
-  if (!isSupportedCountry(selectedCountry)) {
+  if (!isSupportedCountry(selectedCountry, metadata)) {
     throw new TypeError(`Unsupported selected country: ${selectedCountry}`);
   }
 
@@ -189,8 +232,10 @@ function validateSelectedCountry(
 export function parseNationalPhoneValue(
   input: string,
   country: CountryCode,
+  options: NationalPhoneValueOptions = {},
 ): Exclude<PhoneValue, undefined> | null {
-  validateSelectedCountry(country);
+  const metadata = options.metadata ?? DEFAULT_PHONE_METADATA;
+  validateSelectedCountry(country, metadata);
 
   if (input.includes('+')) {
     return null;
@@ -211,26 +256,29 @@ export function parseNationalPhoneValue(
   const phoneNumber = parsePhoneNumberFromStringWithMetadata(
     nationalDigits,
     country,
-    metadataForSelectedCountry(country),
+    metadataForSelectedCountry(country, metadata),
   );
   if (!phoneNumber) {
     return null;
   }
 
   const candidate = phoneNumber.number as Exclude<PhoneValue, undefined>;
-  return isPhoneValuePossibleForCountry(candidate, country) ? candidate : null;
+  return isPhoneValuePossibleForCountry(candidate, country, metadata)
+    ? candidate
+    : null;
 }
 
 export function isPhoneValuePossibleForCountry(
   value: PhoneValue,
   country: CountryCode,
+  metadata: PhoneMetadata = DEFAULT_PHONE_METADATA,
 ): boolean {
   assertPhoneValue(value);
-  validateSelectedCountry(country);
+  validateSelectedCountry(country, metadata);
   return (
     value !== undefined &&
     value !== '+' &&
-    isPossiblePhoneNumber(value, metadataForSelectedCountry(country))
+    isPossiblePhoneNumber(value, metadataForSelectedCountry(country, metadata))
   );
 }
 
@@ -238,12 +286,13 @@ function resolveCompatibleSelection(
   value: PhoneValue,
   selectedCountry: CountryCode | null,
   countryCallingCode: string | null,
+  metadata: PhoneMetadata,
 ): CountryCode | null {
   if (!selectedCountry) {
     return null;
   }
 
-  const selectedCallingCode = getCountryCallingCode(selectedCountry);
+  const selectedCallingCode = getCountryCallingCode(selectedCountry, metadata);
 
   if (countryCallingCode) {
     if (selectedCallingCode !== countryCallingCode) {
@@ -254,6 +303,7 @@ function resolveCompatibleSelection(
       value,
       selectedCountry,
       selectedCallingCode,
+      metadata,
     )
       ? selectedCountry
       : null;
@@ -271,8 +321,10 @@ export function resolveNumberingPlan(
 ): NumberingPlanResolution {
   assertPhoneValue(value);
 
-  const requestedSelection = validateSelectedCountry(options.selectedCountry);
-  const formatter = new AsYouType();
+  const metadata = options.metadata ?? DEFAULT_PHONE_METADATA;
+  const requestedSelection = validateSelectedCountry(options.selectedCountry, metadata);
+  const formatter = new AsYouType(undefined, metadata);
+  const callingCodeCountries = countriesByCallingCode(metadata);
 
   if (value) {
     formatter.input(value);
@@ -281,7 +333,7 @@ export function resolveNumberingPlan(
   const detectedCountry = formatter.getCountry() ?? null;
   const detectedCallingCode = formatter.getCallingCode() ?? null;
   const countriesForCallingCode = detectedCallingCode
-    ? (countriesByCallingCode.get(detectedCallingCode) ?? EMPTY_COUNTRIES)
+    ? (callingCodeCountries.get(detectedCallingCode) ?? EMPTY_COUNTRIES)
     : EMPTY_COUNTRIES;
   const authorityPossibleCountries =
     formatter.getNumber()?.getPossibleCountries() ?? [];
@@ -307,15 +359,16 @@ export function resolveNumberingPlan(
     value,
     requestedSelection,
     detectedCallingCode,
+    metadata,
   );
   const selectedCallingCode = selectedCountry
-    ? getCountryCallingCode(selectedCountry)
+    ? getCountryCallingCode(selectedCountry, metadata)
     : null;
   const countryCallingCode = detectedCallingCode ?? selectedCallingCode;
   const authorityCountries = countryCallingCode
     ? narrowedPossibleCountries.length > 0
       ? narrowedPossibleCountries
-      : (countriesByCallingCode.get(countryCallingCode) ?? EMPTY_COUNTRIES)
+      : (callingCodeCountries.get(countryCallingCode) ?? EMPTY_COUNTRIES)
     : EMPTY_COUNTRIES;
   const possibleCountries = includeCountry(authorityCountries, selectedCountry);
   const resolvedCountry =
