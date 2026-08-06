@@ -8,8 +8,8 @@ theme registration, a searchable responsive Country Selector, stable utility
 classes, and deterministic event-independent change details.
 
 The package is still under active 1.0 development. Advanced display modes and
-masks, extensions, packaged locale/flag modes, metadata variants, and form
-adapters are delivered in later gated slices.
+masks, extensions, packaged locale/flag modes, and form adapters are delivered
+in later gated slices.
 
 ## Published subpaths
 
@@ -19,6 +19,10 @@ The current canary publishes only these implemented paths:
   shared phone helpers;
 - `@wh1teee/mui-phone-input/server` — neutral parsing, numbering-plan,
   formatting and validation helpers;
+- `@wh1teee/mui-phone-input/metadata/max` — max metadata (the default);
+- `@wh1teee/mui-phone-input/metadata/min` — min metadata;
+- `@wh1teee/mui-phone-input/metadata/mobile` — mobile metadata;
+- `@wh1teee/mui-phone-input/metadata/custom` — custom-metadata validation;
 - `@wh1teee/mui-phone-input/package.json` — package metadata.
 
 The following future paths are intentionally not exported until their owning
@@ -26,9 +30,7 @@ feature ships atomically with implementation, documentation, tests and release
 evidence:
 
 - `./react-hook-form` and `./zod` (`mpi-oan.12`);
-- `./flags/local` and `./locales/en` (`mpi-oan.11`);
-- `./metadata/max`, `./metadata/min`, `./metadata/mobile` and
-  `./metadata/custom` (`mpi-oan.25`).
+- `./flags/local` and `./locales/en` (`mpi-oan.11`).
 
 React Hook Form and Zod remain optional peer declarations so their owning
 adapter slice can preserve the planned package contract without forcing either
@@ -289,6 +291,36 @@ const result = validatePhoneValue('+441481123456');
 Structural validation does not prove ownership, reachability, SMS/call
 delivery, or that the number exists. Use an explicit verification flow such as
 OTP when the product requires those guarantees.
+
+## Metadata presets
+
+Max metadata remains the default for both client and server APIs while
+`validationMode="possible"` remains the default acceptance policy. Select a
+smaller official `libphonenumber-js` preset explicitly when bundle or runtime
+constraints justify the reduced strict-validity/type information:
+
+```tsx
+import { MuiPhoneInput } from '@wh1teee/mui-phone-input';
+import minMetadata from '@wh1teee/mui-phone-input/metadata/min';
+
+<MuiPhoneInput metadata={minMetadata} />;
+```
+
+Use the same metadata object with server helpers to preserve client/server
+semantics:
+
+```ts
+import { validatePhoneValue } from '@wh1teee/mui-phone-input/server';
+import mobileMetadata from '@wh1teee/mui-phone-input/metadata/mobile';
+
+validatePhoneValue('+375291234567', { metadata: mobileMetadata });
+```
+
+Custom metadata must come from the official `libphonenumber-js` metadata
+generator and pass `validatePhoneMetadata()` from
+`@wh1teee/mui-phone-input/metadata/custom` before use. Custom country tables,
+calling-code overrides, and locally authored validity/type rules are not a
+supported numbering authority.
 
 ## Headless controller and primitives
 

@@ -13,6 +13,7 @@ import {
   type PhoneValidationOptions,
   validatePhoneValue,
 } from '../phone-validation';
+import type { PhoneMetadata } from '../phone-metadata';
 import type { PhoneValue } from '../phone-value';
 import type { InputEngineContext } from './input-transaction-engine';
 
@@ -27,6 +28,7 @@ interface PhoneInputDerivedStateParameters {
   currentSelectedCountry: CountryCode | null;
   currentValue: PhoneValue;
   error: boolean;
+  metadata: PhoneMetadata;
   required: boolean;
   validationMessage?:
     | ReactNode
@@ -83,6 +85,7 @@ export function usePhoneInputDerivedState(
     currentSelectedCountry,
     currentValue,
     error,
+    metadata,
     required,
     validationMessage,
     validationMode,
@@ -90,11 +93,14 @@ export function usePhoneInputDerivedState(
   } = parameters;
   const numberingPlanOptions = useMemo(
     () =>
-      currentSelectedCountry == null ? {} : { selectedCountry: currentSelectedCountry },
-    [currentSelectedCountry],
+      currentSelectedCountry == null
+        ? { metadata }
+        : { metadata, selectedCountry: currentSelectedCountry },
+    [currentSelectedCountry, metadata],
   );
   const validationOptions = useMemo<PhoneValidationOptions>(
     () => ({
+      metadata,
       required,
       validationMode,
       ...(currentSelectedCountry == null
@@ -102,7 +108,7 @@ export function usePhoneInputDerivedState(
         : { selectedCountry: currentSelectedCountry }),
       ...(allowedNumberTypes === undefined ? {} : { allowedNumberTypes }),
     }),
-    [allowedNumberTypes, currentSelectedCountry, required, validationMode],
+    [allowedNumberTypes, currentSelectedCountry, metadata, required, validationMode],
   );
   const numberingPlan = useMemo<PhoneInputNumberingPlanState>(
     () => resolveNumberingPlan(currentValue, numberingPlanOptions),

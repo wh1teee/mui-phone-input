@@ -39,6 +39,7 @@ import {
 import type { MuiPhoneInputOwnerState } from './MuiPhoneInput/MuiPhoneInput';
 import type { MuiPhoneInputClasses } from './MuiPhoneInput/muiPhoneInputClasses';
 import { muiPhoneInputClasses } from './MuiPhoneInput/muiPhoneInputClasses';
+import type { PhoneMetadata } from './phone-metadata';
 import { usePhoneInputContext } from './PhoneInputPrimitives';
 import type { PhoneInputDataAttributes } from './usePhoneInput';
 
@@ -204,6 +205,7 @@ export type PhoneInputCountrySelectorProps = Omit<
     disablePortal?: boolean;
     locale?: string;
     messages?: Partial<PhoneCountrySelectorMessages>;
+    metadata?: PhoneMetadata;
     mobileBreakpoint?: Breakpoint;
     mode?: PhoneCountrySelectorMode;
     portalContainer?: PopperProps['container'];
@@ -427,6 +429,7 @@ export function PhoneInputCountrySelector({
   disablePortal = false,
   locale = 'en',
   messages: messagesProp,
+  metadata,
   mobileBreakpoint = 'sm',
   mode = 'auto',
   portalContainer,
@@ -439,6 +442,7 @@ export function PhoneInputCountrySelector({
   ...triggerProps
 }: PhoneInputCountrySelectorProps): ReactNode {
   const phone = usePhoneInputContext();
+  const resolvedMetadata = metadata ?? phone.state.metadata;
   const theme = useTheme();
   const matchesMobile = useMediaQuery(theme.breakpoints.down(mobileBreakpoint));
   const mobile = mode === 'mobile' || (mode === 'auto' && matchesMobile);
@@ -528,12 +532,20 @@ export function PhoneInputCountrySelector({
     () =>
       createPhoneCountryOptions({
         locale,
+        metadata: resolvedMetadata,
         ...(countryFilter === undefined ? {} : { countryFilter }),
         ...(countryOrder === undefined ? {} : { countryOrder }),
         ...(preferredCountries === undefined ? {} : { preferredCountries }),
         ...(resolveCountryName === undefined ? {} : { resolveCountryName }),
       }),
-    [countryFilter, countryOrder, locale, preferredCountries, resolveCountryName],
+    [
+      countryFilter,
+      countryOrder,
+      locale,
+      resolvedMetadata,
+      preferredCountries,
+      resolveCountryName,
+    ],
   );
   const displayCountry =
     phone.state.selectedCountry ?? phone.state.numberingPlan.resolvedCountry;
@@ -543,11 +555,12 @@ export function PhoneInputCountrySelector({
         ? (createPhoneCountryOptions({
             countryFilter: (country) => country === displayCountry,
             locale,
+            metadata: resolvedMetadata,
             ...(preferredCountries === undefined ? {} : { preferredCountries }),
             ...(resolveCountryName === undefined ? {} : { resolveCountryName }),
           })[0] ?? null)
         : null,
-    [displayCountry, locale, preferredCountries, resolveCountryName],
+    [displayCountry, locale, preferredCountries, resolveCountryName, resolvedMetadata],
   );
   const triggerDisabled =
     phone.state.disabled || phone.state.readOnly || triggerProps.disabled === true;

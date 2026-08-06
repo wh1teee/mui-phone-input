@@ -12,6 +12,7 @@ describe('foundation test seam', () => {
         'isPhoneValue',
         'parseNationalPhoneValue',
         'parsePhoneValue',
+        'validatePhoneMetadata',
       ]),
     );
     expect(Object.keys(serverEntry).sort()).toEqual([
@@ -21,6 +22,7 @@ describe('foundation test seam', () => {
       'parseNationalPhoneValue',
       'parsePhoneValue',
       'resolveNumberingPlan',
+      'validatePhoneMetadata',
       'validatePhoneValue',
     ]);
     expect(serverEntry).not.toHaveProperty('MuiPhoneInput');

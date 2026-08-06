@@ -1,5 +1,6 @@
 export {
   type GeographicNumberingPlanResolution,
+  type NationalPhoneValueOptions,
   type NonGeographicNumberingPlanResolution,
   type NumberingPlanResolution,
   type NumberingPlanResolutionOptions,
@@ -19,6 +20,7 @@ export {
   type PhoneValidationStrategyContext,
   validatePhoneValue,
 } from './phone-validation';
+export { type PhoneMetadata, validatePhoneMetadata } from './phone-metadata';
 export {
   assertPhoneValue,
   isPhoneValue,

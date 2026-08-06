@@ -17,16 +17,16 @@ A highly customizable, accessible phone input for React and Material UI, with `l
 - donor-first adaptation of proven input, caret, country-selection, and accessibility behavior;
 - possible-by-default acceptance, strict validation as an explicit policy, and first-class non-geographic numbering plans;
 - deterministic SSR, browser-grade interaction tests, and WCAG 2.2 AA release gates;
-- one package with implemented client and server entrypoints in the current
-  canary, adding React Hook Form, Zod, metadata, locale, and flag entrypoints
+- one package with implemented client, server, and metadata entrypoints in the
+  current canary, adding React Hook Form, Zod, locale, and flag entrypoints
   atomically with their owning feature slices.
 
-The current export map contains `.`, `./server`, and `./package.json` only.
+The current export map contains `.`, `./server`, `./metadata/max`,
+`./metadata/min`, `./metadata/mobile`, `./metadata/custom`, and
+`./package.json`.
 `./react-hook-form` and `./zod` remain owned by `mpi-oan.12`; `./flags/local`
-and `./locales/en` remain owned by `mpi-oan.11`; `./metadata/max`,
-`./metadata/min`, `./metadata/mobile`, and `./metadata/custom` remain owned by
-`mpi-oan.25`. These future paths are intentionally absent from the early
-canary rather than published as empty modules.
+and `./locales/en` remain owned by `mpi-oan.11`. These future paths are
+intentionally absent rather than published as empty modules.
 
 The canonical npm package name is `@wh1teee/mui-phone-input`, matching the
 authenticated npm and GitHub identity. The first registry publication and

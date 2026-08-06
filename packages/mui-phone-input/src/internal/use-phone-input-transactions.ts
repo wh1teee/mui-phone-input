@@ -23,6 +23,7 @@ import {
   type PhoneValidationOptions,
   validatePhoneValue,
 } from '../phone-validation';
+import type { PhoneMetadata } from '../phone-metadata';
 import {
   normalizePhoneInputText,
   type PhoneValue,
@@ -85,6 +86,7 @@ type PendingCountryReconciliation = Readonly<{
 interface PhoneInputTransactionParameters {
   allowedNumberTypes?: readonly PhoneNumberType[];
   inputContext: InputEngineContext;
+  metadata: PhoneMetadata;
   numberingPlan: PhoneInputNumberingPlanState;
   onChange?: UsePhoneInputParameters['onChange'];
   onCountryChange?: UsePhoneInputParameters['onCountryChange'];
@@ -154,6 +156,7 @@ function resolveCompleteNationalInput(
   pendingBeforeInput: PendingBeforeInput | null,
   selectedCountry: CountryCode | null,
   pendingNationalInput: PendingNationalInput | null,
+  metadata: PhoneMetadata,
 ): NationalInputResolution {
   if (!pendingBeforeInput || !selectedCountry || pendingBeforeInput.isComposing) {
     return { pending: null, value: null };
@@ -200,11 +203,14 @@ function resolveCompleteNationalInput(
     return { pending: null, value: null };
   }
 
-  const parsedValue = parseNationalPhoneValue(incomingValue, selectedCountry);
+  const parsedValue = parseNationalPhoneValue(incomingValue, selectedCountry, {
+    metadata,
+  });
   const value =
     parsedValue !== null &&
     pendingBeforeInput.inputType === 'insertText' &&
     !validatePhoneValue(parsedValue, {
+      metadata,
       selectedCountry,
       validationMode: 'valid',
     }).accepted
@@ -271,10 +277,11 @@ function hasCountryTransition(
 function resolvePlanForCountry(
   value: PhoneValue,
   country: CountryCode | null,
+  metadata: PhoneMetadata,
 ): PhoneInputNumberingPlanState {
   return resolveNumberingPlan(
     value,
-    country == null ? {} : { selectedCountry: country },
+    country == null ? { metadata } : { metadata, selectedCountry: country },
   );
 }
 
@@ -284,6 +291,7 @@ export function usePhoneInputTransactions(
   const {
     allowedNumberTypes,
     inputContext,
+    metadata,
     numberingPlan,
     onChange,
     onCountryChange,
@@ -324,7 +332,7 @@ export function usePhoneInputTransactions(
   const engineBridge = useInputTransactionEngineBridge();
   const countryTransitionLedgerRef = useRef<CountryTransitionLedger>({
     initialized: false,
-    numberingPlan: resolveNumberingPlan(undefined),
+    numberingPlan: resolveNumberingPlan(undefined, { metadata }),
     value: undefined,
   });
   const pendingCountryReconciliationRef = useRef<PendingCountryReconciliation | null>(
@@ -387,8 +395,8 @@ export function usePhoneInputTransactions(
       setUncontrolledCountry(nextSelectedCountry);
     }
     emitCountryTransition(
-      resolvePlanForCountry(previousValue, previousSelectedCountry),
-      resolvePlanForCountry(nextValue, nextSelectedCountry),
+      resolvePlanForCountry(previousValue, previousSelectedCountry, metadata),
+      resolvePlanForCountry(nextValue, nextSelectedCountry, metadata),
       previousValue,
       nextValue,
       'reset',
@@ -401,6 +409,7 @@ export function usePhoneInputTransactions(
     emitCountryTransition,
     initialDefaultCountryRef,
     initialDefaultValueRef,
+    metadata,
     resetValidationVisibility,
     setUncontrolledCountry,
     setUncontrolledValue,
@@ -478,9 +487,15 @@ export function usePhoneInputTransactions(
       const previousNumberingPlan = resolvePlanForCountry(
         previousValue,
         previousSelectedCountry,
+        metadata,
       );
-      const nextNumberingPlan = resolvePlanForCountry(nextValue, nextSelectedCountry);
+      const nextNumberingPlan = resolvePlanForCountry(
+        nextValue,
+        nextSelectedCountry,
+        metadata,
+      );
       const nextValidationOptions: PhoneValidationOptions = {
+        metadata,
         required,
         validationMode,
         ...(nextSelectedCountry == null
@@ -531,6 +546,7 @@ export function usePhoneInputTransactions(
       currentSelectedCountryRef,
       currentValueRef,
       emitCountryTransition,
+      metadata,
       onChange,
       required,
       setUncontrolledValue,
@@ -660,6 +676,7 @@ export function usePhoneInputTransactions(
         inputEvidence,
         selectedCountry,
         pendingNationalInputRef.current,
+        metadata,
       );
       pendingNationalInputRef.current = nationalInput.pending;
       const displayValue = nationalInput.value ?? event.currentTarget.value;
@@ -678,7 +695,7 @@ export function usePhoneInputTransactions(
         nationalInput.value === null ? null : selectedCountry,
       );
     },
-    [currentSelectedCountryRef, currentValueRef, scheduleCommit],
+    [currentSelectedCountryRef, currentValueRef, metadata, scheduleCommit],
   );
 
   const handleInputCapture = useCallback((event: FormEvent<HTMLInputElement>) => {
@@ -827,11 +844,13 @@ export function usePhoneInputTransactions(
   }, [commit]);
   const selectCountry = useCallback(
     (country: CountryCode) => {
-      assertPhoneCountry(country, 'selected');
+      assertPhoneCountry(country, 'selected', metadata);
       pendingNationalInputRef.current = null;
       const previousCountry = currentSelectedCountryRef.current;
       const previousValue = currentValueRef.current;
-      const selection = resolvePhoneCountrySelection(previousValue, country);
+      const selection = resolvePhoneCountrySelection(previousValue, country, {
+        metadata,
+      });
 
       if (selection.status === 'applied') {
         if (!countryControlledRef.current) {
@@ -850,6 +869,7 @@ export function usePhoneInputTransactions(
       countryControlledRef,
       currentSelectedCountryRef,
       currentValueRef,
+      metadata,
       onCountrySelection,
       setUncontrolledCountry,
     ],

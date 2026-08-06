@@ -1,0 +1,126 @@
+name: Metadata freshness
+
+on:
+  schedule:
+    - cron: '17 8 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: metadata-freshness
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.4.0
+        with:
+          version: 11.9.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          cache: pnpm
+          node-version: 24
+      - run: pnpm install --frozen-lockfile
+      - id: versions
+        name: Resolve metadata versions
+        shell: bash
+        run: |
+          set -euo pipefail
+          current=$(node -p "require('./node_modules/libphonenumber-js/package.json').version")
+          latest=$(pnpm view libphonenumber-js version)
+          printf 'current=%s\nlatest=%s\n' "$current" "$latest" >> "$GITHUB_OUTPUT"
+          if [ "$current" = "$latest" ]; then
+            echo 'update_required=false' >> "$GITHUB_OUTPUT"
+          else
+            echo 'update_required=true' >> "$GITHUB_OUTPUT"
+          fi
+      - name: Capture baseline semantics
+        if: steps.versions.outputs.update_required == 'true'
+        run: |
+          pnpm build
+          mkdir -p .metadata-freshness
+          pnpm metadata:snapshot --output=.metadata-freshness/before.json
+      - name: Update libphonenumber metadata authority
+        if: steps.versions.outputs.update_required == 'true'
+        env:
+          LATEST: ${{ steps.versions.outputs.latest }}
+        run: |
+          pnpm add -Dw "libphonenumber-js@$LATEST" --save-exact
+          pnpm --filter @wh1teee/mui-phone-input add "libphonenumber-js@$LATEST" --save-exact
+      - name: Capture candidate semantics
+        if: steps.versions.outputs.update_required == 'true'
+        run: |
+          pnpm build
+          pnpm metadata:snapshot --output=.metadata-freshness/after.json
+          pnpm metadata:semantic-diff \
+            --before=.metadata-freshness/before.json \
+            --after=.metadata-freshness/after.json \
+            --output=.metadata-freshness/semantic-diff.md
+      - name: Prepare review artifacts
+        if: steps.versions.outputs.update_required == 'true'
+        env:
+          CURRENT: ${{ steps.versions.outputs.current }}
+          LATEST: ${{ steps.versions.outputs.latest }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp .metadata-freshness/semantic-diff.md docs/metadata-freshness-latest.md
+          cat > .changeset/metadata-freshness.md <<EOF
+          ---
+          '@wh1teee/mui-phone-input': patch
+          ---
+
+          Refresh libphonenumber-js metadata from $CURRENT to $LATEST after human review of the checked-in golden-corpus semantic diff.
+          EOF
+          cat > .metadata-freshness/pr-body.md <<EOF
+          ## Metadata freshness review
+
+          This automated PR updates \`libphonenumber-js\` from \`$CURRENT\` to \`$LATEST\`.
+
+          **Human review is mandatory. This PR must never be auto-merged.**
+
+          Review \`docs/metadata-freshness-latest.md\` for changes to possibility, strict validity, resolved/possible countries, number type, and examples. A patch changeset is included and must remain present before merge.
+
+          ### Required reviewer checks
+
+          - [ ] Review every semantic change in the golden corpus.
+          - [ ] Confirm the changeset accurately describes accepted behavior changes.
+          - [ ] Confirm stale-metadata risk is acceptable for the release.
+          - [ ] Use the documented rollback procedure if the update is unsafe.
+          EOF
+      - name: Verify candidate locally
+        if: steps.versions.outputs.update_required == 'true'
+        run: |
+          pnpm test:unit -- tests/unit/metadata-presets.test.ts tests/unit/metadata-semantic-diff.test.ts
+          pnpm typecheck
+          pnpm build
+          pnpm verify:metadata-presets
+          pnpm verify:metadata-freshness
+      - name: Open human-reviewed pull request
+        if: steps.versions.outputs.update_required == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          LATEST: ${{ steps.versions.outputs.latest }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          branch="automation/metadata-freshness-$LATEST"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git switch -c "$branch"
+          git add package.json pnpm-lock.yaml packages/mui-phone-input/package.json \
+            .changeset/metadata-freshness.md docs/metadata-freshness-latest.md
+          git commit -m "chore: refresh phone metadata to $LATEST"
+          git push --set-upstream origin "$branch"
+          gh pr create \
+            --base main \
+            --head "$branch" \
+            --title "chore: refresh phone metadata to $LATEST" \
+            --body-file .metadata-freshness/pr-body.md
+

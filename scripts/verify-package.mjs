@@ -32,6 +32,17 @@ for (const requiredFile of [
   'package/dist/index.js',
   'package/dist/index.d.ts',
   'package/dist/index.js.map',
+  'package/dist/metadata/custom.js',
+  'package/dist/metadata/custom.d.ts',
+  'package/dist/metadata/max.js',
+  'package/dist/metadata/max.d.ts',
+  'package/dist/metadata/max.js.map',
+  'package/dist/metadata/min.js',
+  'package/dist/metadata/min.d.ts',
+  'package/dist/metadata/min.js.map',
+  'package/dist/metadata/mobile.js',
+  'package/dist/metadata/mobile.d.ts',
+  'package/dist/metadata/mobile.js.map',
   'package/dist/server.js',
   'package/dist/server.d.ts',
   'package/dist/server.js.map',
@@ -123,6 +134,17 @@ for (const forbiddenServerSource of [
 const packageDist = join(repositoryRoot, 'packages/mui-phone-input/dist');
 const serverBundle = await readFile(join(packageDist, 'server.js'), 'utf8');
 const clientBundle = await readFile(join(packageDist, 'index.js'), 'utf8');
+const serverMetadataChunk = serverBundle.match(
+  /from\s+["']\.\/(phone-metadata-[^"']+\.js)["']/u,
+)?.[1];
+assert.ok(
+  serverMetadataChunk,
+  'Server bundle must import the neutral metadata runtime chunk.',
+);
+const serverMetadataBundle = await readFile(
+  join(packageDist, serverMetadataChunk),
+  'utf8',
+);
 const clientTypes = await readFile(join(packageDist, 'index.d.ts'), 'utf8');
 const serverModule = await import(
   `${pathToFileURL(join(packageDist, 'server.js')).href}?verification=${Date.now()}`
@@ -132,10 +154,9 @@ const clientModule = await import(
 );
 
 for (const forbiddenServerDependency of ['react', '@mui/', '@emotion/', 'react-dom']) {
-  assert.doesNotMatch(
-    serverBundle,
-    new RegExp(forbiddenServerDependency.replace('/', '\\/'), 'u'),
-  );
+  const pattern = new RegExp(forbiddenServerDependency.replace('/', '\\/'), 'u');
+  assert.doesNotMatch(serverBundle, pattern);
+  assert.doesNotMatch(serverMetadataBundle, pattern);
 }
 
 for (const forbiddenServerGlobal of [
@@ -145,13 +166,25 @@ for (const forbiddenServerGlobal of [
   'localStorage',
   'sessionStorage',
 ]) {
-  assert.doesNotMatch(serverBundle, new RegExp(`\\b${forbiddenServerGlobal}\\b`, 'u'));
+  const pattern = new RegExp(`\\b${forbiddenServerGlobal}\\b`, 'u');
+  assert.doesNotMatch(serverBundle, pattern);
+  assert.doesNotMatch(serverMetadataBundle, pattern);
 }
 
 assert.doesNotMatch(serverBundle, /from\s+['"]node:/u);
+assert.doesNotMatch(serverMetadataBundle, /from\s+['"]node:/u);
 assert.doesNotMatch(clientBundle, /from\s+['"]node:/u);
-assert.match(serverBundle, /from\s+["']libphonenumber-js\/max["']/u);
-assert.match(clientBundle, /from\s+["']libphonenumber-js\/max["']/u);
+assert.match(serverBundle, /from\s+["']libphonenumber-js\/core["']/u);
+assert.match(serverMetadataBundle, /from\s+["']libphonenumber-js\/core["']/u);
+assert.match(
+  serverMetadataBundle,
+  /from\s+["']libphonenumber-js\/metadata\.max\.json["']/u,
+);
+assert.match(clientBundle, /from\s+["']libphonenumber-js\/core["']/u);
+assert.match(clientBundle, /from\s+["']libphonenumber-js\/metadata\.max\.json["']/u);
+for (const bundle of [serverBundle, serverMetadataBundle, clientBundle]) {
+  assert.doesNotMatch(bundle, /from\s+["']libphonenumber-js\/max["']/u);
+}
 assert.doesNotMatch(serverBundle, /from\s+["']tabbable["']/u);
 assert.match(clientBundle, /from\s+["']tabbable["']/u);
 assert.match(
@@ -160,7 +193,7 @@ assert.match(
 );
 assert.match(
   clientTypes,
-  /onCountryChange\?: \(country: CountryCode \| null, details: PhoneCountryChangeDetails\) => void;/u,
+  /onCountryChange\?: \(country: CountryCode(?:\$\d+)? \| null, details: PhoneCountryChangeDetails\) => void;/u,
 );
 assert.match(
   clientTypes,
@@ -180,10 +213,12 @@ assert.match(
 );
 assert.match(
   clientTypes,
-  /selectCountry\(country: CountryCode\): PhoneCountrySelectionResult;/u,
+  /selectCountry\(country: CountryCode(?:\$\d+)?\): PhoneCountrySelectionResult;/u,
 );
 assert.equal(typeof clientModule.MuiPhoneInput, 'function');
 assert.equal(serverModule.MuiPhoneInput, undefined);
+assert.equal(typeof clientModule.validatePhoneMetadata, 'function');
+assert.equal(typeof serverModule.validatePhoneMetadata, 'function');
 for (const clientExport of [
   'PhoneInputCountrySelector',
   'PhoneInputInput',

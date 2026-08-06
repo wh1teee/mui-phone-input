@@ -19,6 +19,7 @@ import {
   type PhoneInputCountrySelectorProps,
 } from '../PhoneInputCountrySelector';
 import { PhoneInputProvider } from '../PhoneInputPrimitives';
+import type { PhoneMetadata } from '../phone-metadata';
 import type { PhoneValidationMode } from '../phone-validation';
 import type { PhoneValue } from '../phone-value';
 import {
@@ -72,6 +73,7 @@ export type MuiPhoneInputProps = Omit<
   defaultCountry?: CountryCode | null;
   defaultValue?: PhoneValue;
   disableCountrySelector?: boolean;
+  metadata?: PhoneMetadata;
   onChange?: (value: PhoneValue, details: PhoneInputChangeDetails) => void;
   onCountryChange?: (
     country: CountryCode | null,
@@ -259,6 +261,7 @@ export function MuiPhoneInput(inProps: MuiPhoneInputProps): ReactNode {
     error = false,
     helperText,
     id,
+    metadata,
     onChange,
     onCountryChange,
     onCountrySelection,
@@ -281,6 +284,7 @@ export function MuiPhoneInput(inProps: MuiPhoneInputProps): ReactNode {
     required,
     validationDisplay,
     validationMode,
+    ...(metadata === undefined ? {} : { metadata }),
     ...(Object.hasOwn(props, 'defaultValue') ? { defaultValue } : {}),
     ...(Object.hasOwn(props, 'defaultCountry') ? { defaultCountry } : {}),
     ...(Object.hasOwn(props, 'value') ? { value } : {}),
@@ -384,6 +388,7 @@ export function MuiPhoneInput(inProps: MuiPhoneInputProps): ReactNode {
           classes.countrySelector,
           slotProps?.countrySelector?.className,
         )}
+        {...(metadata === undefined ? {} : { metadata })}
       />
     </InputAdornment>
   );
