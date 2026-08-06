@@ -468,7 +468,7 @@ describe('usePhoneInput and composable primitives', () => {
       .element(page.getByTestId('headless-root'))
       .toHaveAttribute('data-phone-input-status', 'incomplete');
     await userEvent.type(input, '2025550123');
-    await expect.element(input).toHaveValue('+12025550123');
+    await expect.element(input).toHaveValue('+1 202 555 0123');
     await expect
       .element(page.getByTestId('headless-value'))
       .toHaveTextContent('+12025550123');
@@ -481,7 +481,7 @@ describe('usePhoneInput and composable primitives', () => {
     );
     expect(state).toMatchObject({
       controlled: false,
-      displayValue: '+12025550123',
+      displayValue: '+1 202 555 0123',
       numberingPlan: { kind: 'geographic', resolvedCountry: 'US' },
       validation: { accepted: true, status: 'valid' },
       value: '+12025550123',
@@ -809,7 +809,7 @@ describe('usePhoneInput and composable primitives', () => {
     await userEvent.click(
       page.getByRole('button', { name: 'Select conflicting Canada' }),
     );
-    await expect.element(input).toHaveValue('+12025550123');
+    await expect.element(input).toHaveValue('+1 202 555 0123');
     await expect
       .element(page.getByTestId('country-conflict-change-count'))
       .toHaveTextContent('0');
@@ -842,7 +842,7 @@ describe('usePhoneInput and composable primitives', () => {
     );
     await expect
       .element(page.getByTestId('country-applied-input'))
-      .toHaveValue('+4940123');
+      .toHaveValue('+49 40 123');
     await expect
       .element(page.getByTestId('country-applied-change-count'))
       .toHaveTextContent('1');
@@ -871,12 +871,12 @@ describe('usePhoneInput and composable primitives', () => {
       'country-impossible-country-change-count',
     );
 
-    await expect.element(input).toHaveValue('+24740123');
+    await expect.element(input).toHaveValue('+247 40123');
     await expect.element(countryChangeCount).toHaveTextContent('1');
     await userEvent.click(
       page.getByRole('button', { name: 'Select impossible Azerbaijan' }),
     );
-    await expect.element(input).toHaveValue('+24740123');
+    await expect.element(input).toHaveValue('+247 40123');
     await expect
       .element(page.getByTestId('country-impossible-change-count'))
       .toHaveTextContent('0');

@@ -17,6 +17,11 @@ import { usePhoneInputPropGetters } from './internal/use-phone-input-prop-getter
 import { usePhoneInputTransactions } from './internal/use-phone-input-transactions';
 import { usePhoneInputValidationVisibility } from './internal/use-phone-input-validation-visibility';
 import type { NumberingPlanResolution } from './numbering-plan';
+import type {
+  DisplayMask,
+  FormatStrategy,
+  PhoneInputDisplayMode,
+} from './phone-formatting';
 import type { PhoneValidationMode, PhoneValidationResult } from './phone-validation';
 import { DEFAULT_PHONE_METADATA, type PhoneMetadata } from './phone-metadata';
 import type { PhoneValue } from './phone-value';
@@ -69,8 +74,12 @@ export interface UsePhoneInputParameters {
   defaultCountry?: CountryCode | null;
   defaultValue?: PhoneValue;
   disabled?: boolean;
+  displayMask?: DisplayMask;
+  displayMode?: PhoneInputDisplayMode;
   error?: boolean;
+  formatStrategy?: FormatStrategy;
   id?: string;
+  locale?: string;
   metadata?: PhoneMetadata;
   onChange?: (value: PhoneValue, details: PhoneInputChangeDetails) => void;
   onCountryChange?: (
@@ -188,8 +197,12 @@ function usePhoneInputInternal(
     defaultCountry,
     defaultValue,
     disabled = false,
+    displayMask,
+    displayMode = 'international',
     error = false,
+    formatStrategy,
     id,
+    locale = 'en',
     metadata = DEFAULT_PHONE_METADATA,
     onChange,
     onCountryChange,
@@ -220,12 +233,16 @@ function usePhoneInputInternal(
   const derivedState = usePhoneInputDerivedState({
     currentSelectedCountry: ownership.currentSelectedCountry,
     currentValue: ownership.currentValue,
+    displayMode,
     error,
+    locale,
     metadata,
     required,
     validationMode,
     validationVisible,
     ...(allowedNumberTypes === undefined ? {} : { allowedNumberTypes }),
+    ...(displayMask === undefined ? {} : { displayMask }),
+    ...(formatStrategy === undefined ? {} : { formatStrategy }),
     ...(validationMessage === undefined ? {} : { validationMessage }),
   });
   const {
@@ -244,6 +261,7 @@ function usePhoneInputInternal(
     inputContext: derivedState.inputContext,
     metadata,
     numberingPlan: derivedState.numberingPlan,
+    presentation: derivedState.presentation,
     ownership,
     required,
     resetValidationVisibility,
@@ -267,7 +285,7 @@ function usePhoneInputInternal(
       controlled: ownership.controlledRef.current,
       countryControlled: ownership.countryControlledRef.current,
       disabled,
-      displayValue: ownership.currentValue ?? '',
+      displayValue: derivedState.presentation.displayValue,
       empty: ownership.currentValue === undefined,
       error: derivedState.resolvedError,
       inputId,
@@ -285,6 +303,7 @@ function usePhoneInputInternal(
     }),
     [
       derivedState.numberingPlan,
+      derivedState.presentation,
       derivedState.resolvedError,
       derivedState.resolvedValidationMessage,
       derivedState.validation,
@@ -304,7 +323,7 @@ function usePhoneInputInternal(
   const { getInputProps, getRootProps, getValidationMessageProps } =
     usePhoneInputPropGetters({
       controlled: ownership.controlledRef.current,
-      currentValue: ownership.currentValue,
+      displayValue: derivedState.presentation.displayValue,
       disabled,
       error: state.error,
       handleBlur,

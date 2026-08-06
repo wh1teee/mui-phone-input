@@ -1,18 +1,27 @@
 'use client';
 
+import type { MaskitoOptions } from '@maskito/core';
 import { useMaskito } from '@maskito/react';
 import { useMemo, useRef } from 'react';
 
-import { normalizePhoneInputText } from '../phone-value';
-import { E164_MASKITO_OPTIONS } from './e164-maskito';
 import {
   type InputEngineContext,
   type InputTransactionEngineBridge,
   SELECTED_INPUT_TRANSACTION_ENGINE,
 } from './input-transaction-engine';
 
-export function useInputTransactionEngineBridge(): InputTransactionEngineBridge {
-  const maskitoRef = useMaskito({ options: E164_MASKITO_OPTIONS });
+const PRESENTATION_MASKITO_OPTIONS: MaskitoOptions = {
+  // Phone syntax, formatting, and canonicalization stay in the package authority.
+  // Maskito owns the DOM transaction lifecycle without rewriting input before
+  // React classifies paste/history/composition/autofill semantics.
+  mask: /^[\s\S]*$/u,
+};
+
+export function useInputTransactionEngineBridge(
+  context: InputEngineContext,
+): InputTransactionEngineBridge {
+  void context;
+  const maskitoRef = useMaskito({ options: PRESENTATION_MASKITO_OPTIONS });
   const maskitoRefRef = useRef(maskitoRef);
   maskitoRefRef.current = maskitoRef;
 
@@ -36,14 +45,8 @@ export function useInputTransactionEngineBridge(): InputTransactionEngineBridge 
           }
         };
       },
-      reconcileExternal(snapshot, context) {
-        contextRef.current = context;
-
-        if (normalizePhoneInputText(snapshot.displayValue) !== snapshot.displayValue) {
-          throw new TypeError(
-            'Input Transaction reconciliation requires a canonical display snapshot.',
-          );
-        }
+      reconcileExternal(snapshot, nextContext) {
+        contextRef.current = nextContext;
         if (
           snapshot.selection[0] < 0 ||
           snapshot.selection[1] < snapshot.selection[0] ||
@@ -56,16 +59,15 @@ export function useInputTransactionEngineBridge(): InputTransactionEngineBridge 
 
         const input = inputRef.current;
         if (
-          input &&
-          input.matches(':focus') &&
+          input?.matches(':focus') &&
           (input.selectionStart !== snapshot.selection[0] ||
             input.selectionEnd !== snapshot.selection[1])
         ) {
           input.setSelectionRange(snapshot.selection[0], snapshot.selection[1]);
         }
       },
-      updateContext(context) {
-        contextRef.current = context;
+      updateContext(nextContext) {
+        contextRef.current = nextContext;
       },
     }),
     [],

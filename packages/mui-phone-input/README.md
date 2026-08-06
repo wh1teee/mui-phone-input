@@ -96,6 +96,58 @@ preserved while the user edits.
 
 Do not switch between controlled and uncontrolled ownership after mount.
 
+## Formatting modes and Display Masks
+
+The canonical `PhoneValue` remains international `+digits`; formatting changes
+only the displayed input text. Automatic formatting is derived from
+`libphonenumber-js` metadata.
+
+```tsx
+<MuiPhoneInput
+  displayMode="national"
+  selectedCountry="US"
+  value="+12025550123"
+/>
+// Displays: (202) 555-0123
+
+<MuiPhoneInput
+  displayMode="international-fixed-calling-code"
+  selectedCountry="US"
+/>
+// Displays a protected +1 calling-code prefix while the canonical value is empty.
+```
+
+Use a declarative Display Mask when a product needs presentation-only
+punctuation. `#` is a digit slot; masks cannot inject literal digits or letters.
+If a mask cannot fit the authority-formatted digits, the component falls back
+to automatic formatting instead of truncating the Phone Value.
+
+```tsx
+<MuiPhoneInput
+  displayMask={{ pattern: '+ # (###) ###-####' }}
+  value="+12025550123"
+/>
+```
+
+Advanced presentation can use a typed `FormatStrategy`. A strategy receives
+the automatic authority result and must return both the displayed text and the
+logical-caret positions. The runtime rejects strategies that add, remove, or
+reorder phone digits, return an invalid caret map, or are combined with a
+Display Mask.
+
+```ts
+import type { FormatStrategy } from '@wh1teee/mui-phone-input';
+
+const dotted: FormatStrategy = ({ automatic }) => ({
+  displayValue: automatic.displayValue.replaceAll(' ', '.'),
+  logicalCaretPositions: automatic.logicalCaretPositions,
+});
+```
+
+`formatPhoneInputPresentation(value, options)` exposes the same pure client
+presentation contract, including logical-to-display caret positions. It is
+intentionally separate from the server-safe validation helpers.
+
 ## Country Selector
 
 The built-in selector searches localized and English country names, ISO codes,

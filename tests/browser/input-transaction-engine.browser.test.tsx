@@ -18,6 +18,7 @@ import type {
 import { useInputTransactionEngineBridge } from '../../packages/mui-phone-input/src/internal/use-input-transaction-engine';
 
 const INPUT_CONTEXT = {
+  displayMode: 'international',
   fixedCallingCode: false,
   formatStrategyKey: 'international',
   locale: 'en',
@@ -32,7 +33,7 @@ type InputTransactionEngineHarnessHandle = Readonly<{
 
 const InputTransactionEngineHarness = forwardRef<InputTransactionEngineHarnessHandle>(
   function InputTransactionEngineHarness(_props, ref) {
-    const bridge = useInputTransactionEngineBridge();
+    const bridge = useInputTransactionEngineBridge(INPUT_CONTEXT);
     const inputRef = useRef<HTMLInputElement>(null);
 
     useImperativeHandle(

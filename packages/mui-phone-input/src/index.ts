@@ -63,6 +63,17 @@ export {
   usePhoneInputContext,
 } from './PhoneInputPrimitives';
 export {
+  type DisplayMask,
+  type FormatStrategy,
+  type FormatStrategyContext,
+  type FormatStrategyResult,
+  formatPhoneInputPresentation,
+  type LogicalCaretMapping,
+  type PhoneInputDisplayMode,
+  type PhoneInputFormatOptions,
+  type PhoneInputPresentation,
+} from './phone-formatting';
+export {
   type BuiltInPhoneValidationMode,
   formatPhoneValueForDisplay,
   type PhoneValidationMode,

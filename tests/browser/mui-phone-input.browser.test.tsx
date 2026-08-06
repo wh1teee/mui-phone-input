@@ -1,6 +1,7 @@
 import { createTheme, ThemeProvider } from '@mui/material/styles';
 import axe from 'axe-core';
 import type { CountryCode, PhoneNumberType } from 'libphonenumber-js/max';
+import rawMaxMetadata from 'libphonenumber-js/metadata.max.json';
 import {
   type ChangeEvent,
   type ClipboardEvent,
@@ -16,21 +17,26 @@ import { render } from 'vitest-browser-react';
 
 import {
   MuiPhoneInput,
+  formatPhoneInputPresentation,
+  type PhoneInputDisplayMode,
   type MuiPhoneInputOwnerState,
   type PhoneInputChangeDetails,
   type PhoneValidationMode,
   type PhoneValue,
+  validatePhoneMetadata,
 } from '../../packages/mui-phone-input/src';
 
 function ControlledHarness({
   acceptChanges = true,
   initialValue,
+  metadata,
   onCountryChange,
   onCountrySelection,
   selectedCountry,
 }: Readonly<{
   acceptChanges?: boolean;
   initialValue?: PhoneValue;
+  metadata?: ComponentProps<typeof MuiPhoneInput>['metadata'];
   onCountryChange?: ComponentProps<typeof MuiPhoneInput>['onCountryChange'];
   onCountrySelection?: ComponentProps<typeof MuiPhoneInput>['onCountrySelection'];
   selectedCountry?: CountryCode | null;
@@ -54,6 +60,7 @@ function ControlledHarness({
         ref={inputRef}
         slotProps={{ htmlInput: { 'data-testid': 'controlled-phone' } }}
         value={value}
+        {...(metadata === undefined ? {} : { metadata })}
         {...(onCountryChange === undefined ? {} : { onCountryChange })}
         {...(onCountrySelection === undefined ? {} : { onCountrySelection })}
         {...(selectedCountry === undefined ? {} : { selectedCountry })}
@@ -132,6 +139,56 @@ function UncontrolledNationalHarness() {
       <output data-testid="uncontrolled-national-details">
         {details ? JSON.stringify(details) : ''}
       </output>
+    </>
+  );
+}
+
+function FormattingModeHarness() {
+  const [displayMode, setDisplayMode] = useState<PhoneInputDisplayMode>('international');
+  const [locale, setLocale] = useState('en');
+  const [masked, setMasked] = useState(false);
+  const [selectedCountry, setSelectedCountry] = useState<CountryCode>('US');
+
+  return (
+    <>
+      <MuiPhoneInput
+        displayMode={displayMode}
+        locale={locale}
+        selectedCountry={selectedCountry}
+        slotProps={{ htmlInput: { 'data-testid': 'formatting-phone' } }}
+        value="+12025550123"
+        {...(masked ? { displayMask: { pattern: '###.###.####' } } : {})}
+      />
+      <button onClick={() => setDisplayMode('national')} type="button">
+        Use national display
+      </button>
+      <button onClick={() => setMasked(true)} type="button">
+        Use display mask
+      </button>
+      <button onClick={() => setLocale('fr')} type="button">
+        Use French locale
+      </button>
+      <button onClick={() => setSelectedCountry('CA')} type="button">
+        Use Canada country
+      </button>
+    </>
+  );
+}
+
+function DisplayModeEditingHarness({
+  displayMode,
+}: Readonly<{ displayMode: PhoneInputDisplayMode }>) {
+  const [latestValue, setLatestValue] = useState<PhoneValue>();
+
+  return (
+    <>
+      <MuiPhoneInput
+        defaultCountry="US"
+        displayMode={displayMode}
+        onChange={setLatestValue}
+        slotProps={{ htmlInput: { 'data-testid': 'display-mode-editing-phone' } }}
+      />
+      <output data-testid="display-mode-editing-value">{latestValue ?? ''}</output>
     </>
   );
 }
@@ -713,7 +770,7 @@ describe('MuiPhoneInput tracer', () => {
 
     await userEvent.type(input, '2');
 
-    await expect.element(input).toHaveValue('+12');
+    await expect.element(input).toHaveValue('+1 2');
     expect(onChange).toHaveBeenCalledTimes(1);
     expect(onChange).toHaveBeenLastCalledWith(
       '+12',
@@ -758,7 +815,7 @@ describe('MuiPhoneInput tracer', () => {
       }),
     );
 
-    await expect.element(locator).toHaveValue('+123');
+    await expect.element(locator).toHaveValue('+1 23');
     await expect
       .element(page.getByTestId('controlled-value'))
       .toHaveTextContent('+123');
@@ -909,7 +966,7 @@ describe('MuiPhoneInput tracer', () => {
   test('discards a rejected composition caret before a later external update', async () => {
     render(<ControlledHarness acceptChanges={false} initialValue="+37512" />);
     const locator = page.getByTestId('controlled-phone');
-    await expect.element(locator).toHaveValue('+37512');
+    await expect.element(locator).toHaveValue('+375 12');
     const input = locator.element();
 
     if (!(input instanceof HTMLInputElement)) {
@@ -953,7 +1010,7 @@ describe('MuiPhoneInput tracer', () => {
 
     await userEvent.type(input, '37529');
 
-    await expect.element(input).toHaveValue('+37529');
+    await expect.element(input).toHaveValue('+375 29');
     await expect
       .element(page.getByTestId('controlled-value'))
       .toHaveTextContent('+37529');
@@ -1073,7 +1130,9 @@ describe('MuiPhoneInput tracer', () => {
       setNativeInputValue(input, nextValue);
       input.dispatchEvent(createEvent());
 
-      await expect.element(locator).toHaveValue(nextValue);
+      await expect
+        .element(locator)
+        .toHaveValue(formatPhoneInputPresentation(nextValue as PhoneValue).displayValue);
       await expect
         .element(page.getByTestId('controlled-callback-count'))
         .toHaveTextContent('1');
@@ -1099,7 +1158,7 @@ describe('MuiPhoneInput tracer', () => {
       </StrictMode>,
     );
     const locator = page.getByTestId('controlled-phone');
-    await expect.element(locator).toHaveValue('+14155552671');
+    await expect.element(locator).toHaveValue('+1 415 555 2671');
     const input = locator.element();
 
     if (!(input instanceof HTMLInputElement)) {
@@ -1108,7 +1167,7 @@ describe('MuiPhoneInput tracer', () => {
 
     replaceCompleteInputValue(input, '2025550123');
 
-    await expect.element(locator).toHaveValue('+12025550123');
+    await expect.element(locator).toHaveValue('+1 202 555 0123');
     await expect
       .element(page.getByTestId('controlled-value'))
       .toHaveTextContent('+12025550123');
@@ -1140,7 +1199,7 @@ describe('MuiPhoneInput tracer', () => {
       />,
     );
     const locator = page.getByTestId('controlled-phone');
-    await expect.element(locator).toHaveValue('+358412345678');
+    await expect.element(locator).toHaveValue('+358 41 2345678');
     const input = locator.element();
 
     if (!(input instanceof HTMLInputElement)) {
@@ -1149,7 +1208,7 @@ describe('MuiPhoneInput tracer', () => {
 
     replaceCompleteInputValue(input, '412345678');
 
-    await expect.element(locator).toHaveValue('+358412345678');
+    await expect.element(locator).toHaveValue('+358 41 2345678');
     await expect
       .element(page.getByTestId('controlled-callback-count'))
       .toHaveTextContent('1');
@@ -1205,7 +1264,9 @@ describe('MuiPhoneInput tracer', () => {
         />,
       );
       const locator = page.getByTestId('controlled-phone');
-      await expect.element(locator).toHaveValue(initialValue);
+      await expect
+        .element(locator)
+        .toHaveValue(formatPhoneInputPresentation(initialValue).displayValue);
       const input = locator.element();
 
       if (!(input instanceof HTMLInputElement)) {
@@ -1214,7 +1275,9 @@ describe('MuiPhoneInput tracer', () => {
 
       replaceCompleteInputValue(input, national);
 
-      await expect.element(locator).toHaveValue(expected);
+      await expect
+        .element(locator)
+        .toHaveValue(formatPhoneInputPresentation(expected).displayValue);
       await expect
         .element(page.getByTestId('controlled-callback-count'))
         .toHaveTextContent('1');
@@ -1244,7 +1307,7 @@ describe('MuiPhoneInput tracer', () => {
   test('uses captured replacement evidence when the input event omits metadata', async () => {
     render(<ControlledHarness initialValue="+14155552671" selectedCountry="US" />);
     const locator = page.getByTestId('controlled-phone');
-    await expect.element(locator).toHaveValue('+14155552671');
+    await expect.element(locator).toHaveValue('+1 415 555 2671');
     const input = locator.element();
 
     if (!(input instanceof HTMLInputElement)) {
@@ -1257,7 +1320,7 @@ describe('MuiPhoneInput tracer', () => {
       () => new Event('input', { bubbles: true }),
     );
 
-    await expect.element(locator).toHaveValue('+12025550123');
+    await expect.element(locator).toHaveValue('+1 202 555 0123');
     await expect
       .element(page.getByTestId('controlled-callback-count'))
       .toHaveTextContent('1');
@@ -1279,7 +1342,7 @@ describe('MuiPhoneInput tracer', () => {
 
     replaceCompleteInputValue(input, '2025550123');
 
-    await expect.element(locator).toHaveValue('+12025550123');
+    await expect.element(locator).toHaveValue('+1 202 555 0123');
     const details = JSON.parse(
       page.getByTestId('controlled-details').element().textContent ?? '',
     ) as PhoneInputChangeDetails;
@@ -1302,7 +1365,7 @@ describe('MuiPhoneInput tracer', () => {
       />,
     );
     const locator = page.getByTestId('uncontrolled-autofill-phone');
-    await expect.element(locator).toHaveValue('+14155552671');
+    await expect.element(locator).toHaveValue('+1 415 555 2671');
     const input = locator.element();
 
     if (!(input instanceof HTMLInputElement)) {
@@ -1311,7 +1374,7 @@ describe('MuiPhoneInput tracer', () => {
 
     replaceCompleteInputValue(input, '2025550123');
 
-    await expect.element(locator).toHaveValue('+12025550123');
+    await expect.element(locator).toHaveValue('+1 202 555 0123');
     expect(onChange).toHaveBeenCalledTimes(1);
     expect(onChange.mock.calls[0]?.[0]).toBe('+12025550123');
     expect(onChange.mock.calls[0]?.[1].reason).toBe('replacement');
@@ -1334,7 +1397,9 @@ describe('MuiPhoneInput tracer', () => {
 
       await userEvent.type(locator, nationalInput);
 
-      await expect.element(locator).toHaveValue(expected);
+      await expect
+        .element(locator)
+        .toHaveValue(formatPhoneInputPresentation(expected).displayValue);
       await expect
         .element(page.getByTestId('controlled-value'))
         .toHaveTextContent(expected);
@@ -1360,7 +1425,9 @@ describe('MuiPhoneInput tracer', () => {
 
       await pasteText('controlled-phone', nationalInput);
 
-      await expect.element(page.getByTestId('controlled-phone')).toHaveValue(expected);
+      await expect
+        .element(page.getByTestId('controlled-phone'))
+        .toHaveValue(formatPhoneInputPresentation(expected).displayValue);
       const details = JSON.parse(
         page.getByTestId('controlled-details').element().textContent ?? '',
       ) as PhoneInputChangeDetails;
@@ -1377,7 +1444,7 @@ describe('MuiPhoneInput tracer', () => {
 
     await userEvent.type(locator, '0291234567');
 
-    await expect.element(locator).toHaveValue('+375291234567');
+    await expect.element(locator).toHaveValue('+375 29 123 45 67');
     await expect
       .element(page.getByTestId('uncontrolled-national-value'))
       .toHaveTextContent('+375291234567');
@@ -1395,7 +1462,7 @@ describe('MuiPhoneInput tracer', () => {
 
     await expect
       .element(page.getByTestId('uncontrolled-national-phone'))
-      .toHaveValue('+375291234567');
+      .toHaveValue('+375 29 123 45 67');
     const details = JSON.parse(
       page.getByTestId('uncontrolled-national-details').element().textContent ?? '',
     ) as PhoneInputChangeDetails;
@@ -1429,7 +1496,7 @@ describe('MuiPhoneInput tracer', () => {
 
     await userEvent.type(locator, '+441481123456');
 
-    await expect.element(locator).toHaveValue('+441481123456');
+    await expect.element(locator).toHaveValue('+44 1481 123456');
     const details = JSON.parse(
       page.getByTestId('controlled-details').element().textContent ?? '',
     ) as PhoneInputChangeDetails;
@@ -1446,7 +1513,7 @@ describe('MuiPhoneInput tracer', () => {
       />,
     );
     const locator = page.getByTestId('controlled-phone');
-    await expect.element(locator).toHaveValue('+14155552671');
+    await expect.element(locator).toHaveValue('+1 415 555 2671');
     const input = locator.element();
 
     if (!(input instanceof HTMLInputElement)) {
@@ -1455,7 +1522,7 @@ describe('MuiPhoneInput tracer', () => {
 
     replaceCompleteInputValue(input, '2025550123');
 
-    await expect.element(locator).toHaveValue('+14155552671');
+    await expect.element(locator).toHaveValue('+1 415 555 2671');
     await expect
       .element(page.getByTestId('controlled-callback-count'))
       .toHaveTextContent('1');
@@ -1472,7 +1539,7 @@ describe('MuiPhoneInput tracer', () => {
 
     await userEvent.type(locator, '202');
 
-    await expect.element(locator).toHaveValue('+1202');
+    await expect.element(locator).toHaveValue('+1 202');
     await expect
       .element(page.getByTestId('controlled-callback-count'))
       .toHaveTextContent('3');
@@ -1481,7 +1548,7 @@ describe('MuiPhoneInput tracer', () => {
   test('does not reinterpret a selected range as complete national autofill', async () => {
     render(<ControlledHarness initialValue="+14155552671" selectedCountry="US" />);
     const locator = page.getByTestId('controlled-phone');
-    await expect.element(locator).toHaveValue('+14155552671');
+    await expect.element(locator).toHaveValue('+1 415 555 2671');
     const input = locator.element();
 
     if (!(input instanceof HTMLInputElement)) {
@@ -1500,7 +1567,7 @@ describe('MuiPhoneInput tracer', () => {
   test('does not reclassify a composing complete-field replacement as national autofill', async () => {
     render(<ControlledHarness initialValue="+14155552671" selectedCountry="US" />);
     const locator = page.getByTestId('controlled-phone');
-    await expect.element(locator).toHaveValue('+14155552671');
+    await expect.element(locator).toHaveValue('+1 415 555 2671');
     const input = locator.element();
 
     if (!(input instanceof HTMLInputElement)) {
@@ -1540,7 +1607,7 @@ describe('MuiPhoneInput tracer', () => {
       }),
     );
 
-    await expect.element(locator).toHaveValue('+2025550123');
+    await expect.element(locator).toHaveValue('+20 2 5550123');
     await expect
       .element(page.getByTestId('controlled-callback-count'))
       .toHaveTextContent('1');
@@ -1555,7 +1622,7 @@ describe('MuiPhoneInput tracer', () => {
   test('does not infer a country for national replacement without a selection', async () => {
     render(<ControlledHarness initialValue="+14155552671" selectedCountry={null} />);
     const locator = page.getByTestId('controlled-phone');
-    await expect.element(locator).toHaveValue('+14155552671');
+    await expect.element(locator).toHaveValue('+1 415 555 2671');
     const input = locator.element();
 
     if (!(input instanceof HTMLInputElement)) {
@@ -1572,7 +1639,7 @@ describe('MuiPhoneInput tracer', () => {
   test('preserves an already international authoritative replacement', async () => {
     render(<ControlledHarness initialValue="+14155552671" selectedCountry="US" />);
     const locator = page.getByTestId('controlled-phone');
-    await expect.element(locator).toHaveValue('+14155552671');
+    await expect.element(locator).toHaveValue('+1 415 555 2671');
     const input = locator.element();
 
     if (!(input instanceof HTMLInputElement)) {
@@ -1588,7 +1655,7 @@ describe('MuiPhoneInput tracer', () => {
       }),
     );
 
-    await expect.element(locator).toHaveValue('+442079460958');
+    await expect.element(locator).toHaveValue('+44 20 7946 0958');
     const details = JSON.parse(
       page.getByTestId('controlled-details').element().textContent ?? '',
     ) as PhoneInputChangeDetails;
@@ -1599,7 +1666,7 @@ describe('MuiPhoneInput tracer', () => {
   test('does not fabricate a controlled number from an invalid national replacement', async () => {
     render(<ControlledHarness initialValue="+14155552671" selectedCountry="US" />);
     const locator = page.getByTestId('controlled-phone');
-    await expect.element(locator).toHaveValue('+14155552671');
+    await expect.element(locator).toHaveValue('+1 415 555 2671');
     const input = locator.element();
 
     if (!(input instanceof HTMLInputElement)) {
@@ -1609,11 +1676,45 @@ describe('MuiPhoneInput tracer', () => {
     replaceCompleteInputValue(input, '123');
     await Promise.resolve();
 
-    await expect.element(locator).toHaveValue('+14155552671');
+    await expect.element(locator).toHaveValue('+1 415 555 2671');
     await expect
       .element(page.getByTestId('controlled-callback-count'))
       .toHaveTextContent('0');
     await expect.element(locator).toHaveAttribute('data-phone-input-country', 'US');
+  });
+
+  test('uses caller metadata when classifying a complete national replacement', async () => {
+    const customMetadata = structuredClone(rawMaxMetadata);
+    const usMetadata = customMetadata.countries.US;
+    if (!usMetadata) {
+      throw new Error('Expected US metadata fixture.');
+    }
+    usMetadata[2] = '\\d{3}';
+    usMetadata[3] = [3];
+    const metadata = validatePhoneMetadata(customMetadata);
+    render(
+      <ControlledHarness
+        initialValue="+14155552671"
+        metadata={metadata}
+        selectedCountry="US"
+      />,
+    );
+    const locator = page.getByTestId('controlled-phone');
+    await expect.element(locator).toBeInTheDocument();
+    const input = locator.element();
+
+    if (!(input instanceof HTMLInputElement)) {
+      throw new Error('Expected the native phone input.');
+    }
+
+    replaceCompleteInputValue(input, '123');
+
+    await expect
+      .element(page.getByTestId('controlled-value'))
+      .toHaveTextContent('+1123');
+    await expect
+      .element(page.getByTestId('controlled-callback-count'))
+      .toHaveTextContent('1');
   });
 
   test('does not fabricate an uncontrolled number from an invalid national replacement', async () => {
@@ -1627,7 +1728,7 @@ describe('MuiPhoneInput tracer', () => {
       />,
     );
     const locator = page.getByTestId('uncontrolled-invalid-phone');
-    await expect.element(locator).toHaveValue('+14155552671');
+    await expect.element(locator).toHaveValue('+1 415 555 2671');
     const input = locator.element();
 
     if (!(input instanceof HTMLInputElement)) {
@@ -1637,7 +1738,7 @@ describe('MuiPhoneInput tracer', () => {
     replaceCompleteInputValue(input, '123');
     await Promise.resolve();
 
-    await expect.element(locator).toHaveValue('+14155552671');
+    await expect.element(locator).toHaveValue('+1 415 555 2671');
     expect(onChange).not.toHaveBeenCalled();
     await expect.element(locator).toHaveAttribute('data-phone-input-country', 'US');
   });
@@ -1653,7 +1754,7 @@ describe('MuiPhoneInput tracer', () => {
       />,
     );
     const locator = page.getByTestId('unmount-autofill-phone');
-    await expect.element(locator).toHaveValue('+14155552671');
+    await expect.element(locator).toHaveValue('+1 415 555 2671');
     const input = locator.element();
 
     if (!(input instanceof HTMLInputElement)) {
@@ -1708,9 +1809,9 @@ describe('MuiPhoneInput tracer', () => {
     render(<UncontrolledHarness />);
     const input = page.getByTestId('uncontrolled-phone');
 
-    await expect.element(input).toHaveValue('+1202');
+    await expect.element(input).toHaveValue('+1 202');
     await userEvent.type(input, '5');
-    await expect.element(input).toHaveValue('+12025');
+    await expect.element(input).toHaveValue('+1 202 5');
     await expect
       .element(page.getByTestId('uncontrolled-value'))
       .toHaveTextContent('+12025');
@@ -1722,7 +1823,7 @@ describe('MuiPhoneInput tracer', () => {
       page.getByRole('button', { name: 'Reset uncontrolled form' }),
     );
 
-    await expect.element(input).toHaveValue('+1202');
+    await expect.element(input).toHaveValue('+1 202');
     await expect.element(input).not.toHaveAttribute('aria-invalid', 'true');
     expect(document.body.textContent).not.toContain('Complete the phone number.');
     await expect
@@ -1737,7 +1838,7 @@ describe('MuiPhoneInput tracer', () => {
 
     await expect
       .element(page.getByTestId('controlled-phone'))
-      .toHaveValue('+375291234567');
+      .toHaveValue('+375 29 123 45 67');
     await expect
       .element(page.getByTestId('controlled-callback-count'))
       .toHaveTextContent('1');
@@ -1836,7 +1937,7 @@ describe('MuiPhoneInput tracer', () => {
 
     await expect.element(input).toHaveValue('+1');
     await userEvent.click(page.getByRole('button', { name: 'Set external US number' }));
-    await expect.element(input).toHaveValue('+12025550123');
+    await expect.element(input).toHaveValue('+1 202 555 0123');
     await expect
       .element(page.getByTestId('external-numbering-callback-count'))
       .toHaveTextContent('0');
@@ -1873,10 +1974,10 @@ describe('MuiPhoneInput tracer', () => {
     render(<OwnershipSwitchHarness />);
     const input = page.getByTestId('ownership-phone');
 
-    await expect.element(input).toHaveValue('+1202');
+    await expect.element(input).toHaveValue('+1 202');
     await userEvent.click(page.getByRole('button', { name: 'Switch ownership' }));
 
-    await expect.element(input).toHaveValue('+1202');
+    await expect.element(input).toHaveValue('+1 202');
     expect(consoleError).toHaveBeenCalledTimes(1);
     expect(consoleError).toHaveBeenCalledWith(
       'MuiPhoneInput cannot switch between controlled and uncontrolled ownership after mount.',
@@ -2024,7 +2125,7 @@ describe('MuiPhoneInput tracer', () => {
       </form>,
     );
     const locator = page.getByTestId('unmount-reset-phone');
-    await expect.element(locator).toHaveValue('+12025550123');
+    await expect.element(locator).toHaveValue('+1 202 555 0123');
     const input = locator.element();
 
     if (!(input instanceof HTMLInputElement) || !input.form) {
@@ -2308,7 +2409,7 @@ describe('MuiPhoneInput tracer', () => {
     expect(validationMessageElement).toHaveAttribute('aria-live', 'polite');
     expect(inputRef.current).toBe(input.element());
     await userEvent.type(input, '375291234567');
-    await expect.element(input).toHaveValue('+375291234567');
+    await expect.element(input).toHaveValue('+375 29 123 45 67');
     await expect.element(input).toHaveAttribute('aria-invalid', 'false');
     await expect.element(input).toHaveAttribute('data-phone-input-status', 'valid');
     await expect.element(input).toHaveAttribute('data-phone-input-accepted', 'true');
@@ -2404,7 +2505,7 @@ describe('MuiPhoneInput tracer', () => {
     expect(helperRef).toBe(helper.element());
 
     await userEvent.type(input, '2');
-    await expect.element(input).toHaveValue('+12');
+    await expect.element(input).toHaveValue('+1 2');
     expect(consumerInputCount).toBe(1);
 
     const accessibility = await axe.run(document.body, {
@@ -2484,7 +2585,7 @@ describe('MuiPhoneInput tracer', () => {
     const input = page.getByTestId('native-change-input');
     await userEvent.type(input, '2');
 
-    await expect.element(input).toHaveValue('+12');
+    await expect.element(input).toHaveValue('+1 2');
     expect(nativeInputCapture).toHaveBeenCalledTimes(1);
     expect(nativeInput).toHaveBeenCalledTimes(1);
     expect(nativeChange).toHaveBeenCalledTimes(1);
@@ -2523,8 +2624,8 @@ describe('MuiPhoneInput tracer', () => {
     await expect.element(input).toHaveAttribute('data-prepared-value', '+1');
     await userEvent.type(input, '2');
 
-    await expect.element(input).toHaveValue('+12');
-    await expect.element(input).toHaveAttribute('data-prepared-value', '+12');
+    await expect.element(input).toHaveValue('+1 2');
+    await expect.element(input).toHaveAttribute('data-prepared-value', '+1 2');
     expect(slotPropsFactory).toHaveBeenCalled();
     expect(nativeInput).toHaveBeenCalledTimes(1);
     expect(nativeChange).toHaveBeenCalledTimes(1);
@@ -2560,7 +2661,7 @@ describe('MuiPhoneInput tracer', () => {
     await pasteText('native-paste-input', '+375291234567');
     input.element().blur();
 
-    await expect.element(input).toHaveValue('+375291234567');
+    await expect.element(input).toHaveValue('+375 29 123 45 67');
     expect(nativePaste).toHaveBeenCalledTimes(1);
     expect(nativeInputCapture).toHaveBeenCalledTimes(1);
     expect(nativeInput).toHaveBeenCalledTimes(1);
@@ -2610,7 +2711,7 @@ describe('MuiPhoneInput tracer', () => {
       beforeStart: 4,
     });
 
-    await expect.element(input).toHaveValue('+37512');
+    await expect.element(input).toHaveValue('+375 12');
     expect(nativeCompositionStart).toHaveBeenCalledTimes(1);
     expect(nativeInputCapture).toHaveBeenCalledTimes(1);
     expect(nativeInput).toHaveBeenCalledTimes(1);
@@ -2843,5 +2944,69 @@ describe('MuiPhoneInput tracer', () => {
       .toHaveTextContent('"accepted":false');
     await expect.element(input).not.toHaveAttribute('aria-invalid', 'true');
     expect(document.body.textContent).not.toContain('Complete the phone number.');
+  });
+
+  test('changes display mode and mask without changing the controlled Phone Value', async () => {
+    render(<FormattingModeHarness />);
+    const input = page.getByTestId('formatting-phone');
+
+    await expect.element(input).toHaveValue('+1 202 555 0123');
+    const inputElement = input.element() as HTMLInputElement;
+    inputElement.focus();
+    inputElement.setSelectionRange(6, 6);
+    const nationalButton = page.getByText('Use national display').element();
+    if (!(nationalButton instanceof HTMLButtonElement)) {
+      throw new Error('Expected the national display button.');
+    }
+    nationalButton.click();
+    await expect.element(input).toHaveValue('(202) 555-0123');
+    expect(inputElement.selectionStart).toBe(4);
+    const maskButton = page.getByText('Use display mask').element();
+    if (!(maskButton instanceof HTMLButtonElement)) {
+      throw new Error('Expected the display mask button.');
+    }
+    maskButton.click();
+    await expect.element(input).toHaveValue('202.555.0123');
+    expect(inputElement.selectionStart).toBe(3);
+    await userEvent.click(page.getByText('Use French locale'));
+    await expect.element(input).toHaveValue('202.555.0123');
+    expect(inputElement.selectionStart).toBe(3);
+    await userEvent.click(page.getByText('Use Canada country'));
+    await expect.element(input).toHaveValue('202.555.0123');
+    expect(inputElement.selectionStart).toBe(3);
+  });
+
+  test('edits national presentation while committing the canonical international Phone Value', async () => {
+    render(<DisplayModeEditingHarness displayMode="national" />);
+    const input = page.getByTestId('display-mode-editing-phone');
+
+    await userEvent.type(input, '2025550123');
+    await expect.element(input).toHaveValue('(202) 555-0123');
+    await expect
+      .element(page.getByTestId('display-mode-editing-value'))
+      .toHaveTextContent('+12025550123');
+  });
+
+  test('locks the fixed calling-code prefix while committing only user-entered national digits', async () => {
+    render(
+      <DisplayModeEditingHarness displayMode="international-fixed-calling-code" />,
+    );
+    const input = page.getByTestId('display-mode-editing-phone');
+
+    await expect.element(input).toHaveValue('+1 ');
+    await userEvent.type(input, '2025550123');
+    await expect.element(input).toHaveValue('+1 202 555 0123');
+    await expect
+      .element(page.getByTestId('display-mode-editing-value'))
+      .toHaveTextContent('+12025550123');
+
+    const element = input.element() as HTMLInputElement;
+    element.setSelectionRange(2, 2);
+    await userEvent.keyboard('{Backspace}');
+    await expect.element(input).toHaveValue('+1 202 555 0123');
+    await expect
+      .element(page.getByTestId('display-mode-editing-value'))
+      .toHaveTextContent('+12025550123');
+    expect(element.selectionStart).toBe(2);
   });
 });
