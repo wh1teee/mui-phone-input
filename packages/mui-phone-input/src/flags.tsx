@@ -55,13 +55,13 @@ export function PhoneCountryFlag({
   ...spanProps
 }: PhoneCountryFlagProps): ReactNode {
   const [failedSource, setFailedSource] = useState<string | undefined>();
-  let content = provider
-    ? provider({ country, placement })
-    : mode === 'local'
-      ? <span className={`flag:${country}`} />
-      : mode === 'emoji'
-        ? countryCodeToEmoji(country)
-        : null;
+  let content = provider ? (
+    provider({ country, placement })
+  ) : mode === 'local' ? (
+    <span className={`flag:${country}`} />
+  ) : mode === 'emoji' ? (
+    countryCodeToEmoji(country)
+  ) : null;
 
   if (!provider && mode === 'external') {
     const externalSource = external?.resolveUrl(country);
@@ -75,13 +75,14 @@ export function PhoneCountryFlag({
           referrerPolicy={external?.referrerPolicy}
           src={externalSource}
         />
-      ) : (external?.fallback ?? countryCodeToEmoji(country));
+      ) : (
+        (external?.fallback ?? countryCodeToEmoji(country))
+      );
   }
 
   return content == null ? null : (
-      <span {...spanProps} aria-hidden="true">
-        {content}
-      </span>
-    );
+    <span {...spanProps} aria-hidden="true">
+      {content}
+    </span>
+  );
 }
-

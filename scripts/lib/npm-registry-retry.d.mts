@@ -13,6 +13,19 @@ export interface ReadRegistryJsonWithRetryOptions {
   sleep?: (milliseconds: number) => Promise<void>;
 }
 
+export interface RunRegistryCommandWithRetryOptions {
+  attempts?: number;
+  description: string;
+  execute: () => RegistryCommandResult;
+  initialDelayMs?: number;
+  maxDelayMs?: number;
+  sleep?: (milliseconds: number) => Promise<void>;
+}
+
+export function runRegistryCommandWithRetry(
+  options: RunRegistryCommandWithRetryOptions,
+): Promise<RegistryCommandResult>;
+
 export function readRegistryJsonWithRetry<T = unknown>(
   options: ReadRegistryJsonWithRetryOptions,
 ): Promise<T>;

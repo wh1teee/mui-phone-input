@@ -33,8 +33,6 @@ jobs:
           registry-url: https://registry.npmjs.org
       - run: pnpm install --frozen-lockfile
       - run: pnpm exec playwright install --with-deps chromium
-      - run: pnpm ci:pr
-      - run: SUPPORT_MATRIX=minimum pnpm verify:consumers
       - id: candidate
         run: |
           candidate_dir="$RUNNER_TEMP/mui-phone-input-release"
@@ -45,6 +43,9 @@ jobs:
           echo "directory=$candidate_dir" >> "$GITHUB_OUTPUT"
           echo "tarball=$tarball" >> "$GITHUB_OUTPUT"
           echo "version=$version" >> "$GITHUB_OUTPUT"
+      - run: pnpm ci:pr
+        env:
+          PACKAGE_ARTIFACT: ${{ steps.candidate.outputs.tarball }}
       - run: >-
           node scripts/verify-release-candidate.mjs
           --directory="${{ steps.candidate.outputs.directory }}"

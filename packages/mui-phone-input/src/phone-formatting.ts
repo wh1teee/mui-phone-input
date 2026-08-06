@@ -208,7 +208,9 @@ function applyFormatStrategy(
     typeof result.displayValue !== 'string' ||
     !Array.isArray(result.logicalCaretPositions)
   ) {
-    throw new TypeError('Invalid Format Strategy: return displayValue and logical caret positions.');
+    throw new TypeError(
+      'Invalid Format Strategy: return displayValue and logical caret positions.',
+    );
   }
   const expectedDigits = automatic.displayValue.replace(/\D/gu, '');
   const actualDigits = result.displayValue.replace(/\D/gu, '');

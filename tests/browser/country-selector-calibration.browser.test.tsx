@@ -30,11 +30,7 @@ function browserName(): 'chromium' | 'firefox' | 'webkit' {
 
 function createRenderRecorder() {
   const durations: number[] = [];
-  const onRender: ProfilerCallback = (
-    _id,
-    _phase,
-    actualDuration,
-  ) => {
+  const onRender: ProfilerCallback = (_id, _phase, actualDuration) => {
     durations.push(actualDuration);
   };
 
@@ -132,9 +128,7 @@ function visibleActiveOption(): boolean {
 function horizontalOverflowGeometry(listbox: HTMLElement) {
   return {
     clientWidth: listbox.clientWidth,
-    overflowingOptions: [
-      ...listbox.querySelectorAll<HTMLElement>('[role="option"]'),
-    ]
+    overflowingOptions: [...listbox.querySelectorAll<HTMLElement>('[role="option"]')]
       .map((option) => ({
         clientWidth: option.clientWidth,
         country: option.dataset.country,
@@ -210,7 +204,10 @@ describe('country selector calibration', () => {
       ...document.querySelectorAll<HTMLElement>('[role="group"]'),
     ].find((group) => {
       const labelId = group.getAttribute('aria-labelledby');
-      return labelId && document.getElementById(labelId)?.textContent === 'Preferred countries';
+      return (
+        labelId &&
+        document.getElementById(labelId)?.textContent === 'Preferred countries'
+      );
     });
     const preferredOptionCount =
       preferredGroup?.querySelectorAll('[role="option"]').length ?? 0;
@@ -283,28 +280,30 @@ describe('country selector calibration', () => {
     await nextPaint();
     const mobileOpen = mobileRecorder.take();
     expect(page.getByRole('dialog', { name: 'Select country' })).toBeVisible();
-    expect(document.querySelectorAll('[role="option"]').length).toBe(authorityOptionCount);
+    expect(document.querySelectorAll('[role="option"]').length).toBe(
+      authorityOptionCount,
+    );
     await mobile.unmount();
 
     const measurements = {
-        authorityOptionCount,
-        boundedOptionCount,
-        browser: browserName(),
-        desktop: {
-          boundedOpen,
-          filtered,
-          fullOpen,
-          fullOptionCount,
-          keyboardSettleMs,
-          localFlagCount,
-          nodesAddedByFullOpen: nodesAfterFullOpen - nodesBeforeFullOpen,
-          preferredOptionCount,
-          reflowGeometry: { after: afterReflowGeometry, before: beforeReflowGeometry },
-          reflowSettleMs,
-          zoomOverflow: overflowGeometry,
-        },
-        mobile: { boundedOpen: mobileBoundedOpen, fullOpen: mobileOpen },
-      };
+      authorityOptionCount,
+      boundedOptionCount,
+      browser: browserName(),
+      desktop: {
+        boundedOpen,
+        filtered,
+        fullOpen,
+        fullOptionCount,
+        keyboardSettleMs,
+        localFlagCount,
+        nodesAddedByFullOpen: nodesAfterFullOpen - nodesBeforeFullOpen,
+        preferredOptionCount,
+        reflowGeometry: { after: afterReflowGeometry, before: beforeReflowGeometry },
+        reflowSettleMs,
+        zoomOverflow: overflowGeometry,
+      },
+      mobile: { boundedOpen: mobileBoundedOpen, fullOpen: mobileOpen },
+    };
     console.info(`COUNTRY_SELECTOR_CALIBRATION ${JSON.stringify(measurements)}`);
   });
 });

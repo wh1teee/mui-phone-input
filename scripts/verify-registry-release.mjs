@@ -7,7 +7,10 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { assertEarlyCanaryDistTags } from './lib/npm-dist-tags.mjs';
-import { readRegistryJsonWithRetry } from './lib/npm-registry-retry.mjs';
+import {
+  readRegistryJsonWithRetry,
+  runRegistryCommandWithRetry,
+} from './lib/npm-registry-retry.mjs';
 
 const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const directoryArgument = process.argv.find((argument) =>
@@ -89,8 +92,13 @@ try {
       2,
     )}\n`,
   );
-  run('npm', ['pack', specifier, '--pack-destination', packDirectory], {
-    cwd: temporaryRoot,
+  await runRegistryCommandWithRetry({
+    description: `npm pack ${specifier}`,
+    execute: () =>
+      execute('npm', ['pack', specifier, '--pack-destination', packDirectory], {
+        cwd: temporaryRoot,
+        timeout: 30_000,
+      }),
   });
   const downloadedTarballs = (await readdir(packDirectory)).filter((file) =>
     file.endsWith('.tgz'),

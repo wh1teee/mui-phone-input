@@ -53,6 +53,14 @@ const packageArtifactConcurrencyVerifier = await readFile(
   'scripts/verify-package-artifact-concurrency.mjs',
   'utf8',
 );
+const packageArtifactSuite = await readFile(
+  'scripts/verify-package-artifact-suite.mjs',
+  'utf8',
+);
+const packageArtifactIndependenceVerifier = await readFile(
+  'scripts/verify-package-artifact-independence.mjs',
+  'utf8',
+);
 const productionDependenciesVerifier = await readFile(
   'scripts/verify-production-dependencies.mjs',
   'utf8',
@@ -98,7 +106,7 @@ assert.match(pnpmWorkspace, /^minimumReleaseAge:\s*1440$/mu);
 assert.match(pnpmWorkspace, /^minimumReleaseAgeStrict:\s*false$/mu);
 assert.match(packedConsumersVerifier, /['"]minimumReleaseAge:\s*1440['"]/u);
 assert.match(packedConsumersVerifier, /['"]minimumReleaseAgeStrict:\s*false['"]/u);
-assert.match(packedConsumersVerifier, /expectedCommittedValue/u);
+assert.match(packedConsumersVerifier, /const composableDisplayValues = \[/u);
 assert.match(packedConsumersVerifier, /expectedCallbackCount:\s*index \+ 1/u);
 assert.doesNotMatch(
   packedConsumersVerifier,
@@ -115,7 +123,7 @@ assert.match(npmIdentityVerifier, /authenticated-identity-mismatch/u);
 assert.match(npmIdentityVerifier, /packageScope !== repositoryOwner/u);
 assert.match(packageManifest.version, /^0\.1\.0-next\.\d+$/u);
 assert.equal(packageManifest.type, 'module');
-assert.equal(packageManifest.sideEffects, false);
+assert.deepEqual(packageManifest.sideEffects, ['./dist/flags.css']);
 assert.equal(packageManifest.engines, undefined);
 assert.equal(
   packageManifest.bugs.url,
@@ -164,16 +172,16 @@ for (const exportPath of [
   './metadata/min',
   './metadata/mobile',
   './metadata/custom',
+  './flags',
+  './flags.css',
+  './locales/be',
+  './locales/en',
+  './locales/ru',
   './package.json',
 ]) {
   assert.ok(packageManifest.exports[exportPath], `Missing export ${exportPath}`);
 }
-for (const futureExportPath of [
-  './react-hook-form',
-  './zod',
-  './locales/en',
-  './flags/local',
-]) {
+for (const futureExportPath of ['./react-hook-form', './zod', './flags/local']) {
   assert.equal(
     packageManifest.exports[futureExportPath],
     undefined,
@@ -187,11 +195,14 @@ assert.deepEqual(consumerExportContract.implemented, [
   './metadata/min',
   './metadata/mobile',
   './metadata/custom',
+  './flags',
+  './locales/be',
+  './locales/en',
+  './locales/ru',
   './package.json',
 ]);
+assert.deepEqual(consumerExportContract.implementedAssets, ['./flags.css']);
 assert.deepEqual(Object.keys(consumerExportContract.intentionallyAbsent).sort(), [
-  './flags/local',
-  './locales/en',
   './react-hook-form',
   './zod',
 ]);
@@ -293,7 +304,6 @@ assert.match(dependabotConfig, /directory:\s*\//u);
 assert.match(dependabotConfig, /interval:\s*weekly/u);
 assert.match(rootPackage.scripts['ci:pr'], /verify:production-dependencies/u);
 assert.match(rootPackage.scripts['ci:forward'], /verify:production-dependencies/u);
-assert.match(rootPackage.scripts['ci:pr'], /verify:published-runtime/u);
 assert.match(rootPackage.scripts['verify:published-runtime'], /expected-major=24/u);
 assert.match(rootPackage.scripts['ci:pr'], /verify:package-concurrency/u);
 assert.match(packageArtifactSource, /mkdtemp\(join\(artifactsDirectory, ['"]run-/u);
@@ -314,11 +324,40 @@ assert.match(packageExportVerifier, /data-only/u);
 assert.match(ciWorkflow, /node-version:\s*22\.23\.1/u);
 assert.match(ciWorkflow, /verify-published-runtime\.mjs\s+--expected-major=22/u);
 assert.match(ciWorkflow, /published-runtime-artifact\.outputs\.tarball/u);
+assert.match(
+  ciWorkflow,
+  /PACKAGE_ARTIFACT:\s*\$\{\{ steps\.published-runtime-artifact\.outputs\.tarball \}\}/u,
+);
+assert.equal(
+  rootPackage.scripts['verify:package-artifact-suite'],
+  'node scripts/verify-package-artifact-suite.mjs',
+);
+assert.match(rootPackage.scripts['ci:pr'], /verify:package-artifact-suite/u);
+assert.match(packageArtifactSuite, /process\.env\.PACKAGE_ARTIFACT/u);
+for (const verifier of [
+  'verify-package.mjs',
+  'verify-package-artifact-independence.mjs',
+  'verify-published-runtime.mjs',
+  'verify-tracer-package.mjs',
+  'verify-packed-consumers.mjs',
+]) {
+  assert.match(packageArtifactSuite, new RegExp(verifier.replace('.', '\\.'), 'u'));
+}
+assert.match(packageArtifactSuite, /--artifact=\$\{tarball\}/u);
+assert.match(
+  packageArtifactIndependenceVerifier,
+  /divergent local dist must never be inspected/u,
+);
+assert.match(packageArtifactIndependenceVerifier, /mutated\.tgz/u);
 assert.match(releaseWorkflow, /tags:\s*\n\s*- v0\.1\.0-next\.\*/u);
 assert.match(releaseWorkflow, /runs-on:\s*ubuntu-latest/u);
 assert.match(releaseWorkflow, /id-token:\s*write/u);
 assert.match(releaseWorkflow, /npm@11\.16\.0/u);
 assert.match(releaseWorkflow, /create-release-candidate\.mjs/u);
+assert.match(
+  releaseWorkflow,
+  /PACKAGE_ARTIFACT:\s*\$\{\{ steps\.candidate\.outputs\.tarball \}\}/u,
+);
 assert.match(releaseWorkflow, /verify-release-candidate\.mjs/u);
 assert.match(releaseWorkflow, /verify-package\.mjs[\s\S]*--artifact=/u);
 assert.match(releaseWorkflow, /verify-tracer-package\.mjs[\s\S]*--artifact=/u);

@@ -298,7 +298,7 @@ const SSR_STATE_EXPECTATIONS = {
     plan: 'geographic',
     placeholder: 'Explicit draft phone',
     status: 'incomplete',
-    value: '+12015550',
+    value: '+1 201 555 0',
   },
   geographic: {
     accepted: 'true',
@@ -306,7 +306,7 @@ const SSR_STATE_EXPECTATIONS = {
     plan: 'geographic',
     placeholder: 'Geographic phone',
     status: 'valid',
-    value: '+375291234567',
+    value: '+375 29 123 45 67',
   },
   'non-geographic': {
     accepted: 'true',
@@ -314,7 +314,7 @@ const SSR_STATE_EXPECTATIONS = {
     plan: 'non-geographic',
     placeholder: 'Non-geographic phone',
     status: 'valid',
-    value: '+80012345678',
+    value: '+800 1234 5678',
   },
   unresolved: {
     accepted: 'false',
@@ -330,7 +330,7 @@ const SSR_STATE_EXPECTATIONS = {
     plan: 'geographic',
     placeholder: 'Territory phone',
     status: 'valid',
-    value: '+358412345678',
+    value: '+358 41 2345678',
   },
 };
 
@@ -501,7 +501,7 @@ async function verifyPackedBrowser(destination, consumer) {
         await boundaryInput.waitFor({ state: 'visible' });
         assert.equal(await boundaryInput.inputValue(), '');
         await boundaryInput.pressSequentially('375291234567');
-        assert.equal(await boundaryInput.inputValue(), '+375291234567');
+        assert.equal(await boundaryInput.inputValue(), '+375 29 123 45 67');
         assert.deepEqual(boundaryPageErrors, []);
         assert.deepEqual(boundaryConsoleErrors, []);
       } finally {
@@ -617,7 +617,7 @@ async function verifyPackedBrowser(destination, consumer) {
       initialControlledCountryEvents[0]?.reason !== 'external-value' ||
       initialControlledCountryEvents[0]?.value !== '+375291234567' ||
       (await page.getByTestId('controlled-initial-country-input').inputValue()) !==
-        '+375291234567'
+        '+375 29 123 45 67'
     ) {
       throw new Error(
         `Packed controlled initial country transition is invalid: ${JSON.stringify(initialControlledCountryEvents)}`,
@@ -663,7 +663,7 @@ async function verifyPackedBrowser(destination, consumer) {
     const ownedConsumerInputCount = await page
       .getByTestId('packed-owned-consumer-input-count')
       .textContent();
-    if (ownedValueAfterInput !== '+12' || ownedConsumerInputCount !== '1') {
+    if (ownedValueAfterInput !== '+1 2' || ownedConsumerInputCount !== '1') {
       throw new Error(
         `Packed safe native input handler composition is incoherent: ${JSON.stringify({
           consumerInputCount: ownedConsumerInputCount,
@@ -712,7 +712,7 @@ async function verifyPackedBrowser(destination, consumer) {
     await input.pressSequentially('37529');
     await input.waitFor({ state: 'visible' });
 
-    if ((await input.inputValue()) !== '+37529') {
+    if ((await input.inputValue()) !== '+375 29') {
       throw new Error(`Unexpected packed input value: ${await input.inputValue()}`);
     }
     if ((await page.getByTestId('phone-value').textContent()) !== '+37529') {
@@ -952,7 +952,7 @@ async function verifyPackedBrowser(destination, consumer) {
     await page.getByRole('button', { name: 'Load impossible country source' }).click();
     await page.waitForFunction(
       () =>
-        document.querySelector('[data-testid="phone-input"]')?.value === '+24740123',
+        document.querySelector('[data-testid="phone-input"]')?.value === '+247 40123',
     );
     const callbackCountBeforeConflict = await page
       .getByTestId('callback-count')
@@ -980,7 +980,7 @@ async function verifyPackedBrowser(destination, consumer) {
     );
 
     if (
-      (await input.inputValue()) !== '+24740123' ||
+      (await input.inputValue()) !== '+247 40123' ||
       (await page.getByTestId('phone-value').textContent()) !== '+24740123' ||
       (await page.getByTestId('callback-count').textContent()) !==
         callbackCountBeforeConflict ||
@@ -1034,9 +1034,20 @@ async function verifyPackedBrowser(destination, consumer) {
       element.setSelectionRange(element.value.length, element.value.length);
     });
     const composableDigits = '2025550123';
+    const composableDisplayValues = [
+      '+1 2',
+      '+1 20',
+      '+1 202',
+      '+1 202 5',
+      '+1 202 55',
+      '+1 202 555',
+      '+1 202 555 0',
+      '+1 202 555 01',
+      '+1 202 555 012',
+      '+1 202 555 0123',
+    ];
     for (const [index, digit] of [...composableDigits].entries()) {
       await composableInput.press(digit);
-      const expectedCommittedValue = `+1${composableDigits.slice(0, index + 1)}`;
       await page.waitForFunction(
         ({ expectedCallbackCount, expectedValue }) => {
           const input = document.querySelector('[data-testid="composable-input"]');
@@ -1049,11 +1060,11 @@ async function verifyPackedBrowser(destination, consumer) {
         },
         {
           expectedCallbackCount: index + 1,
-          expectedValue: expectedCommittedValue,
+          expectedValue: composableDisplayValues[index],
         },
       );
     }
-    if ((await composableInput.inputValue()) !== '+12025550123') {
+    if ((await composableInput.inputValue()) !== '+1 202 555 0123') {
       throw new Error(
         `Packed composable input did not commit the Phone Value: ${JSON.stringify({
           callbackCount: await page

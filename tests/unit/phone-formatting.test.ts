@@ -48,7 +48,8 @@ describe('phone formatting', () => {
     });
 
     expect(
-      formatPhoneInputPresentation('+1202555', { formatStrategy: strategy }).displayValue,
+      formatPhoneInputPresentation('+1202555', { formatStrategy: strategy })
+        .displayValue,
     ).toBe('+1.202.555');
     expect(() =>
       formatPhoneInputPresentation('+1202555', {

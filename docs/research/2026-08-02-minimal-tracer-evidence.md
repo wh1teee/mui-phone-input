@@ -126,12 +126,15 @@ externalizes declared peers.
 
 Current exact-artifact measurements are:
 
-- main closure: 27,411 bytes gzip;
+- main closure: 27,710 bytes gzip;
 - server entry: 5,284 bytes gzip;
-- packed tarball: 175,845 bytes.
+- packed tarball: 177,128 bytes.
 
-CI rebuilds the artifact and requires exact byte/hash equality with the
-committed measurement.
+CI creates one immutable package artifact, reuses that same tarball across the
+package/runtime/tracer/consumer gates, and requires exact byte/hash equality
+with the committed measurement. The tracer build pins Rolldown's working
+directory to the extracted package root so temporary extraction names cannot
+enter generated module-region comments.
 
 ## Release boundary
 
