@@ -1,5 +1,6 @@
 import { spawnSync } from 'node:child_process';
 import { readdir } from 'node:fs/promises';
+import { createServer } from 'node:net';
 import { dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -23,6 +24,29 @@ async function collectBrowserTests(directory) {
   return files;
 }
 
+function reserveAvailablePort() {
+  return new Promise((resolvePort, reject) => {
+    const server = createServer();
+    server.unref();
+    server.once('error', reject);
+    server.listen(0, '127.0.0.1', () => {
+      const address = server.address();
+      if (!address || typeof address === 'string') {
+        server.close();
+        reject(new Error('Failed to reserve a TCP port for Browser Mode tests.'));
+        return;
+      }
+      server.close((error) => {
+        if (error) {
+          reject(error);
+          return;
+        }
+        resolvePort(address.port);
+      });
+    });
+  });
+}
+
 const requestedFiles = process.argv.slice(2);
 const files = (
   requestedFiles.length > 0
@@ -34,36 +58,39 @@ if (files.length === 0) {
   throw new Error('No Browser Mode test files were found.');
 }
 
-for (const [index, file] of files.entries()) {
+const displayPaths = files.map((file) => {
   const displayPath = relative(repositoryRoot, file);
   if (!file.startsWith(`${browserTestsRoot}/`) || !file.endsWith('.browser.test.tsx')) {
     throw new Error(`Browser test is outside the supported suite: ${displayPath}`);
   }
+  return displayPath;
+});
 
-  console.log(`[browser-file ${index + 1}/${files.length}] ${displayPath}`);
-  const result = spawnSync(
-    process.execPath,
-    [
-      vitestEntry,
-      'run',
-      '--config',
-      'vitest.browser.config.ts',
-      '--reporter=dot',
-      displayPath,
-    ],
-    {
-      cwd: repositoryRoot,
-      env: process.env,
-      stdio: 'inherit',
-    },
-  );
+console.log(`[browser-suite] ${files.length} serialized files`);
+const browserPort = await reserveAvailablePort();
+const vitestFilters = requestedFiles.length > 0 ? displayPaths : [];
+const result = spawnSync(
+  process.execPath,
+  [
+    vitestEntry,
+    'run',
+    '--config',
+    'vitest.browser.config.ts',
+    '--reporter=dot',
+    ...vitestFilters,
+  ],
+  {
+    cwd: repositoryRoot,
+    env: { ...process.env, VITEST_BROWSER_PORT: String(browserPort) },
+    stdio: 'inherit',
+  },
+);
 
-  if (result.error) {
-    throw result.error;
-  }
-  if (result.status !== 0) {
-    process.exit(result.status ?? 1);
-  }
+if (result.error) {
+  throw result.error;
+}
+if (result.status !== 0) {
+  process.exit(result.status ?? 1);
 }
 
 console.log(`Browser Mode passed: ${files.length} serialized files.`);

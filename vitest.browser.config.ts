@@ -18,6 +18,10 @@ function resolveBrowser(value: string | undefined): BrowserName {
 }
 
 const browser = resolveBrowser(process.env.VITEST_BROWSER);
+const browserPort = Number(process.env.VITEST_BROWSER_PORT ?? 63_315);
+if (!Number.isInteger(browserPort) || browserPort < 1 || browserPort > 65_535) {
+  throw new Error('VITEST_BROWSER_PORT must be set to an available TCP port.');
+}
 
 export default defineConfig({
   optimizeDeps: {
@@ -64,6 +68,11 @@ export default defineConfig({
   },
   test: {
     browser: {
+      api: {
+        host: '127.0.0.1',
+        port: browserPort,
+        strictPort: true,
+      },
       enabled: true,
       // Focus-sensitive files share document.activeElement inside one browser instance.
       fileParallelism: false,
