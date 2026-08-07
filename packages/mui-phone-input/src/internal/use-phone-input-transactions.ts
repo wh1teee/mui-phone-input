@@ -2,7 +2,6 @@
 
 import {
   getCountryCallingCode,
-  parseDigits,
   parseIncompletePhoneNumber,
 } from 'libphonenumber-js/core';
 import type { CountryCode, PhoneNumberType } from 'libphonenumber-js/max';
@@ -42,7 +41,7 @@ import {
   validatePhoneValue,
 } from '../phone-validation';
 import type { PhoneMetadata } from '../phone-metadata';
-import type { PhoneValue } from '../phone-value';
+import { normalizePhoneInputDigit, type PhoneValue } from '../phone-value';
 import type {
   PhoneCountryChangeReason,
   PhoneExtensionChangeReason,
@@ -50,7 +49,11 @@ import type {
   PhoneInputNumberingPlanState,
   UsePhoneInputParameters,
 } from '../usePhoneInput';
-import type { InputEngineContext } from './input-transaction-engine';
+import {
+  type InputEngineContext,
+  type InputTransactionSource,
+  resolveInputTransactionSource,
+} from './input-transaction-engine';
 import { useInputTransactionEngineBridge } from './use-input-transaction-engine';
 import {
   assertPhoneCountry,
@@ -68,7 +71,6 @@ type PendingBeforeInput = Readonly<{
   data: string | null;
   displayValue: string;
   inputType: string;
-  isComposing: boolean;
   selection: readonly [start: number, end: number];
 }>;
 
@@ -85,6 +87,13 @@ type NationalInputResolution = Readonly<{
 type PendingCompositionSelection = Readonly<{
   canonicalValue: PhoneValue;
   digitOffset: number;
+}>;
+
+type PendingCompositionCommit = Readonly<{
+  data: string;
+  displayValue: string;
+  selection: PendingCompositionSelection | null;
+  source: Extract<InputTransactionSource, 'composition' | 'insert'>;
 }>;
 
 type PendingLogicalSelection = readonly [start: number, end: number];
@@ -140,7 +149,21 @@ export interface PhoneInputTransactions {
 }
 
 function countDigitsBeforeOffset(value: string, offset: number): number {
-  return parseDigits(value.slice(0, offset)).length;
+  let count = 0;
+  for (const character of value.slice(0, offset)) {
+    if (normalizePhoneInputDigit(character) !== undefined) {
+      count += 1;
+    }
+  }
+  return count;
+}
+
+function normalizeObservedDisplayValue(value: string): string {
+  let normalized = '';
+  for (const character of value) {
+    normalized += normalizePhoneInputDigit(character) ?? character;
+  }
+  return parseIncompletePhoneNumber(normalized);
 }
 
 function resolveObservedLogicalPosition(
@@ -169,7 +192,10 @@ function resolveObservedLogicalPosition(
   }
 
   const nationalDigits = canonicalDigits.slice(callingCode.length);
-  const rawDigits = parseDigits(observedDisplayValue);
+  let rawDigits = '';
+  for (const character of observedDisplayValue) {
+    rawDigits += normalizePhoneInputDigit(character) ?? '';
+  }
   const syntheticPrefixDigits = rawDigits.endsWith(nationalDigits)
     ? Math.max(0, rawDigits.length - nationalDigits.length)
     : 0;
@@ -186,7 +212,7 @@ function findOffsetAfterDigits(value: string, digitOffset: number): number {
   let offset = 0;
   for (const character of value) {
     offset += character.length;
-    if (parseDigits(character)) {
+    if (normalizePhoneInputDigit(character) !== undefined) {
       digits += 1;
       if (digits === digitOffset) {
         return offset;
@@ -216,11 +242,12 @@ function resolveInputEventMetadata(event: Event): Readonly<{
 function resolveCompleteNationalInput(
   displayValue: string,
   pendingBeforeInput: PendingBeforeInput | null,
+  source: InputTransactionSource,
   selectedCountry: CountryCode | null,
   pendingNationalInput: PendingNationalInput | null,
   metadata: PhoneMetadata,
 ): NationalInputResolution {
-  if (!pendingBeforeInput || !selectedCountry || pendingBeforeInput.isComposing) {
+  if (!pendingBeforeInput || !selectedCountry) {
     return { pending: null, value: null };
   }
 
@@ -229,14 +256,11 @@ function resolveCompleteNationalInput(
     pendingBeforeInput.selection[1] === pendingBeforeInput.displayValue.length;
   let incomingValue: string | null = null;
 
-  if (
-    pendingBeforeInput.inputType === 'insertReplacementText' ||
-    pendingBeforeInput.inputType === 'insertFromPaste'
-  ) {
+  if (source === 'autofill' || source === 'paste') {
     if (fullFieldEdit) {
       incomingValue = pendingBeforeInput.data ?? displayValue;
     }
-  } else if (pendingBeforeInput.inputType === 'insertText') {
+  } else if (source === 'insert') {
     const appendsAtEnd =
       pendingBeforeInput.selection[0] === pendingBeforeInput.selection[1] &&
       pendingBeforeInput.selection[1] === pendingBeforeInput.displayValue.length;
@@ -250,7 +274,7 @@ function resolveCompleteNationalInput(
       }
     }
   } else if (
-    pendingBeforeInput.inputType.startsWith('delete') &&
+    (source === 'delete-backward' || source === 'delete-forward') &&
     pendingNationalInput?.displayValue === pendingBeforeInput.displayValue
   ) {
     incomingValue = displayValue.startsWith('+') ? displayValue.slice(1) : displayValue;
@@ -270,7 +294,7 @@ function resolveCompleteNationalInput(
   });
   const value =
     parsedValue !== null &&
-    pendingBeforeInput.inputType === 'insertText' &&
+    source === 'insert' &&
     !validatePhoneValue(parsedValue, {
       metadata,
       selectedCountry,
@@ -291,16 +315,14 @@ function resolveCompleteNationalInput(
 
 function rejectsInvalidNationalReplacement(
   pendingBeforeInput: PendingBeforeInput | null,
+  source: InputTransactionSource,
   selectedCountry: CountryCode | null,
   metadata: PhoneMetadata,
 ): boolean {
-  if (!pendingBeforeInput || !selectedCountry || pendingBeforeInput.isComposing) {
+  if (!pendingBeforeInput || !selectedCountry) {
     return false;
   }
-  if (
-    pendingBeforeInput.inputType !== 'insertReplacementText' &&
-    pendingBeforeInput.inputType !== 'insertFromPaste'
-  ) {
+  if (source !== 'autofill' && source !== 'paste') {
     return false;
   }
 
@@ -319,29 +341,28 @@ function rejectsInvalidNationalReplacement(
 }
 
 function resolveChangeReason(
-  inputType: string,
+  source: InputTransactionSource,
   value: PhoneValue,
-  pasted: boolean,
 ): PhoneInputChangeReason {
-  if (value === undefined) {
-    return 'clear';
+  switch (source) {
+    case 'paste':
+      return 'paste';
+    case 'history-undo':
+      return 'history-undo';
+    case 'history-redo':
+      return 'history-redo';
+    case 'delete-backward':
+    case 'delete-forward':
+      return value === undefined ? 'clear' : 'delete';
+    case 'autofill':
+    case 'predictive-replacement':
+    case 'range-replacement':
+      return 'replacement';
+    case 'composition':
+      return 'composition';
+    case 'insert':
+      return value === undefined ? 'clear' : 'input';
   }
-  if (pasted || inputType === 'insertFromPaste') {
-    return 'paste';
-  }
-  if (inputType === 'historyUndo') {
-    return 'history-undo';
-  }
-  if (inputType === 'historyRedo') {
-    return 'history-redo';
-  }
-  if (inputType === 'insertReplacementText') {
-    return 'replacement';
-  }
-  if (inputType.startsWith('delete')) {
-    return 'delete';
-  }
-  return 'input';
 }
 
 function countryReasonFromInputReason(
@@ -398,6 +419,7 @@ export function usePhoneInputTransactions(
   const {
     controlledRef,
     countryControlledRef,
+    currentExtension,
     currentExtensionRef,
     currentSelectedCountryRef,
     currentValue,
@@ -412,12 +434,15 @@ export function usePhoneInputTransactions(
   } = ownership;
   const extensionInputElementRef = useRef<HTMLInputElement | null>(null);
   const inputElementRef = useRef<HTMLInputElement | null>(null);
+  const renderedExtensionRef = useRef(currentExtension);
+  renderedExtensionRef.current = currentExtension;
   const beforeInputCleanupRef = useRef<(() => void) | null>(null);
   const engineCleanupRef = useRef<(() => void) | null>(null);
   const formCleanupRef = useRef<(() => void) | null>(null);
   const composingRef = useRef(false);
   const compositionTextRef = useRef<string | null>(null);
   const compositionDigitOffsetRef = useRef<number | null>(null);
+  const pendingCompositionCommitRef = useRef<PendingCompositionCommit | null>(null);
   const capturedInputRef = useRef<CapturedInput | null>(null);
   const pendingBeforeInputRef = useRef<PendingBeforeInput | null>(null);
   const pendingNationalInputRef = useRef<PendingNationalInput | null>(null);
@@ -499,8 +524,8 @@ export function usePhoneInputTransactions(
         return;
       }
 
-      currentExtensionRef.current = nextExtension;
       if (!extensionControlledRef.current) {
+        currentExtensionRef.current = nextExtension;
         setUncontrolledExtension(nextExtension);
       }
       onExtensionChange?.(nextExtension, {
@@ -516,6 +541,29 @@ export function usePhoneInputTransactions(
       setUncontrolledExtension,
     ],
   );
+
+  const scheduleExtensionReconciliation = useCallback(() => {
+    const lifecycleGeneration = lifecycleGenerationRef.current;
+    queueMicrotask(() => {
+      if (
+        !lifecycleActiveRef.current ||
+        lifecycleGenerationRef.current !== lifecycleGeneration
+      ) {
+        return;
+      }
+
+      const input = extensionInputElementRef.current;
+      const displayValue = extensionControlledRef.current
+        ? (renderedExtensionRef.current ?? '')
+        : (currentExtensionRef.current ?? '');
+      if (extensionControlledRef.current) {
+        currentExtensionRef.current = renderedExtensionRef.current;
+      }
+      if (input && input.value !== displayValue) {
+        input.value = displayValue;
+      }
+    });
+  }, [currentExtensionRef, extensionControlledRef]);
 
   const reset = useCallback(() => {
     resetValidationVisibility();
@@ -584,16 +632,14 @@ export function usePhoneInputTransactions(
             : { maxLength: extensionMaxLength }),
         });
       } catch {
-        event.currentTarget.value = currentExtensionRef.current ?? '';
+        scheduleExtensionReconciliation();
         return;
       }
 
-      if (event.currentTarget.value !== (nextExtension ?? '')) {
-        event.currentTarget.value = nextExtension ?? '';
-      }
       commitExtension(nextExtension, nextExtension === undefined ? 'clear' : 'input');
+      scheduleExtensionReconciliation();
     },
-    [commitExtension, currentExtensionRef, extensionMaxLength],
+    [commitExtension, extensionMaxLength, scheduleExtensionReconciliation],
   );
 
   const setInputRef = useCallback<RefCallback<HTMLInputElement>>(
@@ -613,7 +659,6 @@ export function usePhoneInputTransactions(
             data: metadata.data,
             displayValue: input.value,
             inputType: metadata.inputType,
-            isComposing: metadata.isComposing,
             selection: [
               input.selectionStart ?? input.value.length,
               input.selectionEnd ?? input.value.length,
@@ -690,8 +735,8 @@ export function usePhoneInputTransactions(
       };
 
       if (valueChanged) {
-        currentValueRef.current = nextValue;
         if (!controlledRef.current) {
+          currentValueRef.current = nextValue;
           setUncontrolledValue(nextValue);
         }
       }
@@ -738,6 +783,37 @@ export function usePhoneInputTransactions(
       required,
       setUncontrolledValue,
       validationMode,
+    ],
+  );
+
+  const commitImportedValue = useCallback(
+    (nextValue: Exclude<PhoneValue, undefined>, nextExtension: PhoneExtension) => {
+      const previousExtension = currentExtensionRef.current;
+      const extensionChanged = nextExtension !== previousExtension;
+
+      if (extensionChanged && !extensionControlledRef.current) {
+        currentExtensionRef.current = nextExtension;
+        setUncontrolledExtension(nextExtension);
+      }
+
+      commit(nextValue, 'paste');
+
+      if (extensionChanged) {
+        onExtensionChange?.(nextExtension, {
+          extension: nextExtension,
+          previousExtension,
+          reason: 'paste',
+        });
+      }
+      scheduleExtensionReconciliation();
+    },
+    [
+      commit,
+      currentExtensionRef,
+      extensionControlledRef,
+      onExtensionChange,
+      scheduleExtensionReconciliation,
+      setUncontrolledExtension,
     ],
   );
 
@@ -846,8 +922,7 @@ export function usePhoneInputTransactions(
                   ? {}
                   : { maxLength: extensionMaxLength }),
               });
-        commit(parsedImport.value, 'paste');
-        commitExtension(importedExtension, 'paste');
+        commitImportedValue(parsedImport.value, importedExtension);
         return;
       }
 
@@ -869,7 +944,7 @@ export function usePhoneInputTransactions(
         pasteResetFrameRef.current = undefined;
       });
     },
-    [commit, commitExtension, extensionMaxLength, numberingPlan.selectedCountry],
+    [commitImportedValue, extensionMaxLength, numberingPlan.selectedCountry],
   );
 
   const handleInput = useCallback(
@@ -884,11 +959,21 @@ export function usePhoneInputTransactions(
         return;
       }
 
+      const pendingCompositionCommit = pendingCompositionCommitRef.current;
+      const completesComposition =
+        pendingCompositionCommit !== null &&
+        (inputEvent.inputType === 'insertCompositionText' ||
+          inputEvent.data === pendingCompositionCommit.data);
+      if (completesComposition) {
+        pendingCompositionCommitRef.current = null;
+      }
+
       const selectedCountry = currentSelectedCountryRef.current;
       const previousDisplayValue = presentation.displayValue;
       const observedDisplayValue =
         capturedInput?.displayValue ?? event.currentTarget.value;
-      const normalizedDisplayValue = parseIncompletePhoneNumber(observedDisplayValue);
+      const normalizedDisplayValue =
+        normalizeObservedDisplayValue(observedDisplayValue);
       const selectionStart =
         capturedInput?.selection[0] ?? event.currentTarget.selectionStart;
       const selectionEnd =
@@ -896,37 +981,91 @@ export function usePhoneInputTransactions(
       const appendsAtEnd =
         selectionStart === observedDisplayValue.length &&
         selectionEnd === observedDisplayValue.length;
-      const inferredBeforeInput =
-        pendingBeforeInput === null && inputEvent.data !== null && appendsAtEnd
+      const inputType = inputEvent.inputType || pendingBeforeInput?.inputType || '';
+      const inputData = inputEvent.data ?? pendingBeforeInput?.data ?? null;
+      const inferredFullReplacement =
+        pendingBeforeInput === null &&
+        inputType === 'insertReplacementText' &&
+        inputData !== null &&
+        inputData === observedDisplayValue
           ? {
-              data: inputEvent.data,
+              data: inputData,
               displayValue: previousDisplayValue,
-              inputType: inputEvent.inputType || 'insertText',
-              isComposing: false,
+              inputType,
+              selection: [0, previousDisplayValue.length] as const,
+            }
+          : null;
+      const inferredIncrementalInput =
+        pendingBeforeInput === null &&
+        inferredFullReplacement === null &&
+        inputData !== null &&
+        appendsAtEnd
+          ? {
+              data: inputData,
+              displayValue: previousDisplayValue,
+              inputType: inputType || 'insertText',
               selection: [
                 previousDisplayValue.length,
                 previousDisplayValue.length,
               ] as const,
             }
           : null;
-      const inputEvidence = pendingBeforeInput ?? inferredBeforeInput;
-      if (rejectsInvalidNationalReplacement(inputEvidence, selectedCountry, metadata)) {
+      const inputEvidence = pendingBeforeInput
+        ? {
+            ...pendingBeforeInput,
+            data: inputData,
+            inputType,
+          }
+        : (inferredFullReplacement ?? inferredIncrementalInput);
+      const pasted = pasteTransactionRef.current;
+      const transactionSource = resolveInputTransactionSource({
+        displayLength:
+          inputEvidence?.displayValue.length ?? previousDisplayValue.length,
+        inputType,
+        isComposing: false,
+        pasted,
+        selection: inputEvidence?.selection ?? [
+          previousDisplayValue.length,
+          previousDisplayValue.length,
+        ],
+      });
+      const committedSource =
+        completesComposition && pendingCompositionCommit
+          ? pendingCompositionCommit.source
+          : transactionSource;
+      if (committedSource === 'history-undo' || committedSource === 'history-redo') {
+        pendingNationalInputRef.current = null;
+      }
+      if (
+        rejectsInvalidNationalReplacement(
+          inputEvidence,
+          committedSource,
+          selectedCountry,
+          metadata,
+        )
+      ) {
         pendingNationalInputRef.current = null;
         pasteTransactionRef.current = false;
         if (pasteResetFrameRef.current !== undefined) {
           window.cancelAnimationFrame(pasteResetFrameRef.current);
           pasteResetFrameRef.current = undefined;
         }
-        event.currentTarget.value = presentation.displayValue;
-        event.currentTarget.setSelectionRange(
-          presentation.displayValue.length,
-          presentation.displayValue.length,
+        engineBridge.reconcileExternal(
+          {
+            displayValue: presentation.displayValue,
+            selection: [
+              presentation.displayValue.length,
+              presentation.displayValue.length,
+            ],
+          },
+          inputContext,
         );
         return;
       }
       const nationalInput = resolveCompleteNationalInput(
         normalizedDisplayValue,
         inputEvidence,
+        committedSource,
         selectedCountry,
         pendingNationalInputRef.current,
         metadata,
@@ -950,16 +1089,19 @@ export function usePhoneInputTransactions(
           window.cancelAnimationFrame(pasteResetFrameRef.current);
           pasteResetFrameRef.current = undefined;
         }
-        event.currentTarget.value = presentation.displayValue;
         const protectedEnd =
           presentation.mapping.logicalToDisplay[
             getCountryCallingCode(inputContext.country, metadata).length
           ] ?? presentation.displayValue.length;
-        event.currentTarget.setSelectionRange(protectedEnd, protectedEnd);
+        engineBridge.reconcileExternal(
+          {
+            displayValue: presentation.displayValue,
+            selection: [protectedEnd, protectedEnd],
+          },
+          inputContext,
+        );
         return;
       }
-      const pasted = pasteTransactionRef.current;
-      const inputType = inputEvidence?.inputType || inputEvent.inputType || '';
       pasteTransactionRef.current = false;
       if (pasteResetFrameRef.current !== undefined) {
         window.cancelAnimationFrame(pasteResetFrameRef.current);
@@ -1017,18 +1159,15 @@ export function usePhoneInputTransactions(
       }
       scheduleCommit(
         displayValue,
-        resolveChangeReason(inputType, nextValue, pasted),
+        resolveChangeReason(committedSource, nextValue),
         nationalInput.value !== null,
         nationalInput.value === null ? null : selectedCountry,
       );
     },
     [
       currentSelectedCountryRef,
-      inputContext.country,
-      inputContext.displayMask,
-      inputContext.displayMode,
-      inputContext.formatStrategy,
-      inputContext.locale,
+      engineBridge,
+      inputContext,
       metadata,
       presentation.displayValue,
       presentation.mapping.logicalToDisplay,
@@ -1060,8 +1199,8 @@ export function usePhoneInputTransactions(
   const handleCompositionStart = useCallback(() => {
     pendingCommitScheduledRef.current = false;
     pendingBeforeInputRef.current = null;
-    pendingNationalInputRef.current = null;
     pendingTransactionRef.current = null;
+    pendingCompositionCommitRef.current = null;
     composingRef.current = true;
     compositionTextRef.current = null;
     compositionDigitOffsetRef.current = null;
@@ -1073,23 +1212,74 @@ export function usePhoneInputTransactions(
       composingRef.current = false;
       const displayValue = compositionTextRef.current ?? event.currentTarget.value;
       const digitOffset = compositionDigitOffsetRef.current;
-      setPendingCompositionSelection(
+      const compositionSource =
+        compositionTextRef.current === null &&
+        [...event.data].length === 1 &&
+        normalizePhoneInputDigit(event.data) !== undefined
+          ? 'insert'
+          : 'composition';
+      if (compositionSource === 'composition') {
+        pendingNationalInputRef.current = null;
+      }
+      const compositionSelection =
         digitOffset === null
           ? null
           : {
-              canonicalValue: parsePhoneInputPresentation(displayValue, {
-                country: inputContext.country ?? null,
-                displayMode: inputContext.displayMode,
-                metadata,
-              }),
+              canonicalValue: parsePhoneInputPresentation(
+                normalizeObservedDisplayValue(displayValue),
+                {
+                  country: inputContext.country ?? null,
+                  displayMode: inputContext.displayMode,
+                  metadata,
+                },
+              ),
               digitOffset,
-            },
-      );
-      commit(displayValue, 'composition');
+            };
+      const pendingCompositionCommit: PendingCompositionCommit = {
+        data: event.data,
+        displayValue,
+        selection: compositionSelection,
+        source: compositionSource,
+      };
+      pendingCompositionCommitRef.current = pendingCompositionCommit;
+      const lifecycleGeneration = lifecycleGenerationRef.current;
+      queueMicrotask(() => {
+        if (
+          !lifecycleActiveRef.current ||
+          lifecycleGenerationRef.current !== lifecycleGeneration ||
+          pendingCompositionCommitRef.current !== pendingCompositionCommit
+        ) {
+          return;
+        }
+
+        pendingCompositionCommitRef.current = null;
+        setPendingCompositionSelection(pendingCompositionCommit.selection);
+        const normalizedDisplayValue = normalizeObservedDisplayValue(displayValue);
+        const selectedCountry = currentSelectedCountryRef.current;
+        const nationalValue =
+          compositionSource === 'insert' &&
+          selectedCountry &&
+          !normalizedDisplayValue.includes('+')
+            ? parseNationalPhoneValue(displayValue, selectedCountry, { metadata })
+            : null;
+        commit(
+          nationalValue ?? normalizedDisplayValue,
+          compositionSource === 'insert' ? 'input' : 'composition',
+          selectedCountry,
+          selectedCountry,
+          nationalValue !== null,
+        );
+      });
       compositionTextRef.current = null;
       compositionDigitOffsetRef.current = null;
     },
-    [commit, inputContext.country, inputContext.displayMode, metadata],
+    [
+      commit,
+      currentSelectedCountryRef,
+      inputContext.country,
+      inputContext.displayMode,
+      metadata,
+    ],
   );
 
   useEffect(() => {
@@ -1199,6 +1389,7 @@ export function usePhoneInputTransactions(
       composingRef.current = false;
       compositionTextRef.current = null;
       compositionDigitOffsetRef.current = null;
+      pendingCompositionCommitRef.current = null;
       pendingCountryReconciliationRef.current = null;
       if (pasteResetFrameRef.current !== undefined) {
         window.cancelAnimationFrame(pasteResetFrameRef.current);

@@ -20,6 +20,7 @@ import {
   formatPhoneInputPresentation,
   type PhoneInputDisplayMode,
   type MuiPhoneInputOwnerState,
+  type PhoneExtension,
   type PhoneInputChangeDetails,
   type PhoneValidationMode,
   type PhoneValue,
@@ -171,6 +172,49 @@ function FormattingModeHarness() {
       </button>
       <button onClick={() => setSelectedCountry('CA')} type="button">
         Use Canada country
+      </button>
+    </>
+  );
+}
+
+function HistoryContextHarness() {
+  const [details, setDetails] = useState<PhoneInputChangeDetails>();
+  const [extension, setExtension] = useState<PhoneExtension>('5');
+  const [masked, setMasked] = useState(false);
+  const [selectedCountry, setSelectedCountry] = useState<CountryCode>('US');
+  const [value, setValue] = useState<PhoneValue>('+12025550123');
+
+  return (
+    <>
+      <MuiPhoneInput
+        displayMode="national"
+        extension={extension}
+        extensionLabel="History extension"
+        extensionPresentation="separate"
+        onChange={(nextValue, nextDetails) => {
+          setValue(nextValue);
+          setDetails(nextDetails);
+        }}
+        onExtensionChange={setExtension}
+        selectedCountry={selectedCountry}
+        slotProps={{ htmlInput: { 'data-testid': 'history-context-phone' } }}
+        value={value}
+        {...(masked ? { displayMask: { pattern: '####.####.###' } } : {})}
+      />
+      <output data-testid="history-context-country">{selectedCountry}</output>
+      <output data-testid="history-context-extension">{extension ?? ''}</output>
+      <output data-testid="history-context-reason">{details?.reason ?? ''}</output>
+      <output data-testid="history-context-value">{value ?? ''}</output>
+      <button
+        onClick={() => {
+          setSelectedCountry('GB');
+          setExtension('88');
+          setMasked(true);
+          setValue('+442079460958');
+        }}
+        type="button"
+      >
+        Apply current history context
       </button>
     </>
   );
@@ -829,6 +873,57 @@ describe('MuiPhoneInput tracer', () => {
     expect(details.reason).toBe('composition');
   });
 
+  test('does not revive a national draft after a genuine composition with trailing input', async () => {
+    render(<ControlledHarness selectedCountry="BY" />);
+    const locator = page.getByTestId('controlled-phone');
+    await userEvent.type(locator, '02912');
+    await expect.element(locator).toHaveValue('+02912');
+    const input = locator.element();
+
+    if (!(input instanceof HTMLInputElement)) {
+      throw new Error('Expected the native phone input.');
+    }
+
+    input.dispatchEvent(new CompositionEvent('compositionstart', { bubbles: true }));
+    setNativeInputValue(input, '+02912٣');
+    input.dispatchEvent(
+      new InputEvent('input', {
+        bubbles: true,
+        data: '٣',
+        inputType: 'insertCompositionText',
+        isComposing: true,
+      }),
+    );
+    input.dispatchEvent(
+      new CompositionEvent('compositionend', {
+        bubbles: true,
+        data: '٣',
+      }),
+    );
+    setNativeInputValue(input, '+02912٣');
+    input.dispatchEvent(
+      new InputEvent('input', {
+        bubbles: true,
+        data: '٣',
+        inputType: 'insertCompositionText',
+        isComposing: false,
+      }),
+    );
+
+    await expect
+      .element(page.getByTestId('controlled-value'))
+      .toHaveTextContent('+029123');
+    const details = JSON.parse(
+      page.getByTestId('controlled-details').element().textContent ?? '',
+    ) as PhoneInputChangeDetails;
+    expect(details.reason).toBe('composition');
+
+    await userEvent.type(locator, '4567');
+    await expect
+      .element(page.getByTestId('controlled-value'))
+      .toHaveTextContent('+0291234567');
+  });
+
   test('preserves an existing draft when compositionend data is only the inserted fragment', async () => {
     render(<ControlledHarness initialValue="+375" />);
     const locator = page.getByTestId('controlled-phone');
@@ -1147,6 +1242,130 @@ describe('MuiPhoneInput tracer', () => {
     },
   );
 
+  test.each([
+    ['historyUndo', 'history-undo'],
+    ['historyRedo', 'history-redo'],
+  ] as const)(
+    'preserves the %s transaction reason when history restores the empty value',
+    async (inputType, expectedReason) => {
+      render(<ControlledHarness initialValue="+1202" />);
+      const locator = page.getByTestId('controlled-phone');
+      await expect.element(locator).toHaveValue('+1 202');
+      const input = locator.element();
+
+      if (!(input instanceof HTMLInputElement)) {
+        throw new Error('Expected the native phone input.');
+      }
+
+      setNativeInputValue(input, '');
+      input.dispatchEvent(
+        new InputEvent('input', {
+          bubbles: true,
+          data: null,
+          inputType,
+        }),
+      );
+
+      await expect.element(locator).toHaveValue('');
+      const details = JSON.parse(
+        page.getByTestId('controlled-details').element().textContent ?? '',
+      ) as PhoneInputChangeDetails;
+      expect(details.reason).toBe(expectedReason);
+      expect(details.value).toBeUndefined();
+    },
+  );
+
+  test('keeps current country, mask, and extension authority across undo and redo', async () => {
+    render(<HistoryContextHarness />);
+    const locator = page.getByTestId('history-context-phone');
+    await expect.element(locator).toBeInTheDocument();
+    const input = locator.element();
+
+    if (!(input instanceof HTMLInputElement)) {
+      throw new Error('Expected the native phone input.');
+    }
+
+    await userEvent.click(
+      page.getByRole('button', { name: 'Apply current history context' }),
+    );
+    await expect
+      .element(page.getByTestId('history-context-country'))
+      .toHaveTextContent('GB');
+    await expect
+      .element(page.getByTestId('history-context-extension'))
+      .toHaveTextContent('88');
+    await expect.element(locator).toHaveValue(expect.stringContaining('.'));
+
+    setNativeInputValue(input, '+442079460018');
+    input.dispatchEvent(
+      new InputEvent('input', {
+        bubbles: true,
+        data: null,
+        inputType: 'historyUndo',
+      }),
+    );
+
+    await expect
+      .element(page.getByTestId('history-context-value'))
+      .toHaveTextContent('+442079460018');
+    await expect
+      .element(page.getByTestId('history-context-reason'))
+      .toHaveTextContent('history-undo');
+    await expect
+      .element(page.getByTestId('history-context-country'))
+      .toHaveTextContent('GB');
+    await expect
+      .element(page.getByTestId('history-context-extension'))
+      .toHaveTextContent('88');
+    await expect.element(locator).toHaveValue(expect.stringContaining('.'));
+
+    setNativeInputValue(input, '+442079460958');
+    input.dispatchEvent(
+      new InputEvent('input', {
+        bubbles: true,
+        data: null,
+        inputType: 'historyRedo',
+      }),
+    );
+
+    await expect
+      .element(page.getByTestId('history-context-value'))
+      .toHaveTextContent('+442079460958');
+    await expect
+      .element(page.getByTestId('history-context-reason'))
+      .toHaveTextContent('history-redo');
+    await expect
+      .element(page.getByTestId('history-context-extension'))
+      .toHaveTextContent('88');
+    await expect.element(locator).toHaveValue(expect.stringContaining('.'));
+  });
+
+  test('restores a controlled value when the parent ignores an edit without rerendering', async () => {
+    const onChange = vi.fn();
+    render(
+      <MuiPhoneInput
+        onChange={onChange}
+        slotProps={{ htmlInput: { 'data-testid': 'static-controlled-phone' } }}
+        value="+1202"
+      />,
+    );
+    const locator = page.getByTestId('static-controlled-phone');
+    await expect.element(locator).toHaveValue('+1 202');
+
+    await userEvent.type(locator, '3');
+
+    await expect.element(locator).toHaveValue('+1 202');
+    expect(onChange).toHaveBeenCalledOnce();
+    expect(onChange.mock.calls[0]?.[1].previousValue).toBe('+1202');
+
+    await userEvent.type(locator, '4');
+
+    await expect.element(locator).toHaveValue('+1 202');
+    expect(onChange).toHaveBeenCalledTimes(2);
+    expect(onChange.mock.calls[1]?.[0]).toBe('+12024');
+    expect(onChange.mock.calls[1]?.[1].previousValue).toBe('+1202');
+  });
+
   test('restores a selected country calling code for complete-field iOS autofill', async () => {
     const onCountryChange = vi.fn();
     const onCountrySelection = vi.fn();
@@ -1333,6 +1552,61 @@ describe('MuiPhoneInput tracer', () => {
     expect(details.reason).toBe('replacement');
   });
 
+  test('uses authoritative input fallback for national autofill without beforeinput', async () => {
+    render(<ControlledHarness initialValue="+14155552671" selectedCountry="US" />);
+    const locator = page.getByTestId('controlled-phone');
+    await expect.element(locator).toHaveValue('+1 415 555 2671');
+    const input = locator.element();
+
+    if (!(input instanceof HTMLInputElement)) {
+      throw new Error('Expected the native phone input.');
+    }
+
+    setNativeInputValue(input, '2025550123');
+    input.dispatchEvent(
+      new InputEvent('input', {
+        bubbles: true,
+        data: '2025550123',
+        inputType: 'insertReplacementText',
+      }),
+    );
+
+    await expect.element(locator).toHaveValue('+1 202 555 0123');
+    const details = JSON.parse(
+      page.getByTestId('controlled-details').element().textContent ?? '',
+    ) as PhoneInputChangeDetails;
+    expect(details.reason).toBe('replacement');
+    expect(details.value).toBe('+12025550123');
+  });
+
+  test('keeps fragment-style predictive replacement distinct from full autofill fallback', async () => {
+    render(<ControlledHarness initialValue="+37529" selectedCountry="BY" />);
+    const locator = page.getByTestId('controlled-phone');
+    await expect.element(locator).toHaveValue('+375 29');
+    const input = locator.element();
+
+    if (!(input instanceof HTMLInputElement)) {
+      throw new Error('Expected the native phone input.');
+    }
+
+    setNativeInputValue(input, '+375 29 555 55 55');
+    input.dispatchEvent(
+      new InputEvent('input', {
+        bubbles: true,
+        data: '5555555',
+        inputType: 'insertReplacementText',
+      }),
+    );
+
+    await expect
+      .element(page.getByTestId('controlled-value'))
+      .toHaveTextContent('+375295555555');
+    const details = JSON.parse(
+      page.getByTestId('controlled-details').element().textContent ?? '',
+    ) as PhoneInputChangeDetails;
+    expect(details.reason).toBe('replacement');
+  });
+
   test('commits a complete national autofill from an empty controlled value', async () => {
     render(<ControlledHarness selectedCountry="US" />);
     const locator = page.getByTestId('controlled-phone');
@@ -1392,6 +1666,9 @@ describe('MuiPhoneInput tracer', () => {
     ['0291234567', '+375291234567'],
     ['8 (029) 123-45-67', '+375291234567'],
     ['٠٢٩١٢٣٤٥٦٧', '+375291234567'],
+    ['۰۲۹۱۲۳۴۵۶۷', '+375291234567'],
+    ['०२९१२३४५६७', '+375291234567'],
+    ['０２９１２３４５６７', '+375291234567'],
   ] as const)(
     'commits complete Belarus national keyboard input %s in controlled mode',
     async (nationalInput, expected) => {
@@ -1421,6 +1698,9 @@ describe('MuiPhoneInput tracer', () => {
     ['0291234567', '+375291234567'],
     ['8 (029) 123-45-67', '+375291234567'],
     ['٠٢٩١٢٣٤٥٦٧', '+375291234567'],
+    ['۰۲۹۱۲۳۴۵۶۷', '+375291234567'],
+    ['०२९१२३४५६७', '+375291234567'],
+    ['０２９１２３４５６７', '+375291234567'],
   ] as const)(
     'commits complete Belarus national paste %s in controlled mode',
     async (nationalInput, expected) => {

@@ -3,7 +3,7 @@ import TextField from '@mui/material/TextField';
 import { useState } from 'react';
 import { hydrateRoot } from 'react-dom/client';
 import { renderToString } from 'react-dom/server';
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test, vi } from 'vitest';
 import { page, userEvent } from 'vitest/browser';
 import { render } from 'vitest-browser-react';
 
@@ -521,6 +521,34 @@ describe('MuiPhoneInput extensions', () => {
     expect(page.getByTestId('rejected-extension-callbacks').element().textContent).toBe(
       '1',
     );
+  });
+
+  test('restores a controlled extension when the parent ignores an edit without rerendering', async () => {
+    const onExtensionChange = vi.fn();
+    render(
+      <MuiPhoneInput
+        disableCountrySelector
+        extension="5"
+        extensionLabel="Static extension"
+        extensionPresentation="separate"
+        onExtensionChange={onExtensionChange}
+        value="+12025550123"
+      />,
+    );
+
+    const extension = page.getByRole('textbox', { name: 'Static extension' });
+    await userEvent.type(extension, '9');
+
+    await expect.element(extension).toHaveValue('5');
+    expect(onExtensionChange).toHaveBeenCalledOnce();
+    expect(onExtensionChange.mock.calls[0]?.[1].previousExtension).toBe('5');
+
+    await userEvent.type(extension, '8');
+
+    await expect.element(extension).toHaveValue('5');
+    expect(onExtensionChange).toHaveBeenCalledTimes(2);
+    expect(onExtensionChange.mock.calls[1]?.[0]).toBe('58');
+    expect(onExtensionChange.mock.calls[1]?.[1].previousExtension).toBe('5');
   });
 
   test('keeps native tab order from phone input to a separate extension field', async () => {
