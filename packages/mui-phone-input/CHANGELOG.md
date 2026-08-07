@@ -1,5 +1,12 @@
 # @wh1teee/mui-phone-input
 
+## 0.1.0-next.6
+
+### Patch Changes
+
+- 71a80bf: Add max, min, mobile, and validated custom metadata presets together with a
+  human-reviewed metadata freshness pipeline and client/server metadata parity.
+
 ## 0.1.0-next.5
 
 ### Patch Changes

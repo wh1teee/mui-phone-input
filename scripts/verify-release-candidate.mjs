@@ -93,7 +93,9 @@ assert.deepEqual(Object.keys(packedManifest.exports).sort(), [
   './metadata/min',
   './metadata/mobile',
   './package.json',
+  './react-hook-form',
   './server',
+  './zod',
 ]);
 
 const sbom = JSON.parse(
@@ -108,10 +110,17 @@ const releaseNotes = await readFile(
   join(candidateDirectory, 'RELEASE_NOTES.md'),
   'utf8',
 );
-assert.match(releaseNotes, /intentionally narrow/iu);
-assert.match(releaseNotes, /not[\s\S]*latest/iu);
+assert.match(releaseNotes, /feature-complete release candidate/iu);
+assert.match(releaseNotes, new RegExp(candidate.source.commit, 'u'));
+assert.match(releaseNotes, new RegExp(candidate.source.tree, 'u'));
+assert.match(releaseNotes, /does not advance npm `latest`/iu);
 assert.match(releaseNotes, /React Hook Form|RHF/u);
-assert.match(releaseNotes, /metadata presets/iu);
+assert.match(releaseNotes, /max, min, mobile/iu);
+assert.match(releaseNotes, /NOT_AVAILABLE/u);
+assert.match(releaseNotes, /mpi-oan\.24/u);
+assert.match(releaseNotes, /mpi-oan\.27/u);
+assert.match(releaseNotes, /mpi-oan\.19/u);
+assert.match(releaseNotes, /stable 1\.0/iu);
 const rollback = await readFile(join(candidateDirectory, 'ROLLBACK.md'), 'utf8');
 assert.match(rollback, /npm deprecate/u);
 assert.match(rollback, /dist-tag/u);

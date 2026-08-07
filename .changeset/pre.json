@@ -15,6 +15,7 @@
     "expose-server-national-parser",
     "fix-canonical-npm-scope",
     "lossless-country-selection",
+    "metadata-presets-freshness",
     "modern-buses-call",
     "preserve-explicit-territories",
     "quiet-paths-wait",
