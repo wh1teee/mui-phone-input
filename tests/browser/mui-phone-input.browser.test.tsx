@@ -2689,7 +2689,7 @@ describe('MuiPhoneInput tracer', () => {
       : null;
     expect(validationMessageElement).toBeInstanceOf(HTMLElement);
     expect(validationMessageElement).toHaveClass('MuiPhoneInput-validationMessage');
-    expect(validationMessageElement).toHaveAttribute('aria-live', 'polite');
+    expect(validationMessageElement).not.toHaveAttribute('aria-live');
     expect(inputRef.current).toBe(input.element());
     await userEvent.type(input, '375291234567');
     await expect.element(input).toHaveValue('+375 29 123 45 67');

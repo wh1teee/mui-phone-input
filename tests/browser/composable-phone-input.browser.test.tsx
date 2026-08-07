@@ -520,7 +520,7 @@ describe('usePhoneInput and composable primitives', () => {
       .toHaveAttribute('aria-describedby', expect.stringContaining('helper-text'));
     await expect
       .element(page.getByTestId('primitive-validation'))
-      .toHaveAttribute('aria-live', 'polite');
+      .not.toHaveAttribute('aria-live');
 
     await userEvent.click(page.getByRole('button', { name: 'Focus primitive ref' }));
     await expect.element(input).toHaveFocus();

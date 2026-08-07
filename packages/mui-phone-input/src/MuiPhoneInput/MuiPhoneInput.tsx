@@ -6,7 +6,14 @@ import { styled } from '@mui/material/styles';
 import TextField, { type TextFieldProps } from '@mui/material/TextField';
 import { mergeSlotProps, useForkRef } from '@mui/material/utils';
 import type { CountryCode, PhoneNumberType } from 'libphonenumber-js/max';
-import { type ElementType, type ReactNode, type Ref, useMemo } from 'react';
+import {
+  type ElementType,
+  type ReactNode,
+  type Ref,
+  useEffect,
+  useMemo,
+  useRef,
+} from 'react';
 
 import type { PhoneCountrySelectionResult } from '../country-selector';
 import type { PhoneExtension } from '../phone-extension';
@@ -38,10 +45,10 @@ import {
   type PhoneValidationDisplay,
   useMuiPhoneInput,
 } from '../usePhoneInput';
+import { warnInvalidAccessibilitySlot } from '../internal/accessibility-diagnostics';
 import {
   getMuiPhoneInputUtilityClass,
   type MuiPhoneInputClasses,
-  type MuiPhoneInputClassKey,
   muiPhoneInputClasses,
 } from './muiPhoneInputClasses';
 
@@ -380,6 +387,7 @@ export function MuiPhoneInput(inProps: MuiPhoneInputProps): ReactNode {
     formatStrategy,
     helperText,
     id,
+    label,
     locale = 'en',
     metadata,
     onChange,
@@ -455,9 +463,12 @@ export function MuiPhoneInput(inProps: MuiPhoneInputProps): ReactNode {
   const renderedHelperTextId = resolvedHelperText
     ? phone.state.validationMessageId
     : undefined;
-  const setInputRef = useForkRef(phone.setInputRef, inputRefProp);
+  const inputElementRef = useRef<HTMLInputElement | null>(null);
+  const extensionElementRef = useRef<HTMLInputElement | null>(null);
+  const accessibilityWarningsRef = useRef(new Set<string>());
+  const setInputRef = useForkRef(phone.setInputRef, inputRefProp, inputElementRef);
   const setExtensionInputRef =
-    useForkRef(phone.setExtensionInputRef, extensionRefProp) ??
+    useForkRef(phone.setExtensionInputRef, extensionRefProp, extensionElementRef) ??
     phone.setExtensionInputRef;
   const ExtensionSlot = slots?.extension ?? MuiPhoneInputExtension;
   const extensionSlotProps = slotProps?.extension;
@@ -558,7 +569,6 @@ export function MuiPhoneInput(inProps: MuiPhoneInputProps): ReactNode {
     extensionHelperText &&
     (extensionPresentation === 'inline' || extensionPresentation === 'custom') ? (
       <MuiPhoneInputExtensionValidationMessage
-        aria-live="polite"
         className={classes.extensionValidationMessage}
         id={phone.state.extensionValidationMessageId}
       >
@@ -588,8 +598,21 @@ export function MuiPhoneInput(inProps: MuiPhoneInputProps): ReactNode {
         ...externalWithoutRef
       } = externalValue;
       const externalInputProps = externalWithoutRef as PhoneInputInputExternalProps;
+      const hasTextFieldLabel =
+        label !== undefined &&
+        label !== null &&
+        typeof label !== 'boolean' &&
+        (typeof label !== 'string' || label.trim().length > 0);
+      const hasExternalAccessibleName =
+        (typeof externalInputProps['aria-label'] === 'string' &&
+          externalInputProps['aria-label'].trim().length > 0) ||
+        (typeof externalInputProps['aria-labelledby'] === 'string' &&
+          externalInputProps['aria-labelledby'].trim().length > 0);
       const resolved = phone.getInputProps({
         ...externalInputProps,
+        ...(!hasTextFieldLabel && !hasExternalAccessibleName
+          ? { 'aria-label': 'Phone number' }
+          : {}),
         className: joinClassNames(classes.input, externalInputProps.className),
         ...(externalInputProps.autoComplete === undefined && autoComplete !== undefined
           ? { autoComplete }
@@ -619,7 +642,14 @@ export function MuiPhoneInput(inProps: MuiPhoneInputProps): ReactNode {
         ...(externalRef === undefined ? {} : { ref: externalRef }),
       };
     };
-  }, [autoComplete, classes.input, phone, renderedHelperTextId, slotProps?.htmlInput]);
+  }, [
+    autoComplete,
+    classes.input,
+    label,
+    phone,
+    renderedHelperTextId,
+    slotProps?.htmlInput,
+  ]);
   const CountrySelectorSlot = slots?.countrySelector ?? PhoneInputCountrySelector;
   const countrySelectorClasses = useMemo(
     () => mergeCountrySelectorClasses(classesProp, slotProps?.countrySelector?.classes),
@@ -655,7 +685,6 @@ export function MuiPhoneInput(inProps: MuiPhoneInputProps): ReactNode {
 
     return (ownerState: unknown) => {
       const prepared = {
-        'aria-live': 'polite',
         className: classes.validationMessage,
         id: phone.state.validationMessageId,
       } as const;
@@ -670,7 +699,6 @@ export function MuiPhoneInput(inProps: MuiPhoneInputProps): ReactNode {
 
       return {
         ...merged,
-        'aria-live': 'polite' as const,
         id: phone.state.validationMessageId,
       };
     };
@@ -690,6 +718,105 @@ export function MuiPhoneInput(inProps: MuiPhoneInputProps): ReactNode {
     ...textFieldSlots
   } = slots ?? {};
 
+  useEffect(() => {
+    if (!slots?.htmlInput) {
+      return;
+    }
+
+    const input = inputElementRef.current;
+    if (!input) {
+      warnInvalidAccessibilitySlot(accessibilityWarningsRef.current, 'htmlInput', [
+        'accessibility props',
+        'ref',
+      ]);
+      return;
+    }
+
+    const missing: string[] = [];
+    if (input.id !== phone.state.inputId) missing.push('id');
+    if (input.getAttribute('aria-invalid') !== String(phone.state.error)) {
+      missing.push('aria-invalid');
+    }
+    if (input.dir !== 'ltr') missing.push('dir="ltr"');
+    if (input.disabled !== disabled) missing.push('disabled');
+    if (input.readOnly !== readOnly) missing.push('readOnly');
+    if (input.required !== required) missing.push('required');
+    if (renderedHelperTextId) {
+      const describedBy = input.getAttribute('aria-describedby')?.split(/\s+/u) ?? [];
+      if (!describedBy.includes(renderedHelperTextId)) missing.push('aria-describedby');
+      if (
+        phone.state.validationError &&
+        input.getAttribute('aria-errormessage') !== renderedHelperTextId
+      ) {
+        missing.push('aria-errormessage');
+      }
+    }
+    const hasAccessibleNameSource =
+      (input.getAttribute('aria-label')?.trim().length ?? 0) > 0 ||
+      (input.getAttribute('aria-labelledby')?.trim().length ?? 0) > 0 ||
+      (input.labels?.length ?? 0) > 0;
+    if (!hasAccessibleNameSource) missing.push('labeling');
+
+    warnInvalidAccessibilitySlot(
+      accessibilityWarningsRef.current,
+      'htmlInput',
+      missing,
+    );
+  }, [
+    disabled,
+    phone.state.error,
+    phone.state.inputId,
+    phone.state.validationError,
+    readOnly,
+    renderedHelperTextId,
+    required,
+    slots?.htmlInput,
+  ]);
+
+  useEffect(() => {
+    const customExtensionSlot =
+      Boolean(slots?.extension) &&
+      (extensionPresentation === 'separate' || extensionPresentation === 'inline');
+    const customExtensionRenderer = extensionPresentation === 'custom';
+    if (!customExtensionSlot && !customExtensionRenderer) {
+      return;
+    }
+
+    const input = extensionElementRef.current;
+    if (!input) {
+      warnInvalidAccessibilitySlot(
+        accessibilityWarningsRef.current,
+        customExtensionRenderer ? 'renderExtension' : 'extension',
+        ['accessibility props', 'ref'],
+      );
+      return;
+    }
+
+    const missing: string[] = [];
+    if (input.id !== phone.state.extensionInputId) missing.push('id');
+    if (input.getAttribute('aria-invalid') !== String(extensionError)) {
+      missing.push('aria-invalid');
+    }
+    if (input.required !== extensionRequired) missing.push('required');
+    const hasAccessibleNameSource =
+      (input.getAttribute('aria-label')?.trim().length ?? 0) > 0 ||
+      (input.getAttribute('aria-labelledby')?.trim().length ?? 0) > 0 ||
+      (input.labels?.length ?? 0) > 0;
+    if (!hasAccessibleNameSource) missing.push('labeling');
+
+    warnInvalidAccessibilitySlot(
+      accessibilityWarningsRef.current,
+      customExtensionRenderer ? 'renderExtension' : 'extension',
+      missing,
+    );
+  }, [
+    extensionError,
+    extensionPresentation,
+    extensionRequired,
+    phone.state.extensionInputId,
+    slots?.extension,
+  ]);
+
   return (
     <PhoneInputProvider value={phone}>
       <MuiPhoneInputRoot
@@ -700,6 +827,7 @@ export function MuiPhoneInput(inProps: MuiPhoneInputProps): ReactNode {
         helperText={resolvedHelperText}
         id={phone.state.inputId}
         inputRef={setInputRef}
+        label={label}
         ownerState={ownerState}
         required={required}
         slotProps={{

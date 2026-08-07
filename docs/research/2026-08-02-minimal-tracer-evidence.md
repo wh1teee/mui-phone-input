@@ -119,9 +119,11 @@ matrix. Full details are recorded in
 The pre-extension main baseline contains 218 Browser Mode tests and passes as a
 complete Chromium matrix; its pre-existing 192-test cross-browser baseline
 passes in Chromium, Firefox, and WebKit. This slice adds a focused 19-test
-extension matrix that passes in Chromium, Firefox, and WebKit. The current unit
-suite contains 209 tests. Browser files run serially because focus-sensitive
-fixtures share `document.activeElement`; repeatability evidence is recorded in
+extension matrix that passes in Chromium, Firefox, and WebKit. The WCAG 2.2 AA
+slice adds a focused 19-test semantic/axe matrix that also passes in Chromium,
+Firefox, and WebKit. The current unit suite contains 235 tests. Browser files
+run serially because focus-sensitive fixtures share `document.activeElement`;
+repeatability evidence is recorded in
 `2026-08-03-browser-focus-serialization-evidence.md`.
 
 ## Package budgets
@@ -139,10 +141,10 @@ externalizes declared peers.
 
 Current exact-artifact measurements are:
 
-- main closure: 30,519 bytes gzip;
+- main closure: 32,719 bytes gzip;
 - server entry: 6,126 bytes gzip;
-- packed tarball: 300,646 bytes. The tarball increase is the intentional
-  publication cost of the independently built RHF and Zod JavaScript,
+- packed tarball: 315,431 bytes. The tarball increase includes the production
+  accessibility contract and independently built RHF and Zod JavaScript,
   declaration, and source-map entrypoints; neither adapter is part of the main
   or server runtime closure unless its explicit subpath is imported.
 

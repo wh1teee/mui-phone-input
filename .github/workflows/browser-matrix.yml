@@ -36,4 +36,7 @@ jobs:
       - run: pnpm test:browser
         env:
           VITEST_BROWSER: ${{ matrix.browser }}
+      - run: pnpm verify:wcag22-visual
+        env:
+          WCAG_BROWSER: ${{ matrix.browser }}
 
