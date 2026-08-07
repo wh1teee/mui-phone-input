@@ -6,7 +6,7 @@
   "scripts": {
     "build": "next build",
     "start": "next start",
-    "test": "playwright test",
+    "test": "node ../../scripts/run-docs-playwright.mjs",
     "typecheck": "next typegen && tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {

@@ -1,4 +1,4 @@
-name: Release early next canary
+name: Release feature-complete prerelease
 
 on:
   push:
@@ -14,7 +14,7 @@ concurrency:
 
 jobs:
   publish:
-    name: Verify and publish exact canary
+    name: Verify and publish exact RC
     runs-on: ubuntu-latest
     timeout-minutes: 45
     permissions:
@@ -32,7 +32,7 @@ jobs:
           node-version: 24
           registry-url: https://registry.npmjs.org
       - run: pnpm install --frozen-lockfile
-      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm exec playwright install --with-deps chromium firefox webkit
       - id: candidate
         run: |
           candidate_dir="$RUNNER_TEMP/mui-phone-input-release"
@@ -46,6 +46,21 @@ jobs:
       - run: pnpm ci:pr
         env:
           PACKAGE_ARTIFACT: ${{ steps.candidate.outputs.tarball }}
+      - run: pnpm verify:wcag22-visual
+        env:
+          WCAG_BROWSER: chromium
+      - run: pnpm test:browser
+        env:
+          VITEST_BROWSER: firefox
+      - run: pnpm verify:wcag22-visual
+        env:
+          WCAG_BROWSER: firefox
+      - run: pnpm test:browser
+        env:
+          VITEST_BROWSER: webkit
+      - run: pnpm verify:wcag22-visual
+        env:
+          WCAG_BROWSER: webkit
       - run: >-
           node scripts/verify-release-candidate.mjs
           --directory="${{ steps.candidate.outputs.directory }}"

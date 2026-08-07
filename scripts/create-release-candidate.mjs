@@ -87,7 +87,7 @@ assert.equal(packageManifest.name, '@wh1teee/mui-phone-input');
 assert.match(
   packageManifest.version,
   /^0\.1\.0-next\.\d+$/u,
-  'Early canary must use a 0.1.0-next.x version.',
+  'Feature-complete RC must use the existing 0.1.0-next.x prerelease channel.',
 );
 assert.deepEqual(packageManifest.publishConfig, {
   access: 'public',
@@ -119,16 +119,19 @@ try {
   }
 
   const releaseNotes = await readFile(
-    join(repositoryRoot, 'docs/releases/early-next-canary.md'),
+    join(repositoryRoot, 'docs/releases/feature-complete-rc.md'),
     'utf8',
   );
   const rollback = await readFile(
-    join(repositoryRoot, 'docs/releases/rollback-next-canary.md'),
+    join(repositoryRoot, 'docs/releases/rollback-feature-complete-rc.md'),
     'utf8',
   );
   await writeFile(
     join(outputDirectory, 'RELEASE_NOTES.md'),
-    `# ${packageManifest.name} ${packageManifest.version}\n\n${releaseNotes.trim()}\n`,
+    `# ${packageManifest.name} ${packageManifest.version}\n\n` +
+      `Source commit: \`${sourceCommit}\`\n\n` +
+      `Source tree: \`${sourceTree}\`\n\n` +
+      `${releaseNotes.trim()}\n`,
   );
   await writeFile(
     join(outputDirectory, 'ROLLBACK.md'),
