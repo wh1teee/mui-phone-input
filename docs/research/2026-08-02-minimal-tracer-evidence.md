@@ -139,9 +139,12 @@ externalizes declared peers.
 
 Current exact-artifact measurements are:
 
-- main closure: 30,495 bytes gzip;
+- main closure: 30,519 bytes gzip;
 - server entry: 6,126 bytes gzip;
-- packed tarball: 191,954 bytes.
+- packed tarball: 300,646 bytes. The tarball increase is the intentional
+  publication cost of the independently built RHF and Zod JavaScript,
+  declaration, and source-map entrypoints; neither adapter is part of the main
+  or server runtime closure unless its explicit subpath is imported.
 
 CI creates one immutable package artifact, reuses that same tarball across the
 package/runtime/tracer/consumer gates, and requires exact byte/hash equality

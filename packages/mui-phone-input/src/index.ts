@@ -1,5 +1,7 @@
 'use client';
 
+import './MuiPhoneInput/muiPhoneInputThemeAugmentation';
+
 export {
   type CreatePhoneCountryOptionsParameters,
   createPhoneCountryOptions,

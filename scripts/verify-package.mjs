@@ -50,6 +50,9 @@ for (const requiredFile of [
   'package/dist/index.js',
   'package/dist/index.d.ts',
   'package/dist/index.js.map',
+  'package/dist/react-hook-form.js',
+  'package/dist/react-hook-form.d.ts',
+  'package/dist/react-hook-form.js.map',
   'package/dist/metadata/custom.js',
   'package/dist/metadata/custom.d.ts',
   'package/dist/metadata/max.js',
@@ -78,6 +81,9 @@ for (const requiredFile of [
   'package/dist/server.js',
   'package/dist/server.d.ts',
   'package/dist/server.js.map',
+  'package/dist/zod.js',
+  'package/dist/zod.d.ts',
+  'package/dist/zod.js.map',
 ]) {
   assert.match(contents, new RegExp(`^${requiredFile}$`, 'mu'));
 }
@@ -148,6 +154,12 @@ const packedClientSourceMap = JSON.parse(
 const packedServerSourceMap = JSON.parse(
   await readFile(join(packageRoot, 'dist/server.js.map'), 'utf8'),
 );
+const packedReactHookFormSourceMap = JSON.parse(
+  await readFile(join(packageRoot, 'dist/react-hook-form.js.map'), 'utf8'),
+);
+const packedZodSourceMap = JSON.parse(
+  await readFile(join(packageRoot, 'dist/zod.js.map'), 'utf8'),
+);
 for (const requiredClientSource of [
   '../src/PhoneInputCountrySelector.tsx',
   '../src/PhoneInputPrimitives.tsx',
@@ -173,6 +185,7 @@ for (const forbiddenServerSource of [
   'PhoneInput',
   '/internal/',
   'react-hook-form',
+  '/zod.ts',
 ]) {
   assert.ok(
     packedServerSourceMap.sources.every(
@@ -181,10 +194,40 @@ for (const forbiddenServerSource of [
     `Packed neutral server graph contains ${forbiddenServerSource}.`,
   );
 }
+assert.ok(
+  packedClientSourceMap.sources.every(
+    (source) => !source.includes('/react-hook-form.tsx') && !source.includes('/zod.ts'),
+  ),
+  'Packed main graph must not contain optional adapter sources.',
+);
+assert.ok(
+  packedReactHookFormSourceMap.sources.includes('../src/react-hook-form.tsx'),
+  'Packed RHF adapter graph is missing its public entry source.',
+);
+assert.ok(
+  packedReactHookFormSourceMap.sources.every((source) => !source.includes('/zod.ts')),
+  'Packed RHF adapter graph must not contain the Zod adapter.',
+);
+assert.ok(
+  packedZodSourceMap.sources.includes('../src/zod.ts'),
+  'Packed Zod adapter graph is missing its public entry source.',
+);
+assert.ok(
+  packedZodSourceMap.sources.every(
+    (source) =>
+      !source.includes('/react-hook-form.tsx') && !source.includes('MuiPhoneInput'),
+  ),
+  'Packed Zod adapter graph must remain React/MUI-free.',
+);
 
 const packageDist = join(packageRoot, 'dist');
 const serverBundle = await readFile(join(packageDist, 'server.js'), 'utf8');
 const clientBundle = await readFile(join(packageDist, 'index.js'), 'utf8');
+const reactHookFormBundle = await readFile(
+  join(packageDist, 'react-hook-form.js'),
+  'utf8',
+);
+const zodBundle = await readFile(join(packageDist, 'zod.js'), 'utf8');
 const serverMetadataChunk = serverBundle.match(
   /from\s+["']\.\/(phone-metadata-[^"']+\.js)["']/u,
 )?.[1];
@@ -242,6 +285,29 @@ for (const forbiddenServerGlobal of [
 assert.doesNotMatch(serverBundle, /from\s+['"]node:/u);
 assert.doesNotMatch(serverMetadataBundle, /from\s+['"]node:/u);
 assert.doesNotMatch(clientBundle, /from\s+['"]node:/u);
+for (const coreBundle of [clientBundle, serverBundle, serverMetadataBundle]) {
+  assert.doesNotMatch(coreBundle, /from\s+["']react-hook-form["']/u);
+  assert.doesNotMatch(coreBundle, /from\s+["']zod["']/u);
+}
+assert.match(reactHookFormBundle, /from\s+["']react-hook-form["']/u);
+assert.doesNotMatch(reactHookFormBundle, /from\s+["']zod["']/u);
+assert.match(zodBundle, /from\s+["']zod["']/u);
+assert.doesNotMatch(zodBundle, /from\s+["']react-hook-form["']/u);
+for (const forbiddenZodDependency of ['react', '@mui/', '@emotion/', 'react-dom']) {
+  assert.doesNotMatch(
+    zodBundle,
+    new RegExp(`from\\s+["']${forbiddenZodDependency.replace('/', '\\/')}`, 'u'),
+  );
+}
+for (const forbiddenZodGlobal of [
+  'document',
+  'window',
+  'navigator',
+  'localStorage',
+  'sessionStorage',
+]) {
+  assert.doesNotMatch(zodBundle, new RegExp(`\\b${forbiddenZodGlobal}\\b`, 'u'));
+}
 assert.doesNotMatch(clientBundle, /data:image\/svg\+xml/u);
 assert.doesNotMatch(clientBundle, /<svg/u);
 assert.doesNotMatch(flagsBundle, /data:image\/svg\+xml/u);

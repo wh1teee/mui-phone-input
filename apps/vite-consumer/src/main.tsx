@@ -5,6 +5,7 @@ import {
   type PhoneCountrySelectionResult,
   type PhoneCountrySelectorOptionOwnerState,
   type PhoneInputChangeDetails,
+  type PhoneExtension,
   PhoneInputCountrySelector,
   PhoneInputInput,
   PhoneInputProvider,
@@ -14,12 +15,14 @@ import {
   usePhoneInput,
 } from '@wh1teee/mui-phone-input';
 import '@wh1teee/mui-phone-input/flags.css';
+import { MuiPhoneInputController } from '@wh1teee/mui-phone-input/react-hook-form';
 import {
   parseNationalPhoneValue,
   resolveNumberingPlan,
 } from '@wh1teee/mui-phone-input/server';
 import { type ComponentPropsWithRef, StrictMode, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
+import { useForm, useWatch } from 'react-hook-form';
 
 import { SsrStateMatrix } from './ssr-state-matrix';
 
@@ -283,6 +286,36 @@ function PackedControlledInitialCountry() {
   );
 }
 
+type PackedFormValues = {
+  extension: PhoneExtension;
+  phone: PhoneValue;
+};
+
+function PackedReactHookFormAdapter() {
+  const { control } = useForm<PackedFormValues>({
+    defaultValues: { extension: '42', phone: '+12025550123' },
+  });
+  const values = useWatch({ control });
+
+  return (
+    <section>
+      <MuiPhoneInputController
+        control={control}
+        extensionLabel="Packed RHF extension"
+        extensionName="extension"
+        extensionPresentation="separate"
+        label="Packed RHF phone"
+        name="phone"
+        slotProps={{
+          extension: { htmlInput: { 'data-testid': 'packed-rhf-extension' } },
+          htmlInput: { 'data-testid': 'packed-rhf-phone' },
+        }}
+      />
+      <output data-testid="packed-rhf-values">{JSON.stringify(values)}</output>
+    </section>
+  );
+}
+
 createRoot(root).render(
   <StrictMode>
     <ThemeProvider theme={theme}>
@@ -302,6 +335,7 @@ createRoot(root).render(
           }}
         />
         <PackedControlledInitialCountry />
+        <PackedReactHookFormAdapter />
         <PackedOwnedSlotBoundary />
         <PackedUnmountLifecycle />
         <PackedNativeTabOrder />

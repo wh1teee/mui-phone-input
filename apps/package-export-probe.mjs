@@ -11,6 +11,43 @@ function packageSpecifier(subpath) {
 }
 
 for (const subpath of contract.implemented) {
+  const optionalPeer = contract.optionalPeers?.[subpath];
+  if (optionalPeer) {
+    let peerAvailable = true;
+    try {
+      await import(optionalPeer);
+    } catch (error) {
+      if (error?.code !== 'ERR_MODULE_NOT_FOUND') {
+        throw error;
+      }
+      peerAvailable = false;
+    }
+
+    if (!peerAvailable) {
+      let adapterError;
+      try {
+        await import(packageSpecifier(subpath));
+      } catch (error) {
+        adapterError = error;
+      }
+      assert.ok(
+        adapterError,
+        `${subpath} unexpectedly loaded without ${optionalPeer}.`,
+      );
+      assert.equal(
+        adapterError.code,
+        'ERR_MODULE_NOT_FOUND',
+        `${subpath} must fail because its own optional peer is absent.`,
+      );
+      assert.match(
+        adapterError.message,
+        new RegExp(optionalPeer, 'u'),
+        `${subpath} missing-peer error must name ${optionalPeer}.`,
+      );
+      continue;
+    }
+  }
+
   const loaded =
     subpath === './package.json'
       ? await import(packageSpecifier(subpath), { with: { type: 'json' } })

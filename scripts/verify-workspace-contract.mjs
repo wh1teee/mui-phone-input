@@ -168,6 +168,8 @@ for (const virtualizationDependency of [
 for (const exportPath of [
   '.',
   './server',
+  './react-hook-form',
+  './zod',
   './metadata/max',
   './metadata/min',
   './metadata/mobile',
@@ -181,7 +183,7 @@ for (const exportPath of [
 ]) {
   assert.ok(packageManifest.exports[exportPath], `Missing export ${exportPath}`);
 }
-for (const futureExportPath of ['./react-hook-form', './zod', './flags/local']) {
+for (const futureExportPath of ['./flags/local']) {
   assert.equal(
     packageManifest.exports[futureExportPath],
     undefined,
@@ -191,6 +193,8 @@ for (const futureExportPath of ['./react-hook-form', './zod', './flags/local']) 
 assert.deepEqual(consumerExportContract.implemented, [
   '.',
   './server',
+  './react-hook-form',
+  './zod',
   './metadata/max',
   './metadata/min',
   './metadata/mobile',
@@ -202,10 +206,11 @@ assert.deepEqual(consumerExportContract.implemented, [
   './package.json',
 ]);
 assert.deepEqual(consumerExportContract.implementedAssets, ['./flags.css']);
-assert.deepEqual(Object.keys(consumerExportContract.intentionallyAbsent).sort(), [
-  './react-hook-form',
-  './zod',
-]);
+assert.deepEqual(consumerExportContract.optionalPeers, {
+  './react-hook-form': 'react-hook-form',
+  './zod': 'zod',
+});
+assert.deepEqual(consumerExportContract.intentionallyAbsent, {});
 
 assert.match(tsdownConfig, /platform:\s*['"]browser['"]/u);
 assert.match(tsdownConfig, /platform:\s*['"]neutral['"]/u);

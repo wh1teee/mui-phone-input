@@ -10,8 +10,9 @@ event-independent change details. Formatting modes, Display Masks, independent
 phone extensions, and RFC 3966 import/export are part of the same public
 contract.
 
-The package is still under active 1.0 development. Form adapters and remaining
-release hardening are delivered in later gated slices.
+The package is still under active 1.0 development. The official React Hook Form
+and Zod adapters are included as optional subpaths; remaining release hardening
+continues in later gated slices.
 
 ## Published subpaths
 
@@ -21,6 +22,9 @@ The current canary publishes only these implemented paths:
   shared phone helpers;
 - `@wh1teee/mui-phone-input/server` — neutral parsing, numbering-plan,
   formatting and validation helpers;
+- `@wh1teee/mui-phone-input/react-hook-form` — optional React Hook Form
+  `Controller` adapter;
+- `@wh1teee/mui-phone-input/zod` — optional neutral Zod schema factories;
 - `@wh1teee/mui-phone-input/metadata/max` — max metadata (the default);
 - `@wh1teee/mui-phone-input/metadata/min` — min metadata;
 - `@wh1teee/mui-phone-input/metadata/mobile` — mobile metadata;
@@ -30,16 +34,9 @@ The current canary publishes only these implemented paths:
 - `@wh1teee/mui-phone-input/locales/{en,be,ru}` — independent locale packs;
 - `@wh1teee/mui-phone-input/package.json` — package metadata.
 
-The following future paths are intentionally not exported until their owning
-feature ships atomically with implementation, documentation, tests and release
-evidence:
-
-- `./react-hook-form` and `./zod` (`mpi-oan.12`).
-
-React Hook Form and Zod remain optional peer declarations so their owning
-adapter slice can preserve the planned package contract without forcing either
-dependency into current consumers. They are not required to install or use the
-implemented canary paths.
+React Hook Form and Zod are optional peers. Core, `/server`, metadata, flags,
+and locale consumers do not need either package. Using only one adapter does
+not require installing the other adapter's peer.
 
 ## Reporting problems
 
@@ -59,6 +56,80 @@ only and intentionally has no published Node engine constraint, so browser
 consumers are not blocked by the repository toolchain. Exact tarballs are
 installed and loaded under Node 22 and Node 24; repository development and
 release tooling requires Node 24 LTS.
+
+## React Hook Form
+
+Install React Hook Form only when using the adapter:
+
+```sh
+pnpm add react-hook-form
+```
+
+`MuiPhoneInputController` binds the canonical `PhoneValue` through RHF's
+`Controller`. An extension can be bound to a second field with `extensionName`
+while both values still render through one `MuiPhoneInput` instance.
+
+```tsx
+import type { PhoneExtension, PhoneValue } from '@wh1teee/mui-phone-input';
+import { MuiPhoneInputController } from '@wh1teee/mui-phone-input/react-hook-form';
+import { useForm } from 'react-hook-form';
+
+type ContactForm = {
+  extension: PhoneExtension;
+  phone: PhoneValue;
+};
+
+const { control } = useForm<ContactForm>({
+  defaultValues: { extension: undefined, phone: undefined },
+});
+
+<MuiPhoneInputController
+  control={control}
+  extensionName="extension"
+  extensionPresentation="separate"
+  name="phone"
+/>;
+```
+
+RHF remains responsible for form state and validation orchestration. Native
+`Controller` behavior therefore covers dirty/touched state, reset and async
+defaults, `shouldUnregister`, field-array paths, focus-on-error, disabled
+fields, and server errors. `rules` and `extensionRules` can attach RHF rules;
+the adapter does not create a second phone parsing or validation authority.
+
+## Zod
+
+Install Zod only when using its adapter:
+
+```sh
+pnpm add zod
+```
+
+The Zod subpath preserves canonical package types and delegates acceptance to
+the existing phone/extension authorities:
+
+```ts
+import {
+  createPhoneExtensionSchema,
+  createPhoneFormSchema,
+  createPhoneNumberTypeSchema,
+  createPhonePossibleSchema,
+  createPhoneSyntaxSchema,
+  createPhoneValidSchema,
+} from '@wh1teee/mui-phone-input/zod';
+
+const candidate = createPhoneSyntaxSchema();
+const possible = createPhonePossibleSchema({ required: true });
+const strict = createPhoneValidSchema();
+const mobile = createPhoneNumberTypeSchema(['MOBILE']);
+const extension = createPhoneExtensionSchema({ maxLength: 6 });
+const contact = createPhoneFormSchema({ phone: { required: true } });
+```
+
+`createPhoneSyntaxSchema` validates canonical `PhoneValue` syntax and does not
+normalize display text. `createPhonePossibleSchema` uses the package's default
+possible-number policy; strict validity and number-type restrictions remain
+explicit. Extension schemas reuse the canonical digits-only extension parser.
 
 ## Controlled usage
 
