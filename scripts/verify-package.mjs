@@ -153,6 +153,7 @@ for (const requiredClientSource of [
   '../src/PhoneInputPrimitives.tsx',
   '../src/MuiPhoneInput/MuiPhoneInput.tsx',
   '../src/internal/use-input-transaction-engine.ts',
+  '../src/phone-extension.ts',
   '../src/usePhoneInput.ts',
 ]) {
   assert.ok(
@@ -165,6 +166,7 @@ assert.deepEqual(packedServerSourceMap.sources, [
   '../src/phone-value.ts',
   '../src/numbering-plan.ts',
   '../src/phone-validation.ts',
+  '../src/phone-extension.ts',
 ]);
 for (const forbiddenServerSource of [
   'MuiPhoneInput',

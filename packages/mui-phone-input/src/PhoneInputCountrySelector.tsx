@@ -89,7 +89,20 @@ export interface PhoneCountrySelectorMessages {
 
 export type PhoneCountrySelectorPresentation = 'desktop' | 'mobile';
 
-export interface PhoneCountrySelectorOwnerState extends MuiPhoneInputOwnerState {
+export interface PhoneCountrySelectorOwnerState
+  extends Pick<
+    MuiPhoneInputOwnerState,
+    | 'controlled'
+    | 'countryControlled'
+    | 'disabled'
+    | 'empty'
+    | 'error'
+    | 'numberingPlanKind'
+    | 'readOnly'
+    | 'required'
+    | 'selectedCountry'
+    | 'validationStatus'
+  > {
   open: boolean;
   presentation: PhoneCountrySelectorPresentation;
   query: string;

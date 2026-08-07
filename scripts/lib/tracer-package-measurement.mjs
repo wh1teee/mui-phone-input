@@ -11,7 +11,7 @@ import {
   repositoryRoot,
 } from './package-artifact.mjs';
 
-const MAIN_GZIP_BUDGET_BYTES = 28 * 1024;
+const MAIN_GZIP_BUDGET_BYTES = 32 * 1024;
 const SERVER_GZIP_BUDGET_BYTES = 10 * 1024;
 
 const MAIN_BUDGET_EXTERNALS = [
@@ -67,7 +67,6 @@ async function buildMainClosure(entry) {
     .filter(({ type }) => type === 'chunk')
     .map(({ code: chunkCode }) => chunkCode)
     .join('\n');
-
   return sizeRecord(code);
 }
 

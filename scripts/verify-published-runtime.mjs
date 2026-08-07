@@ -119,13 +119,23 @@ assert.equal(manifest.engines, undefined);
 assert.equal(typeof client.MuiPhoneInput, 'function');
 assert.equal(server.isPhoneValue('+37529'), true);
 assert.equal(server.isPhoneValue('37529'), false);
+assert.deepEqual(server.parseRfc3966('tel:+12025550123;ext=42'), {
+  extension: '42',
+  value: '+12025550123',
+});
+assert.equal(server.serializeRfc3966('+12025550123', '42'), 'tel:+12025550123;ext=42');
 assert.deepEqual(Object.keys(server).sort(), [
+  'assertPhoneExtension',
   'assertPhoneValue',
   'formatPhoneValueForDisplay',
+  'isPhoneExtension',
   'isPhoneValue',
   'parseNationalPhoneValue',
+  'parsePhoneExtension',
   'parsePhoneValue',
+  'parseRfc3966',
   'resolveNumberingPlan',
+  'serializeRfc3966',
   'validatePhoneMetadata',
   'validatePhoneValue',
 ]);

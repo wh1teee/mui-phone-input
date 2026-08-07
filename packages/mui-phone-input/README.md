@@ -6,10 +6,12 @@ ownership, authority-backed numbering-plan resolution, possible-by-default
 validation, a shared headless controller, supported composable primitives, MUI
 theme registration, a searchable responsive Country Selector, stable utility
 classes, local/opt-in external flag modes, locale packs, and deterministic
-event-independent change details.
+event-independent change details. Formatting modes, Display Masks, independent
+phone extensions, and RFC 3966 import/export are part of the same public
+contract.
 
-The package is still under active 1.0 development. Advanced display modes and
-masks, extensions, and form adapters are delivered in later gated slices.
+The package is still under active 1.0 development. Form adapters and remaining
+release hardening are delivered in later gated slices.
 
 ## Published subpaths
 
@@ -147,6 +149,60 @@ const dotted: FormatStrategy = ({ automatic }) => ({
 `formatPhoneInputPresentation(value, options)` exposes the same pure client
 presentation contract, including logical-to-display caret positions. It is
 intentionally separate from the server-safe validation helpers.
+
+## Extensions and RFC 3966
+
+Extensions are independent from `PhoneValue`. Their canonical value is
+`undefined` for an empty extension or a digits-only string such as `"42"`.
+There is no library-wide maximum length; products can opt into a limit with
+`extensionMaxLength`.
+
+```tsx
+import type { PhoneExtension, PhoneValue } from '@wh1teee/mui-phone-input';
+
+const [value, setValue] = useState<PhoneValue>('+12025550123');
+const [extension, setExtension] = useState<PhoneExtension>('42');
+
+<MuiPhoneInput
+  extension={extension}
+  extensionLabel="Extension"
+  extensionPresentation="separate"
+  label="Phone number"
+  onChange={setValue}
+  onExtensionChange={setExtension}
+  value={value}
+/>
+```
+
+`extensionPresentation` accepts `none`, `separate`, `inline`, or `custom`.
+Changing presentation never creates a second extension value. The custom mode
+uses `renderExtension`, while MUI consumers can replace the built-in extension
+field with `slots.extension` and configure it through `slotProps.extension`.
+`extensionError`, `extensionHelperText`, and `extensionRequired` control the
+extension field independently from the phone-number validation state.
+
+Pasting an RFC 3966 URI or a libphonenumber-recognized formatted value such as
+`+1 202 555 0123 ext. 42` imports the telephone number and extension in one
+transaction. National extension-bearing values use the current selected
+country as parsing context. The phone part still commits through the normal
+phone transaction/formatting pipeline, and the resulting `PhoneValue` never
+contains the extension.
+
+```ts
+import {
+  parseRfc3966,
+  serializeRfc3966,
+} from '@wh1teee/mui-phone-input/server';
+
+parseRfc3966('tel:+1-202-555-0123;ext=42');
+// { value: '+12025550123', extension: '42' }
+
+serializeRfc3966('+12025550123', '42');
+// 'tel:+12025550123;ext=42'
+```
+
+The same pure helpers are available from the main entrypoint. Use the
+`/server` entry when React or MUI must not enter the server dependency graph.
 
 ## Country Selector
 

@@ -15,6 +15,9 @@ export interface MuiPhoneInputClasses {
   countrySelectorOptionLabel: string;
   countrySelectorPopup: string;
   countrySelectorSearchInput: string;
+  extension: string;
+  extensionInput: string;
+  extensionValidationMessage: string;
   root: string;
   input: string;
   validationMessage: string;
@@ -32,6 +35,9 @@ export const muiPhoneInputClasses: MuiPhoneInputClasses = generateUtilityClasses
     'root',
     'input',
     'validationMessage',
+    'extension',
+    'extensionInput',
+    'extensionValidationMessage',
     'countrySelector',
     'countrySelectorCallingCode',
     'countrySelectorCloseButton',

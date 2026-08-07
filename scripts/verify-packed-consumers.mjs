@@ -1048,19 +1048,23 @@ async function verifyPackedBrowser(destination, consumer) {
     ];
     for (const [index, digit] of [...composableDigits].entries()) {
       await composableInput.press(digit);
+      const expectedCommittedValue = `+1${composableDigits.slice(0, index + 1)}`;
       await page.waitForFunction(
-        ({ expectedCallbackCount, expectedValue }) => {
+        ({ expectedCallbackCount, expectedDisplayValue, expectedValue }) => {
           const input = document.querySelector('[data-testid="composable-input"]');
           return (
             input instanceof HTMLInputElement &&
-            input.value === expectedValue &&
+            input.value === expectedDisplayValue &&
+            document.querySelector('[data-testid="composable-value"]')?.textContent ===
+              expectedValue &&
             document.querySelector('[data-testid="composable-callback-count"]')
               ?.textContent === String(expectedCallbackCount)
           );
         },
         {
           expectedCallbackCount: index + 1,
-          expectedValue: composableDisplayValues[index],
+          expectedDisplayValue: composableDisplayValues[index],
+          expectedValue: expectedCommittedValue,
         },
       );
     }

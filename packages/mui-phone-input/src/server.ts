@@ -20,6 +20,16 @@ export {
   type PhoneValidationStrategyContext,
   validatePhoneValue,
 } from './phone-validation';
+export {
+  assertPhoneExtension,
+  isPhoneExtension,
+  type ParsedRfc3966,
+  type ParsePhoneExtensionOptions,
+  type PhoneExtension,
+  parsePhoneExtension,
+  parseRfc3966,
+  serializeRfc3966,
+} from './phone-extension';
 export { type PhoneMetadata, validatePhoneMetadata } from './phone-metadata';
 export {
   assertPhoneValue,

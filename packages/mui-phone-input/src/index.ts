@@ -52,6 +52,8 @@ export {
   type PhoneInputCountrySelectorProps,
 } from './PhoneInputCountrySelector';
 export {
+  PhoneInputExtensionInput,
+  type PhoneInputExtensionInputProps,
   PhoneInputInput,
   type PhoneInputInputProps,
   PhoneInputProvider,
@@ -74,6 +76,16 @@ export {
   type PhoneInputPresentation,
 } from './phone-formatting';
 export {
+  assertPhoneExtension,
+  isPhoneExtension,
+  type ParsedRfc3966,
+  type ParsePhoneExtensionOptions,
+  type PhoneExtension,
+  parsePhoneExtension,
+  parseRfc3966,
+  serializeRfc3966,
+} from './phone-extension';
+export {
   type BuiltInPhoneValidationMode,
   formatPhoneValueForDisplay,
   type PhoneValidationMode,
@@ -95,12 +107,16 @@ export {
 export {
   type PhoneCountryChangeDetails,
   type PhoneCountryChangeReason,
+  type PhoneExtensionChangeDetails,
+  type PhoneExtensionChangeReason,
+  type PhoneExtensionInputExternalProps,
   type PhoneInputActions,
   type PhoneInputChangeDetails,
   type PhoneInputChangeReason,
   type PhoneInputInputExternalProps,
   type PhoneInputNumberingPlanState,
   type PhoneInputResolvedInputProps,
+  type PhoneInputResolvedExtensionInputProps,
   type PhoneInputResolvedRootProps,
   type PhoneInputResolvedValidationMessageProps,
   type PhoneInputRootExternalProps,

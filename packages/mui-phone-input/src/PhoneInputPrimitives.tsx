@@ -4,7 +4,10 @@ import { useForkRef } from '@mui/material/utils';
 import { type ComponentPropsWithRef, createContext, type ReactNode, use } from 'react';
 
 import { muiPhoneInputClasses } from './MuiPhoneInput/muiPhoneInputClasses';
-import type { UsePhoneInputReturn } from './usePhoneInput';
+import type {
+  PhoneExtensionInputExternalProps,
+  UsePhoneInputReturn,
+} from './usePhoneInput';
 
 const PhoneInputContext = createContext<UsePhoneInputReturn | null>(null);
 
@@ -70,6 +73,26 @@ export function PhoneInputInput({
   });
 
   return <input {...inputProps} ref={forkedRef} />;
+}
+
+export type PhoneInputExtensionInputProps = PhoneExtensionInputExternalProps & {
+  ref?: ComponentPropsWithRef<'input'>['ref'];
+};
+
+export function PhoneInputExtensionInput({
+  className,
+  ref,
+  ...props
+}: PhoneInputExtensionInputProps): ReactNode {
+  const phone = usePhoneInputContext();
+  const forkedRef = useForkRef(phone.setExtensionInputRef, ref);
+  const inputProps = phone.getExtensionInputProps({
+    ...props,
+    className: joinClassNames(muiPhoneInputClasses.extensionInput, className),
+  });
+  const { ref: _preparedRef, ...resolvedProps } = inputProps;
+
+  return <input {...resolvedProps} ref={forkedRef} />;
 }
 
 export type PhoneInputValidationMessageProps = ComponentPropsWithRef<'span'>;
