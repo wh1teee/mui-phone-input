@@ -2,6 +2,8 @@
   "implemented": [
     ".",
     "./server",
+    "./react-hook-form",
+    "./zod",
     "./metadata/max",
     "./metadata/min",
     "./metadata/mobile",
@@ -13,8 +15,9 @@
     "./package.json"
   ],
   "implementedAssets": ["./flags.css"],
-  "intentionallyAbsent": {
-    "./react-hook-form": "mpi-oan.12",
-    "./zod": "mpi-oan.12"
-  }
+  "optionalPeers": {
+    "./react-hook-form": "react-hook-form",
+    "./zod": "zod"
+  },
+  "intentionallyAbsent": {}
 }

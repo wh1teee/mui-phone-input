@@ -236,6 +236,38 @@ const expectedExportContract = {
       'validatePhoneValue',
     ],
   },
+  './react-hook-form': {
+    boundary: 'client',
+    runtime: ['MuiPhoneInputController'],
+    types: [
+      'MuiPhoneInputController',
+      'MuiPhoneInputControllerProps',
+      'PhoneControllerFieldPath',
+      'PhoneExtensionControllerFieldPath',
+    ],
+  },
+  './zod': {
+    boundary: 'neutral',
+    runtime: [
+      'createPhoneExtensionSchema',
+      'createPhoneFormSchema',
+      'createPhoneNumberTypeSchema',
+      'createPhonePossibleSchema',
+      'createPhoneSyntaxSchema',
+      'createPhoneValidSchema',
+    ],
+    types: [
+      'PhoneExtensionZodSchemaOptions',
+      'PhoneFormZodSchemaOptions',
+      'PhoneZodSchemaOptions',
+      'createPhoneExtensionSchema',
+      'createPhoneFormSchema',
+      'createPhoneNumberTypeSchema',
+      'createPhonePossibleSchema',
+      'createPhoneSyntaxSchema',
+      'createPhoneValidSchema',
+    ],
+  },
   './metadata/max': {
     boundary: 'neutral',
     runtime: ['default'],
@@ -303,7 +335,11 @@ const expectedExportContract = {
   },
 };
 
-const absentFutureSubpaths = ['./react-hook-form', './zod'];
+const optionalPeerBySubpath = {
+  './react-hook-form': 'react-hook-form',
+  './zod': 'zod',
+};
+const absentFutureSubpaths = [];
 
 function packageSpecifier(subpath) {
   return subpath === '.' ? packageName : `${packageName}/${subpath.slice(2)}`;
@@ -552,6 +588,26 @@ try {
       );
       assert.ok(contract.types.length > 0, `${subpath} unexpectedly has no type API.`);
 
+      const optionalPeer = optionalPeerBySubpath[subpath];
+      if (optionalPeer) {
+        const missingPeerProbe = readRuntimeProbe(
+          temporaryRoot,
+          packageSpecifier(subpath),
+          'module',
+        );
+        assert.equal(
+          missingPeerProbe.code,
+          'ERR_MODULE_NOT_FOUND',
+          `${subpath} must fail only because its optional peer is absent.`,
+        );
+        assert.match(
+          missingPeerProbe.message,
+          new RegExp(optionalPeer, 'u'),
+          `${subpath} missing-peer failure must name ${optionalPeer}.`,
+        );
+        await linkDependency(temporaryRoot, optionalPeer);
+      }
+
       const runtimeProbe = readRuntimeProbe(
         temporaryRoot,
         packageSpecifier(subpath),
@@ -578,6 +634,13 @@ try {
         [...contract.types].sort(),
         `${subpath} type exports differ from the explicit contract.`,
       );
+
+      if (optionalPeer) {
+        await rm(join(temporaryRoot, 'node_modules', optionalPeer), {
+          force: true,
+          recursive: true,
+        });
+      }
     }
 
     for (const subpath of absentFutureSubpaths) {
@@ -595,6 +658,9 @@ try {
 
     console.log(
       `Semantic export and boundary contract verified for ${Object.keys(expectedExportContract).length} public paths; ${absentFutureSubpaths.length} future paths remain absent.`,
+    );
+    console.log(
+      'Optional peer isolation verified: core paths load without RHF/Zod, and each adapter loads with only its own optional peer.',
     );
   } finally {
     await rm(temporaryRoot, { force: true, recursive: true });

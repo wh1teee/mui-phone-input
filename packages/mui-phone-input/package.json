@@ -33,6 +33,16 @@
       "import": "./dist/server.js",
       "default": "./dist/server.js"
     },
+    "./react-hook-form": {
+      "types": "./dist/react-hook-form.d.ts",
+      "import": "./dist/react-hook-form.js",
+      "default": "./dist/react-hook-form.js"
+    },
+    "./zod": {
+      "types": "./dist/zod.d.ts",
+      "import": "./dist/zod.js",
+      "default": "./dist/zod.js"
+    },
     "./metadata/max": {
       "types": "./dist/metadata/max.d.ts",
       "import": "./dist/metadata/max.js",

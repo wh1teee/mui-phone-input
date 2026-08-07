@@ -478,6 +478,13 @@ async function verifyPackedBrowser(destination, consumer) {
             unresolved: 'unresolved',
           },
         );
+        assert.deepEqual(
+          JSON.parse(
+            (await serverPage.getByTestId('zod-adapter-result').textContent()) || '{}',
+          ),
+          { extension: '42', phone: '+375291234567' },
+          'Next.js server rendering must execute the packed neutral Zod adapter.',
+        );
       } finally {
         await serverContext.close();
       }
@@ -599,6 +606,28 @@ async function verifyPackedBrowser(destination, consumer) {
           (await page.getByTestId('server-plan-matrix').textContent()) || '{}',
         ),
         { kind: 'non-geographic', national: '+375291234567' },
+      );
+      const packedRhfPhone = page.getByTestId('packed-rhf-phone');
+      const packedRhfExtension = page.getByTestId('packed-rhf-extension');
+      await packedRhfPhone.waitFor({ state: 'visible' });
+      assert.equal(await packedRhfPhone.inputValue(), '+1 202 555 0123');
+      assert.equal(await packedRhfExtension.inputValue(), '42');
+      assert.deepEqual(
+        JSON.parse((await page.getByTestId('packed-rhf-values').textContent()) || '{}'),
+        { extension: '42', phone: '+12025550123' },
+      );
+      await packedRhfPhone.fill('+375291234567');
+      await packedRhfExtension.fill('88');
+      await page.waitForFunction(
+        () =>
+          document.querySelector('[data-testid="packed-rhf-values"]')?.textContent ===
+          '{"extension":"88","phone":"+375291234567"}',
+      );
+      assert.equal(await packedRhfPhone.inputValue(), '+375 29 123 45 67');
+      assert.deepEqual(
+        JSON.parse((await page.getByTestId('packed-rhf-values').textContent()) || '{}'),
+        { extension: '88', phone: '+375291234567' },
+        'Vite must bind packed RHF phone and extension fields independently.',
       );
     }
     await page.waitForFunction(() =>
