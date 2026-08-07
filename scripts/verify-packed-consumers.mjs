@@ -13,6 +13,7 @@ import {
 import { createServer } from 'node:net';
 import { tmpdir } from 'node:os';
 import { basename, dirname, join, resolve } from 'node:path';
+import { performance } from 'node:perf_hooks';
 import { chromium } from '@playwright/test';
 
 import { createPackageArtifact, run } from './lib/package-artifact.mjs';
@@ -61,6 +62,147 @@ async function sha256File(file) {
 }
 
 const authoritativeTarballDigest = await sha256File(tarball);
+const INPUT_INTERACTION_BUDGET_MS = 250;
+const INPUT_TOTAL_BUDGET_MS = 1_000;
+
+function recordUnexpectedNetwork(page, localOrigin) {
+  const unexpected = [];
+  page.on('request', (request) => {
+    const requestUrl = new URL(request.url());
+    if (
+      (requestUrl.protocol === 'http:' || requestUrl.protocol === 'https:') &&
+      requestUrl.origin !== localOrigin
+    ) {
+      unexpected.push(request.url());
+    }
+  });
+  return unexpected;
+}
+
+async function measurePackedInputPerformance(page, origin) {
+  const input = page.getByTestId('performance-input');
+  const extension = page.getByTestId('performance-extension');
+  const value = page.getByTestId('performance-value');
+  const extensionValue = page.getByTestId('performance-extension-value');
+  const maskEnabled = page.getByTestId('performance-mask-enabled');
+  const reset = page.getByRole('button', { name: 'Reset performance input' });
+  const toggleMask = page.getByRole('button', { name: 'Toggle performance mask' });
+  const countryTrigger = page.getByTestId('performance-country-trigger');
+  const measurements = {};
+
+  await page.context().grantPermissions(['clipboard-read', 'clipboard-write'], {
+    origin,
+  });
+
+  const settleValue = async (expected) => {
+    await page.waitForFunction(
+      ({ expectedValue }) =>
+        document.querySelector('[data-testid="performance-value"]')?.textContent ===
+        expectedValue,
+      { expectedValue: expected },
+    );
+  };
+  const measure = async (name, operation) => {
+    const startedAt = performance.now();
+    await operation();
+    measurements[name] = Number((performance.now() - startedAt).toFixed(3));
+    assert.ok(
+      measurements[name] <= INPUT_INTERACTION_BUDGET_MS,
+      `${name} exceeded the ${INPUT_INTERACTION_BUDGET_MS} ms packed input interaction budget: ${measurements[name]} ms.`,
+    );
+  };
+
+  await reset.click();
+  await settleValue('');
+  await input.focus();
+  await measure('typingMs', async () => {
+    await input.pressSequentially('12025550123');
+    await settleValue('+12025550123');
+  });
+
+  await input.evaluate((element) => {
+    if (!(element instanceof HTMLInputElement)) {
+      throw new TypeError('Expected packed performance input.');
+    }
+    element.focus();
+    element.setSelectionRange(7, 10);
+  });
+  await measure('middleEditMs', async () => {
+    await input.pressSequentially('777');
+    await settleValue('+12027770123');
+  });
+
+  await reset.click();
+  await settleValue('');
+  await page.evaluate(() => navigator.clipboard.writeText('+375291234567'));
+  await input.focus();
+  await measure('pasteMs', async () => {
+    await input.press('Control+V');
+    await settleValue('+375291234567');
+  });
+
+  await reset.click();
+  await settleValue('');
+  await input.pressSequentially('12025550123');
+  await settleValue('+12025550123');
+  await measure('maskEnableMs', async () => {
+    await toggleMask.click();
+    await maskEnabled.filter({ hasText: 'true' }).waitFor();
+  });
+  assert.match(
+    await input.inputValue(),
+    /\(202\).*555/u,
+    'Packed mask transition did not reformat the public controlled input.',
+  );
+  await measure('maskDisableMs', async () => {
+    await toggleMask.click();
+    await maskEnabled.filter({ hasText: 'false' }).waitFor();
+  });
+
+  await reset.click();
+  await settleValue('');
+  await input.pressSequentially('37');
+  await settleValue('+37');
+  await measure('countryChangeMs', async () => {
+    await countryTrigger.click();
+    const search = page.getByRole('combobox', { name: 'Search countries' });
+    await search.fill('BY');
+    await page.locator('[role="option"][data-country="BY"]').waitFor();
+    await search.press('Enter');
+    await settleValue('+375');
+  });
+
+  await measure('extensionMs', async () => {
+    await extension.fill('42');
+    await page.waitForFunction(
+      () =>
+        document.querySelector('[data-testid="performance-extension-value"]')
+          ?.textContent === '42',
+    );
+  });
+  assert.equal(await extensionValue.textContent(), '42');
+
+  const totalMs = Number(
+    Object.values(measurements)
+      .reduce((sum, duration) => sum + duration, 0)
+      .toFixed(3),
+  );
+  assert.ok(
+    totalMs <= INPUT_TOTAL_BUDGET_MS,
+    `Packed input benchmark exceeded the ${INPUT_TOTAL_BUDGET_MS} ms aggregate budget: ${totalMs} ms.`,
+  );
+  const result = {
+    budgets: {
+      aggregateMs: INPUT_TOTAL_BUDGET_MS,
+      interactionMs: INPUT_INTERACTION_BUDGET_MS,
+    },
+    controlled: true,
+    measurements,
+    totalMs,
+  };
+  console.log(`PACKED_INPUT_BENCHMARK ${JSON.stringify(result)}`);
+  return result;
+}
 
 async function reservePort() {
   return new Promise((resolve, reject) => {
@@ -568,6 +710,7 @@ async function verifyPackedBrowser(destination, consumer) {
     const page = await browser.newPage();
     const pageErrors = [];
     const consoleErrors = [];
+    const unexpectedNetwork = recordUnexpectedNetwork(page, new URL(url).origin);
     page.on('pageerror', (error) => pageErrors.push(error));
     page.on('console', (message) => {
       if (message.type() === 'error') {
@@ -1177,6 +1320,15 @@ async function verifyPackedBrowser(destination, consumer) {
         `Packed composable country state is invalid: ${JSON.stringify(countryState)}`,
       );
     }
+    if (consumer === 'vite-consumer') {
+      await measurePackedInputPerformance(page, new URL(url).origin);
+    }
+    assert.deepEqual(
+      unexpectedNetwork,
+      [],
+      `Default packed ${consumer} usage made unexpected external network requests.`,
+    );
+    console.log(`NO_EXTERNAL_NETWORK ${consumer} ${supportMatrix} PASS`);
     if (pageErrors.length > 0) {
       throw new Error(`Packed consumer page errors: ${pageErrors.join('\n')}`);
     }

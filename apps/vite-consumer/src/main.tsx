@@ -286,6 +286,49 @@ function PackedControlledInitialCountry() {
   );
 }
 
+function PackedPerformanceInput() {
+  const [extension, setExtension] = useState<PhoneExtension>();
+  const [masked, setMasked] = useState(false);
+  const [value, setValue] = useState<PhoneValue>();
+
+  return (
+    <section>
+      <MuiPhoneInput
+        displayMask={masked ? { pattern: '+ # (###) ###-####' } : undefined}
+        extension={extension}
+        extensionPresentation="separate"
+        label="Packed performance phone"
+        onChange={setValue}
+        onExtensionChange={setExtension}
+        slotProps={{
+          countrySelector: {
+            'data-testid': 'performance-country-trigger',
+            mode: 'desktop',
+          },
+          extension: { htmlInput: { 'data-testid': 'performance-extension' } },
+          htmlInput: { 'data-testid': 'performance-input' },
+        }}
+        value={value}
+      />
+      <output data-testid="performance-value">{value ?? ''}</output>
+      <output data-testid="performance-extension-value">{extension ?? ''}</output>
+      <output data-testid="performance-mask-enabled">{String(masked)}</output>
+      <button onClick={() => setMasked((current) => !current)} type="button">
+        Toggle performance mask
+      </button>
+      <button
+        onClick={() => {
+          setExtension(undefined);
+          setValue(undefined);
+        }}
+        type="button"
+      >
+        Reset performance input
+      </button>
+    </section>
+  );
+}
+
 type PackedFormValues = {
   extension: PhoneExtension;
   phone: PhoneValue;
@@ -335,6 +378,7 @@ createRoot(root).render(
           }}
         />
         <PackedControlledInitialCountry />
+        <PackedPerformanceInput />
         <PackedReactHookFormAdapter />
         <PackedOwnedSlotBoundary />
         <PackedUnmountLifecycle />

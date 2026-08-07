@@ -117,10 +117,36 @@ assert.doesNotMatch(
   JSON.stringify(packedManifest),
   /github\.com\/wh1teee\/mui-phone-input\/issues/u,
 );
-assert.equal(
-  packedManifest.dependencies?.tabbable,
-  '6.5.0',
-  'Published package metadata must pin the reviewed tabbable runtime.',
+assert.deepEqual(
+  packedManifest.dependencies,
+  {
+    '@maskito/core': '5.3.1',
+    '@maskito/react': '5.3.1',
+    'libphonenumber-js': '1.13.10',
+    tabbable: '6.5.0',
+  },
+  'Published runtime dependencies differ from the reviewed feature-complete contract.',
+);
+assert.deepEqual(
+  packedManifest.peerDependencies,
+  {
+    '@emotion/react': '^11.14.0',
+    '@emotion/styled': '^11.14.0',
+    '@mui/material': '^9.0.0',
+    react: '^19.0.0',
+    'react-dom': '^19.0.0',
+    'react-hook-form': '^7.0.0',
+    zod: '^4.0.0',
+  },
+  'Published peer dependencies differ from the reviewed feature-complete contract.',
+);
+assert.deepEqual(
+  packedManifest.peerDependenciesMeta,
+  {
+    'react-hook-form': { optional: true },
+    zod: { optional: true },
+  },
+  'Only RHF and Zod may be optional integration peers.',
 );
 assert.equal(
   packedManifest.dependencies?.['country-flag-icons'],
@@ -147,6 +173,17 @@ assert.match(
   packedThirdPartyNotices,
   /Copyright \(c\) 2020 @catamphetamine <purecatamphetamine@gmail\.com>/u,
 );
+for (const notice of [
+  /@maskito\/core.*@maskito\/react.*5\.3\.1/su,
+  /libphonenumber-js/u,
+  /tabbable@6\.5\.0/u,
+]) {
+  assert.match(
+    packedThirdPartyNotices,
+    notice,
+    'Packed third-party notices do not cover the reviewed runtime dependency set.',
+  );
+}
 
 const packedClientSourceMap = JSON.parse(
   await readFile(join(packageRoot, 'dist/index.js.map'), 'utf8'),
@@ -200,6 +237,20 @@ assert.ok(
   ),
   'Packed main graph must not contain optional adapter sources.',
 );
+for (const forbiddenClientSource of [
+  '/locales/',
+  '/server.ts',
+  '/metadata/max.ts',
+  '/metadata/min.ts',
+  '/metadata/mobile.ts',
+]) {
+  assert.ok(
+    packedClientSourceMap.sources.every(
+      (source) => !source.includes(forbiddenClientSource),
+    ),
+    `Packed main graph unexpectedly contains ${forbiddenClientSource}.`,
+  );
+}
 assert.ok(
   packedReactHookFormSourceMap.sources.includes('../src/react-hook-form.tsx'),
   'Packed RHF adapter graph is missing its public entry source.',
@@ -272,10 +323,12 @@ for (const forbiddenServerDependency of ['react', '@mui/', '@emotion/', 'react-d
 
 for (const forbiddenServerGlobal of [
   'document',
+  'fetch',
   'window',
   'navigator',
   'localStorage',
   'sessionStorage',
+  'WebSocket',
 ]) {
   const pattern = new RegExp(`\\b${forbiddenServerGlobal}\\b`, 'u');
   assert.doesNotMatch(serverBundle, pattern);
