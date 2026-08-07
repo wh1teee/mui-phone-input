@@ -99,9 +99,15 @@ assert.match(rootPackage.packageManager, /^pnpm@11\./u);
 assert.match(rootPackage.engines.node, /24/u);
 assert.equal(rootPackage.scripts['test:browser'], 'node scripts/run-browser-tests.mjs');
 assert.match(browserTestRunner, /collectBrowserTests/u);
-assert.match(browserTestRunner, /for \(const \[index, file\] of files\.entries\(\)\)/u);
+assert.match(browserTestRunner, /\.\.\.vitestFilters/u);
+assert.match(browserTestRunner, /requestedFiles\.length > 0 \? displayPaths : \[\]/u);
+assert.match(browserTestRunner, /VITEST_BROWSER_PORT/u);
 assert.match(browserTestRunner, /--reporter=dot/u);
 assert.doesNotMatch(browserTestRunner, /Promise\.all/u);
+assert.doesNotMatch(
+  browserTestRunner,
+  /for \(const \[index, file\] of files\.entries\(\)\)/u,
+);
 assert.match(pnpmWorkspace, /^minimumReleaseAge:\s*1440$/mu);
 assert.match(pnpmWorkspace, /^minimumReleaseAgeStrict:\s*false$/mu);
 assert.match(packedConsumersVerifier, /['"]minimumReleaseAge:\s*1440['"]/u);
