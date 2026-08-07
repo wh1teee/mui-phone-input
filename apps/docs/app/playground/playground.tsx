@@ -30,6 +30,8 @@ import { ru } from '@wh1teee/mui-phone-input/locales/ru';
 import { type ComponentPropsWithRef, type FormEvent, useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 
+import { UniversalConfigurator } from './configurator';
+
 const paddedAutomaticStrategy: FormatStrategy = ({ automatic }) => ({
   displayValue: ` ${automatic.displayValue}`,
   logicalCaretPositions: automatic.logicalCaretPositions.map(
@@ -438,6 +440,18 @@ function ReactHookFormExample() {
 export function Playground() {
   return (
     <Stack className="playground-root" spacing={3}>
+      <UniversalConfigurator />
+      <div className="playground-reference-divider">
+        <p className="docs-kicker">Authoritative examples</p>
+        <Typography component="h2" variant="h4">
+          Go deeper without losing the complete integration examples
+        </Typography>
+        <Typography className="docs-muted">
+          The configurator is the fast exploration surface. These examples remain the
+          learning surface for controller ownership, custom formatting, slots, RTL,
+          composable primitives, and React Hook Form.
+        </Typography>
+      </div>
       <CoreExample />
       <PresentationExamples />
       <SelectorAndFlagsExample />

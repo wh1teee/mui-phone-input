@@ -6,10 +6,25 @@ import type { ReactNode } from 'react';
 import './globals.css';
 import { Providers } from './providers';
 
+const configuredSiteUrl = process.env.NEXT_PUBLIC_DOCS_URL;
+
 export const metadata: Metadata = {
   title: 'MUI Phone Input documentation',
   description:
     'Authoritative documentation, interactive playground, and migration guides for @wh1teee/mui-phone-input.',
+  ...(configuredSiteUrl
+    ? {
+        alternates: { canonical: '/' },
+        metadataBase: new URL(configuredSiteUrl),
+        openGraph: {
+          description:
+            'Interactive documentation and API reference for @wh1teee/mui-phone-input.',
+          title: 'MUI Phone Input documentation',
+          type: 'website' as const,
+          url: '/',
+        },
+      }
+    : {}),
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
