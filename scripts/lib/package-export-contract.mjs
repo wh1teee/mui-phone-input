@@ -445,7 +445,7 @@ export async function verifyPackageExportContract(
     assert.deepEqual(
       Object.keys(manifest.exports).sort(),
       Object.keys(expectedExportContract).sort(),
-      'Published export paths differ from the explicit current-canary contract.',
+      'Published export paths differ from the explicit feature-complete API contract.',
     );
 
     const requiredPeers = Object.keys(manifest.peerDependencies ?? {}).filter(

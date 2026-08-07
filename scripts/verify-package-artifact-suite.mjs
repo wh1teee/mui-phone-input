@@ -12,18 +12,28 @@ const tarball = suppliedArtifact
   : await createPackageArtifact();
 
 try {
-  for (const args of [
-    ['scripts/verify-package.mjs', `--artifact=${tarball}`],
-    ['scripts/verify-package-artifact-independence.mjs', `--artifact=${tarball}`],
+  for (const [args, options] of [
+    [['scripts/verify-package.mjs', `--artifact=${tarball}`]],
+    [['scripts/verify-package-artifact-independence.mjs', `--artifact=${tarball}`]],
     [
-      'scripts/verify-published-runtime.mjs',
-      '--expected-major=24',
-      `--artifact=${tarball}`,
+      [
+        'scripts/verify-published-runtime.mjs',
+        '--expected-major=24',
+        `--artifact=${tarball}`,
+      ],
     ],
-    ['scripts/verify-tracer-package.mjs', `--artifact=${tarball}`],
-    ['scripts/verify-packed-consumers.mjs', `--artifact=${tarball}`],
+    [['scripts/verify-tracer-package.mjs', `--artifact=${tarball}`]],
+    [['scripts/verify-packed-specialized-consumers.mjs', `--artifact=${tarball}`]],
+    [
+      ['scripts/verify-packed-consumers.mjs', `--artifact=${tarball}`],
+      { env: { ...process.env, SUPPORT_MATRIX: 'latest' } },
+    ],
+    [
+      ['scripts/verify-packed-consumers.mjs', `--artifact=${tarball}`],
+      { env: { ...process.env, SUPPORT_MATRIX: 'minimum' } },
+    ],
   ]) {
-    run(process.execPath, args);
+    run(process.execPath, args, options);
   }
 } finally {
   if (!suppliedArtifact) {
