@@ -74,4 +74,13 @@ describe('input-engine decision evidence', () => {
     expect(adaptedSource).toMatch(/\.value\s*=/u);
     expect(adaptedSource).toMatch(/setSelectionRange\(/u);
   });
+
+  it('keeps event handlers free of direct DOM value repair assignments', async () => {
+    const transactionSource = await readFile(
+      'packages/mui-phone-input/src/internal/use-phone-input-transactions.ts',
+      'utf8',
+    );
+
+    expect(transactionSource).not.toMatch(/event\.currentTarget\.value\s*=/u);
+  });
 });

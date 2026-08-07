@@ -35,6 +35,59 @@ export type CommittedInputTransaction = Readonly<{
   source: InputTransactionSource;
 }>;
 
+export type InputTransactionSourceEvidence = Readonly<{
+  displayLength: number;
+  inputType: string;
+  isComposing: boolean;
+  pasted: boolean;
+  selection: InputSelection;
+}>;
+
+export function resolveInputTransactionSource(
+  evidence: InputTransactionSourceEvidence,
+): InputTransactionSource {
+  const { displayLength, inputType, isComposing, pasted, selection } = evidence;
+  const [selectionStart, selectionEnd] = selection;
+
+  if (
+    !Number.isSafeInteger(displayLength) ||
+    displayLength < 0 ||
+    selectionStart < 0 ||
+    selectionEnd < selectionStart ||
+    selectionEnd > displayLength
+  ) {
+    throw new RangeError('Input transaction selection is outside the display value.');
+  }
+
+  if (isComposing) {
+    return 'composition';
+  }
+  if (pasted || inputType === 'insertFromPaste') {
+    return 'paste';
+  }
+  if (inputType === 'historyUndo') {
+    return 'history-undo';
+  }
+  if (inputType === 'historyRedo') {
+    return 'history-redo';
+  }
+  if (inputType === 'deleteContentBackward') {
+    return 'delete-backward';
+  }
+  if (inputType === 'deleteContentForward') {
+    return 'delete-forward';
+  }
+  if (inputType === 'insertReplacementText') {
+    return selectionStart === 0 && selectionEnd === displayLength
+      ? 'autofill'
+      : 'predictive-replacement';
+  }
+  if (selectionStart !== selectionEnd) {
+    return 'range-replacement';
+  }
+  return 'insert';
+}
+
 export type InputEngineContext = Readonly<{
   country?: CountryCode;
   displayMask?: DisplayMask;

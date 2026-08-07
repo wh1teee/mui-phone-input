@@ -28,7 +28,7 @@ const shadowHosts: HTMLElement[] = [];
 const shadowRoots: Root[] = [];
 
 type InputTransactionEngineHarnessHandle = Readonly<{
-  reconcile(selection: InputSelection): void;
+  reconcile(selection: InputSelection, displayValue?: string): void;
 }>;
 
 const InputTransactionEngineHarness = forwardRef<InputTransactionEngineHarnessHandle>(
@@ -39,10 +39,10 @@ const InputTransactionEngineHarness = forwardRef<InputTransactionEngineHarnessHa
     useImperativeHandle(
       ref,
       () => ({
-        reconcile(selection) {
+        reconcile(selection, displayValue = '+1202') {
           bridge.reconcileExternal(
             {
-              displayValue: '+1202',
+              displayValue,
               selection,
             },
             INPUT_CONTEXT,
@@ -176,6 +176,18 @@ describe('Input Transaction engine bridge', () => {
     expect(input.selectionEnd).toBe(2);
     expect(document.activeElement).toBe(input);
     expect(input.value).toBe('+1202');
+  });
+
+  test('restores the authoritative display value without moving focus', async () => {
+    const { handle, input, otherControl } = await renderInputTransactionEngineHarness();
+    input.focus();
+    input.setRangeText('999', 0, input.value.length, 'end');
+    otherControl.focus();
+
+    handle.reconcile([2, 2], '+1202');
+
+    expect(input.value).toBe('+1202');
+    expect(document.activeElement).toBe(otherControl);
   });
 
   test('restores requested selection for an input focused inside an open shadow root', async () => {
