@@ -192,7 +192,6 @@ export function usePhoneInputPropGetters(
       externalProps: PhoneInputValidationMessageExternalProps = {},
     ): PhoneInputResolvedValidationMessageProps => ({
       ...externalProps,
-      'aria-live': 'polite',
       id: validationMessageId,
     }),
     [validationMessageId],

@@ -42,6 +42,7 @@
     "verify:publish-dry-run": "pnpm --dir packages/mui-phone-input publish --dry-run --no-git-checks",
     "verify:release-candidate": "node scripts/verify-release-candidate.mjs",
     "verify:tracer-package": "node scripts/verify-tracer-package.mjs",
+    "verify:wcag22-visual": "node scripts/verify-wcag22-visual.mjs",
     "verify:workspace": "node scripts/verify-workspace-contract.mjs"
   },
   "devDependencies": {

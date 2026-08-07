@@ -43,6 +43,7 @@ import {
   type PhoneFlagProvider,
   PhoneCountryFlag,
 } from './flags';
+import { warnInvalidAccessibilitySlot } from './internal/accessibility-diagnostics';
 import type { MuiPhoneInputOwnerState } from './MuiPhoneInput/MuiPhoneInput';
 import type { MuiPhoneInputClasses } from './MuiPhoneInput/muiPhoneInputClasses';
 import { muiPhoneInputClasses } from './MuiPhoneInput/muiPhoneInputClasses';
@@ -270,8 +271,12 @@ const CountrySelectorTrigger = styled(ButtonBase, {
   gap: theme.spacing(0.5),
   minHeight: 32,
   minWidth: 54,
+  outlineOffset: 2,
   paddingInline: theme.spacing(0.75),
   whiteSpace: 'nowrap',
+  '&:focus-visible': {
+    outline: '2px solid currentColor',
+  },
 }));
 
 const CountrySelectorPaper = styled(Paper, {
@@ -292,6 +297,10 @@ const CountrySelectorCloseButton = styled(ButtonBase, {
   float: 'inline-end',
   minHeight: 32,
   minWidth: 32,
+  outlineOffset: 2,
+  '&:focus-visible': {
+    outline: '2px solid currentColor',
+  },
 });
 
 const CountrySelectorSearchInput = styled('input', {
@@ -302,19 +311,24 @@ const CountrySelectorSearchInput = styled('input', {
   background: 'transparent',
   border: `1px solid ${theme.palette.divider}`,
   borderRadius: theme.shape.borderRadius,
+  boxSizing: 'border-box',
   color: 'inherit',
   font: 'inherit',
   inlineSize: '100%',
   marginBlockEnd: theme.spacing(1),
   minHeight: 40,
+  outlineOffset: 2,
   paddingInline: theme.spacing(1.5),
+  '&:focus-visible': {
+    outline: '2px solid currentColor',
+  },
 }));
 
 const CountrySelectorListbox = styled('ul', {
   name: 'MuiPhoneInput',
   overridesResolver: (_props, styles) => styles.countrySelectorListbox,
   slot: 'CountrySelectorListbox',
-})<{ ownerState: PhoneCountrySelectorOwnerState }>(({ theme }) => ({
+})<{ ownerState: PhoneCountrySelectorOwnerState }>({
   listStyle: 'none',
   margin: 0,
   maxHeight: 320,
@@ -322,7 +336,7 @@ const CountrySelectorListbox = styled('ul', {
   padding: 0,
   position: 'relative',
   scrollbarGutter: 'stable',
-}));
+});
 
 const CountrySelectorGroup = styled('li', {
   name: 'MuiPhoneInput',
@@ -363,6 +377,12 @@ const CountrySelectorOption = styled('li', {
   },
   '&[aria-selected="true"]': {
     backgroundColor: theme.palette.action.selected,
+  },
+  '@media (forced-colors: active)': {
+    '&.Mui-focused': {
+      outline: '2px solid CanvasText',
+      outlineOffset: -2,
+    },
   },
 }));
 
@@ -502,6 +522,7 @@ export function PhoneInputCountrySelector({
   const resolvedMetadata = metadata ?? phone.state.metadata;
   const theme = useTheme();
   const matchesMobile = useMediaQuery(theme.breakpoints.down(mobileBreakpoint));
+  const prefersReducedMotion = useMediaQuery('(prefers-reduced-motion: reduce)');
   const mobile = mode === 'mobile' || (mode === 'auto' && matchesMobile);
   const presentation: PhoneCountrySelectorPresentation = mobile ? 'mobile' : 'desktop';
   const CallingCodeSlot = slots?.callingCode ?? CountrySelectorCallingCode;
@@ -729,13 +750,20 @@ export function PhoneInputCountrySelector({
   const { ref: autocompleteListboxRef, ...listboxProps } =
     autocomplete.getListboxProps() as ComponentPropsWithRef<'ul'>;
   const listboxId = listboxProps.id ?? `${autocomplete.id}-listbox`;
+  const visibleOptionCount = autocomplete.groupedOptions.reduce(
+    (count, groupOrOption) =>
+      count + ('options' in groupOrOption ? groupOrOption.options.length : 1),
+    0,
+  );
   const dialogId = `${autocomplete.id}-dialog`;
   const dialogTitleId = `${autocomplete.id}-dialog-title`;
   const { ref: autocompleteInputRef, ...inputProps } = autocomplete.getInputProps();
+  const searchInputId = inputProps.id;
   const hiddenInputRef = useRef<HTMLInputElement | null>(null);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
   const listboxElementRef = useRef<HTMLUListElement | null>(null);
   const closeButtonRef = useRef<HTMLButtonElement | null>(null);
+  const accessibilityWarningsRef = useRef(new Set<string>());
   const ensureHighlightedOptionVisible = useCallback(() => {
     const listbox = listboxElementRef.current;
     const activeOptionId = searchInputRef.current?.getAttribute(
@@ -912,6 +940,7 @@ export function PhoneInputCountrySelector({
         triggerLabel,
       disabled: triggerDisabled || externalTriggerSlotProps?.disabled === true,
       ref: triggerSlotRef,
+      role: 'button' as const,
       type: 'button' as const,
     },
     ownerState,
@@ -1059,6 +1088,142 @@ export function PhoneInputCountrySelector({
     },
     ownerState,
   );
+
+  useEffect(() => {
+    if (slots?.trigger) {
+      const trigger = triggerRef.current;
+      const missing: string[] = [];
+      if (!trigger) {
+        missing.push('ref', 'role', 'aria-expanded', 'aria-haspopup', 'aria-label');
+      } else {
+        if (trigger.getAttribute('role') !== 'button') missing.push('role');
+        if (trigger.getAttribute('aria-expanded') !== String(open)) {
+          missing.push('aria-expanded');
+        }
+        if (trigger.getAttribute('aria-haspopup') !== (mobile ? 'dialog' : 'listbox')) {
+          missing.push('aria-haspopup');
+        }
+        if ((trigger.getAttribute('aria-label')?.trim().length ?? 0) === 0) {
+          missing.push('aria-label');
+        }
+        if (open) {
+          const expectedControls = mobile ? dialogId : listboxId;
+          if (trigger.getAttribute('aria-controls') !== expectedControls) {
+            missing.push('aria-controls');
+          }
+        }
+      }
+      warnInvalidAccessibilitySlot(
+        accessibilityWarningsRef.current,
+        'Country Selector trigger',
+        missing,
+      );
+    }
+
+    if (!open) {
+      return;
+    }
+
+    const frame = window.requestAnimationFrame(() => {
+      if (slots?.searchInput) {
+        const searchInput = searchInputRef.current;
+        const missing: string[] = [];
+        if (!searchInput) {
+          missing.push(
+            'ref',
+            'role',
+            'id',
+            'aria-controls',
+            'aria-expanded',
+            'aria-activedescendant',
+            'aria-label',
+          );
+        } else {
+          if (searchInput.getAttribute('role') !== 'combobox') missing.push('role');
+          if (searchInput.id !== searchInputId) missing.push('id');
+          const expectedExpanded = visibleOptionCount > 0;
+          const controls = searchInput.getAttribute('aria-controls');
+          if (expectedExpanded ? controls !== listboxId : controls !== null) {
+            missing.push('aria-controls');
+          }
+          if (searchInput.getAttribute('aria-expanded') !== String(expectedExpanded)) {
+            missing.push('aria-expanded');
+          }
+          const activeDescendant = searchInput.getAttribute('aria-activedescendant');
+          const activeOption = activeDescendant
+            ? document.getElementById(activeDescendant)
+            : null;
+          if (
+            visibleOptionCount > 0 &&
+            (!activeDescendant || activeOption?.getAttribute('role') !== 'option')
+          ) {
+            missing.push('aria-activedescendant');
+          }
+          if ((searchInput.getAttribute('aria-label')?.trim().length ?? 0) === 0) {
+            missing.push('aria-label');
+          }
+        }
+        warnInvalidAccessibilitySlot(
+          accessibilityWarningsRef.current,
+          'Country Selector searchInput',
+          missing,
+        );
+      }
+
+      if (slots?.listbox && visibleOptionCount > 0) {
+        const listboxElement = listboxElementRef.current;
+        const missing: string[] = [];
+        if (!listboxElement) {
+          missing.push('ref', 'role', 'id');
+        } else {
+          if (listboxElement.getAttribute('role') !== 'listbox') missing.push('role');
+          if (listboxElement.id !== listboxId) missing.push('id');
+        }
+        warnInvalidAccessibilitySlot(
+          accessibilityWarningsRef.current,
+          'Country Selector listbox',
+          missing,
+        );
+      }
+
+      if (slots?.option && visibleOptionCount > 0) {
+        const listboxElement = listboxElementRef.current;
+        if (listboxElement) {
+          const renderedOptions = [
+            ...listboxElement.querySelectorAll<HTMLElement>('[role="option"]'),
+          ];
+          const missing: string[] = [];
+          if (renderedOptions.length !== visibleOptionCount) {
+            missing.push('role');
+          }
+          if (renderedOptions.some((option) => option.id.length === 0)) {
+            missing.push('id');
+          }
+          if (renderedOptions.some((option) => !option.hasAttribute('aria-selected'))) {
+            missing.push('aria-selected');
+          }
+          warnInvalidAccessibilitySlot(
+            accessibilityWarningsRef.current,
+            'Country Selector option',
+            missing,
+          );
+        }
+      }
+    });
+
+    return () => window.cancelAnimationFrame(frame);
+  }, [
+    dialogId,
+    listboxId,
+    mobile,
+    open,
+    searchInputId,
+    slots?.listbox,
+    slots?.option,
+    slots?.searchInput,
+    slots?.trigger,
+    visibleOptionCount,
+  ]);
 
   const listbox = (
     <>
@@ -1391,6 +1556,7 @@ export function PhoneInputCountrySelector({
           onClose={() => closeSelector()}
           open={open}
           slotProps={{ paper: { id: dialogId } }}
+          transitionDuration={prefersReducedMotion ? 0 : undefined}
         >
           <DialogTitle id={dialogTitleId}>
             {messages.dialogTitle}

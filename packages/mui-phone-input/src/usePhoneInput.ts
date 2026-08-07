@@ -229,7 +229,6 @@ export type PhoneInputValidationMessageExternalProps =
 
 export type PhoneInputResolvedValidationMessageProps =
   PhoneInputValidationMessageExternalProps & {
-    'aria-live': 'polite';
     id: string;
   };
 
