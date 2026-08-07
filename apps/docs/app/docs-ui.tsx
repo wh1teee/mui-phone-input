@@ -9,6 +9,8 @@ export function DocsHeader() {
       <nav className="docs-nav" aria-label="Documentation">
         <a href="/#quick-start">Quick start</a>
         <a href="/playground">Playground</a>
+        <a href="/#phone-semantics">API</a>
+        <a href="/#forms">Examples</a>
         <a href="/migration">Migration</a>
         <a href="/#release-status">Release status</a>
       </nav>

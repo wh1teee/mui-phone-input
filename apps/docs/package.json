@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "test": "playwright test",
-    "typecheck": "tsc --noEmit -p tsconfig.json"
+    "typecheck": "next typegen && tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {
     "@emotion/cache": "11.14.0",

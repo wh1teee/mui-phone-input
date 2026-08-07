@@ -1,4 +1,5 @@
 import { CodeBlock, DocsShell, ReleaseStatus, Section } from './docs-ui';
+import { LandingDemo } from './landing-demo';
 
 const install = `pnpm add @wh1teee/mui-phone-input @mui/material @emotion/react @emotion/styled react react-dom`;
 
@@ -206,21 +207,24 @@ validatePhoneValue(phone, { metadata });`;
 export default function DocumentationPage() {
   return (
     <DocsShell>
-      <div className="docs-hero">
-        <p className="docs-kicker">MUI Phone Input</p>
-        <h1>Phone input semantics first, presentation second</h1>
-        <p>
-          <code>@wh1teee/mui-phone-input</code> is a React 19 and Material UI 9 phone
-          input built around one numbering authority: <code>libphonenumber-js</code>.
-          The public contract separates canonical phone state from display formatting,
-          country resolution, extensions, form integration, and server validation.
-        </p>
-        <p>
-          Use the <a href="/playground">interactive playground</a> to exercise the real
-          package surface or the <a href="/migration">migration guide</a> to replace a
-          donor-style or Christofle-style field without carrying legacy authority
-          forward.
-        </p>
+      <div className="docs-hero docs-hero-grid">
+        <div className="docs-hero-copy">
+          <p className="docs-kicker">MUI Phone Input</p>
+          <h1>Phone input semantics first, presentation second</h1>
+          <p>
+            <code>@wh1teee/mui-phone-input</code> is a React 19 and Material UI 9 phone
+            input built around one numbering authority: <code>libphonenumber-js</code>.
+            The public contract separates canonical phone state from display formatting,
+            country resolution, extensions, form integration, and server validation.
+          </p>
+          <p>
+            Start with the live field, then use the{' '}
+            <a href="/playground">universal configurator</a> to exercise the real
+            package surface or the <a href="/migration">migration guide</a> to replace a
+            legacy field without carrying legacy authority forward.
+          </p>
+        </div>
+        <LandingDemo />
       </div>
 
       <ReleaseStatus />
