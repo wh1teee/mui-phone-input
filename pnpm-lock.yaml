@@ -146,6 +146,61 @@ importers:
         specifier: 6.0.3
         version: 6.0.3
 
+  apps/docs:
+    dependencies:
+      '@emotion/cache':
+        specifier: 11.14.0
+        version: 11.14.0
+      '@emotion/react':
+        specifier: 11.14.0
+        version: 11.14.0(@types/react@19.2.18)(react@19.2.8)
+      '@emotion/styled':
+        specifier: 11.14.1
+        version: 11.14.1(@emotion/react@11.14.0(@types/react@19.2.18)(react@19.2.8))(@types/react@19.2.18)(react@19.2.8)
+      '@mui/material':
+        specifier: 9.2.0
+        version: 9.2.0(@emotion/react@11.14.0(@types/react@19.2.18)(react@19.2.8))(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@19.2.18)(react@19.2.8))(@types/react@19.2.18)(react@19.2.8))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+      '@mui/material-nextjs':
+        specifier: 9.1.1
+        version: 9.1.1(@emotion/cache@11.14.0)(@emotion/react@11.14.0(@types/react@19.2.18)(react@19.2.8))(@types/react@19.2.18)(next@16.2.12(@playwright/test@1.62.1)(@types/node@24.13.3)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(react@19.2.8)
+      '@wh1teee/mui-phone-input':
+        specifier: workspace:*
+        version: link:../../packages/mui-phone-input
+      next:
+        specifier: 16.2.12
+        version: 16.2.12(@playwright/test@1.62.1)(@types/node@24.13.3)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+      react:
+        specifier: 19.2.8
+        version: 19.2.8
+      react-dom:
+        specifier: 19.2.8
+        version: 19.2.8(react@19.2.8)
+      react-hook-form:
+        specifier: 7.83.0
+        version: 7.83.0(react@19.2.8)
+      zod:
+        specifier: 4.4.3
+        version: 4.4.3
+    devDependencies:
+      '@playwright/test':
+        specifier: 1.62.1
+        version: 1.62.1
+      '@types/node':
+        specifier: 24.13.3
+        version: 24.13.3
+      '@types/react':
+        specifier: 19.2.18
+        version: 19.2.18
+      '@types/react-dom':
+        specifier: 19.2.4
+        version: 19.2.4(@types/react@19.2.18)
+      axe-core:
+        specifier: 4.12.1
+        version: 4.12.1
+      typescript:
+        specifier: 6.0.3
+        version: 6.0.3
+
   apps/vite-consumer:
     dependencies:
       '@emotion/react':
