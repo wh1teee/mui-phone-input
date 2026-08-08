@@ -93,8 +93,6 @@ const expectedExportContract = {
       'PhoneCountryOption',
       'PhoneCountrySelectionAppliedReason',
       'PhoneCountrySelectionAppliedResult',
-      'PhoneCountrySelectionConflictReason',
-      'PhoneCountrySelectionConflictResult',
       'PhoneCountrySelectionOptions',
       'PhoneCountrySelectionResult',
       'PhoneCountrySelectorClasses',

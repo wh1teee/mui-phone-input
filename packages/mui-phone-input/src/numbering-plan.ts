@@ -99,10 +99,14 @@ function countriesByCallingCode(
   return countriesByCallingCode;
 }
 
-function metadataForSelectedCountry(
+export function metadataForSelectedCountry(
   country: CountryCode,
   authorityMetadata: PhoneMetadata,
 ): MetadataJson {
+  if (!isSupportedCountry(country, authorityMetadata)) {
+    throw new TypeError(`Unsupported selected country: ${country}`);
+  }
+
   let metadataBySelectedCountry =
     selectedCountryMetadataByMetadata.get(authorityMetadata);
   if (!metadataBySelectedCountry) {

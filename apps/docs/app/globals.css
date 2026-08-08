@@ -422,10 +422,6 @@ a {
     max-width: 820px;
   }
 
-  .landing-demo {
-    order: -1;
-  }
-
   .configurator-layout {
     grid-template-columns: 1fr;
   }

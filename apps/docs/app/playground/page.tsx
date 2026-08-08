@@ -36,9 +36,12 @@ export default function PlaygroundPage() {
         </p>
       </div>
 
-      <ReleaseStatus />
+      <Playground />
 
-      <section className="docs-section" aria-labelledby="server-evidence-title">
+      <section
+        className="docs-section playground-server-proof"
+        aria-labelledby="server-evidence-title"
+      >
         <h2 id="server-evidence-title">Server entrypoint proof</h2>
         <p>
           This block is rendered by the Next.js Server Component from the package's
@@ -48,7 +51,7 @@ export default function PlaygroundPage() {
         <output data-testid="server-evidence">{JSON.stringify(serverEvidence)}</output>
       </section>
 
-      <Playground />
+      <ReleaseStatus />
     </DocsShell>
   );
 }

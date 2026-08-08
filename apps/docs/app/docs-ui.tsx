@@ -30,19 +30,19 @@ export function DocsShell({ children }: { children: ReactNode }) {
 export function ReleaseStatus() {
   return (
     <aside className="docs-status" id="release-status" aria-labelledby="release-title">
-      <p className="docs-kicker">Release gate</p>
-      <h2 id="release-title">
-        Automated evidence is green; physical-device evidence is pending
-      </h2>
+      <p className="docs-kicker">Release candidate</p>
+      <h2 id="release-title">The release-candidate channel is live on npm</h2>
       <p>
-        Browser automation and the WCAG 2.2 AA automated contract have been proven in
-        the repository. Bead <code>mpi-oan.24</code> remains the mandatory
-        physical-device and assistive-technology gate. No iOS, Android, VoiceOver, NVDA,
-        or JAWS result is treated as passed while that evidence is unavailable.
+        Install <code>@wh1teee/mui-phone-input@next</code> to use the latest published
+        release candidate. These docs follow current source and can include fixes queued
+        for the next immutable RC, so use the release notes when you need exact registry
+        parity. Stable <code>1.0</code> remains intentionally separate from the RC
+        channel until final consumer validation is complete.
       </p>
       <p>
-        A release candidate cannot publish until <code>mpi-oan.24</code> is genuinely
-        resolved or its residual gaps receive explicit owner approval.
+        Physical iOS/Android and desktop screen-reader rows that were unavailable in the
+        current device lab were accepted as explicit RC residual gaps. They are not
+        represented as passing evidence.
       </p>
     </aside>
   );

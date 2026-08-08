@@ -13,7 +13,7 @@ export function LandingDemo() {
     <section className="landing-demo" aria-label="Live MUI Phone Input demo">
       <div className="landing-demo-header">
         <span className="landing-demo-dot" aria-hidden="true" />
-        <span>Live package surface</span>
+        <span>Try it live</span>
       </div>
       <Stack spacing={2}>
         <MuiPhoneInput
@@ -33,7 +33,7 @@ export function LandingDemo() {
         />
         <div className="landing-demo-value">
           <Typography component="span" variant="caption">
-            Phone Value
+            Canonical value
           </Typography>
           <output data-testid="landing-phone-value">{value ?? 'undefined'}</output>
         </div>
@@ -45,7 +45,7 @@ export function LandingDemo() {
             Open playground
           </Button>
           <Button href="#phone-semantics" variant="text">
-            View API / examples
+            Read phone semantics
           </Button>
         </Stack>
       </Stack>

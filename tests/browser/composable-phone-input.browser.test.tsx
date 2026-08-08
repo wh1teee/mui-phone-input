@@ -281,7 +281,7 @@ function RejectedControlledCountrySelectionHarness() {
   );
 }
 
-function CountrySelectionConflictHarness() {
+function SharedCodeCountrySelectionHarness() {
   const [changeCount, setChangeCount] = useState(0);
   const [actionResult, setActionResult] = useState<PhoneCountrySelectionResult>();
   const [selectionEvents, setSelectionEvents] = useState<PhoneCountrySelectionResult[]>(
@@ -295,19 +295,19 @@ function CountrySelectionConflictHarness() {
 
   return (
     <>
-      <input {...phone.getInputProps({ 'data-testid': 'country-conflict-input' })} />
-      <output data-testid="country-conflict-change-count">{changeCount}</output>
-      <output data-testid="country-conflict-events">
+      <input {...phone.getInputProps({ 'data-testid': 'shared-code-country-input' })} />
+      <output data-testid="shared-code-country-change-count">{changeCount}</output>
+      <output data-testid="shared-code-country-events">
         {JSON.stringify(selectionEvents)}
       </output>
-      <output data-testid="country-conflict-action-result">
+      <output data-testid="shared-code-country-action-result">
         {actionResult ? JSON.stringify(actionResult) : ''}
       </output>
       <button
         onClick={() => setActionResult(phone.actions.selectCountry('CA'))}
         type="button"
       >
-        Select conflicting Canada
+        Select Canada
       </button>
     </>
   );
@@ -801,19 +801,17 @@ describe('usePhoneInput and composable primitives', () => {
     });
   });
 
-  test('preserves a conflicting country-selection draft and emits one typed result', async () => {
-    render(<CountrySelectionConflictHarness />);
-    const input = page.getByTestId('country-conflict-input');
-    const eventOutput = page.getByTestId('country-conflict-events');
+  test('applies an explicit shared-code country selection and emits one typed result', async () => {
+    render(<SharedCodeCountrySelectionHarness />);
+    const input = page.getByTestId('shared-code-country-input');
+    const eventOutput = page.getByTestId('shared-code-country-events');
 
-    await userEvent.click(
-      page.getByRole('button', { name: 'Select conflicting Canada' }),
-    );
+    await userEvent.click(page.getByRole('button', { name: 'Select Canada' }));
     await expect.element(input).toHaveValue('+1 202 555 0123');
     await expect
-      .element(page.getByTestId('country-conflict-change-count'))
-      .toHaveTextContent('0');
-    await expect.element(eventOutput).toHaveTextContent('"status":"conflict"');
+      .element(page.getByTestId('shared-code-country-change-count'))
+      .toHaveTextContent('1');
+    await expect.element(eventOutput).toHaveTextContent('"status":"applied"');
 
     const events = JSON.parse(
       eventOutput.element().textContent ?? '',
@@ -821,14 +819,16 @@ describe('usePhoneInput and composable primitives', () => {
     expect(events).toHaveLength(1);
     expect(
       JSON.parse(
-        page.getByTestId('country-conflict-action-result').element().textContent ?? '',
+        page.getByTestId('shared-code-country-action-result').element().textContent ??
+          '',
       ),
     ).toEqual(events[0]);
     expect(events[0]).toMatchObject({
       country: 'CA',
+      numberingPlan: { resolvedCountry: 'US', selectedCountry: null },
       previousValue: '+12025550123',
-      reason: 'incompatible-draft',
-      status: 'conflict',
+      reason: 'calling-code-preserved',
+      status: 'applied',
       value: '+12025550123',
     });
   });
@@ -864,7 +864,7 @@ describe('usePhoneInput and composable primitives', () => {
     });
   });
 
-  test('rejects an impossible target without value or country callbacks', async () => {
+  test('applies an explicit target country and lets validation own an impossible draft', async () => {
     render(<ImpossibleCountrySelectionHarness />);
     const input = page.getByTestId('country-impossible-input');
     const countryChangeCount = page.getByTestId(
@@ -876,11 +876,11 @@ describe('usePhoneInput and composable primitives', () => {
     await userEvent.click(
       page.getByRole('button', { name: 'Select impossible Azerbaijan' }),
     );
-    await expect.element(input).toHaveValue('+247 40123');
+    await expect.element(input).toHaveValue('+994 40 123');
     await expect
       .element(page.getByTestId('country-impossible-change-count'))
-      .toHaveTextContent('0');
-    await expect.element(countryChangeCount).toHaveTextContent('1');
+      .toHaveTextContent('1');
+    await expect.element(countryChangeCount).toHaveTextContent('2');
 
     const events = JSON.parse(
       page.getByTestId('country-impossible-events').element().textContent ?? '',
@@ -896,9 +896,9 @@ describe('usePhoneInput and composable primitives', () => {
       candidateValue: '+99440123',
       country: 'AZ',
       previousValue: '+24740123',
-      reason: 'impossible-target-draft',
-      status: 'conflict',
-      value: '+24740123',
+      reason: 'national-digits-preserved',
+      status: 'applied',
+      value: '+99440123',
     });
   });
 

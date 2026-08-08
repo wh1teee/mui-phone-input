@@ -1126,7 +1126,7 @@ async function verifyPackedBrowser(destination, consumer) {
       () =>
         document.querySelector('[data-testid="phone-input"]')?.value === '+247 40123',
     );
-    const callbackCountBeforeConflict = await page
+    const callbackCountBeforeSelection = await page
       .getByTestId('callback-count')
       .textContent();
     await page.waitForFunction(() =>
@@ -1134,10 +1134,6 @@ async function verifyPackedBrowser(destination, consumer) {
         .querySelector('[data-testid="country-change-details"]')
         ?.textContent?.includes('"value":"+24740123"'),
     );
-    const countryChangeBeforeConflict = await page
-      .getByTestId('country-change-details')
-      .textContent();
-
     await countryTrigger.click();
     await countrySearch.fill('AZ');
     const impossibleCountryOption = page.locator(
@@ -1148,18 +1144,16 @@ async function verifyPackedBrowser(destination, consumer) {
     await page.waitForFunction(() =>
       document
         .querySelector('[data-testid="country-selection-details"]')
-        ?.textContent?.includes('"reason":"impossible-target-draft"'),
+        ?.textContent?.includes('"reason":"national-digits-preserved"'),
     );
 
     if (
-      (await input.inputValue()) !== '+247 40123' ||
-      (await page.getByTestId('phone-value').textContent()) !== '+24740123' ||
+      (await input.inputValue()) !== '+994 40 123' ||
+      (await page.getByTestId('phone-value').textContent()) !== '+99440123' ||
       (await page.getByTestId('callback-count').textContent()) !==
-        callbackCountBeforeConflict ||
-      (await page.getByTestId('country-change-details').textContent()) !==
-        countryChangeBeforeConflict
+        String(Number(callbackCountBeforeSelection ?? '0') + 1)
     ) {
-      throw new Error('Packed impossible country selection mutated committed state.');
+      throw new Error('Packed explicit country selection did not commit target state.');
     }
     const impossibleSelectionDetails = JSON.parse(
       (await page.getByTestId('country-selection-details').textContent()) || '{}',
@@ -1168,12 +1162,12 @@ async function verifyPackedBrowser(destination, consumer) {
       impossibleSelectionDetails.country !== 'AZ' ||
       impossibleSelectionDetails.previousValue !== '+24740123' ||
       impossibleSelectionDetails.candidateValue !== '+99440123' ||
-      impossibleSelectionDetails.value !== '+24740123' ||
-      impossibleSelectionDetails.reason !== 'impossible-target-draft' ||
-      impossibleSelectionDetails.status !== 'conflict'
+      impossibleSelectionDetails.value !== '+99440123' ||
+      impossibleSelectionDetails.reason !== 'national-digits-preserved' ||
+      impossibleSelectionDetails.status !== 'applied'
     ) {
       throw new Error(
-        `Packed impossible country-selection result is invalid: ${JSON.stringify(impossibleSelectionDetails)}`,
+        `Packed explicit country-selection result is invalid: ${JSON.stringify(impossibleSelectionDetails)}`,
       );
     }
 

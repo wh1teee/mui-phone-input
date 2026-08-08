@@ -10,6 +10,7 @@ linkWorkspacePackages: false
 minimumReleaseAge: 1440
 minimumReleaseAgeStrict: false
 overrides:
+  "nanoid@<3.3.17": 3.3.17
   "next@16.2.12>postcss": 8.5.25
   "next@16.2.12>sharp": 0.35.3
 preferWorkspacePackages: false

@@ -18,7 +18,6 @@ import {
   type PhoneCountrySelectorMode,
   type PhoneCountrySelectorOptionOwnerState,
   type PhoneFlagMode,
-  type PhoneInputChangeDetails,
   type PhoneInputDisplayMode,
   type PhoneValue,
   resolveNumberingPlan,
@@ -476,7 +475,10 @@ function generateExample(config: ConfiguratorState): string {
     body.push(
       `  const [country, setCountry] = useState<MuiPhoneInputProps['selectedCountry']>(${quote(config.selectedCountry)});`,
     );
-    props.push('selectedCountry={country}', 'onCountryChange={setCountry}');
+    props.push(
+      'selectedCountry={country}',
+      'onCountrySelection={(result) => setCountry(result.country)}',
+    );
   } else if (defaultCountry !== null) {
     props.push(`defaultCountry=${quote(defaultCountry)}`);
   }
@@ -671,7 +673,7 @@ export function UniversalConfigurator() {
   const [config, setConfig] = useState<ConfiguratorState>(DEFAULT_CONFIG);
   const [activePreset, setActivePreset] = useState<ActivePreset>('belarus');
   const [copyStatus, setCopyStatus] = useState('');
-  const [observedCountry, setObservedCountry] = useState<ConfigCountry | null>(
+  const [observedSelection, setObservedSelection] = useState<ConfigCountry | null>(
     DEFAULT_CONFIG.defaultCountry === 'none' ? null : DEFAULT_CONFIG.defaultCountry,
   );
   const [hydrated, setHydrated] = useState(false);
@@ -681,7 +683,7 @@ export function UniversalConfigurator() {
       const restored = restoreConfig(window.location.hash);
       setConfig(restored.config);
       setActivePreset(restored.activePreset);
-      setObservedCountry(
+      setObservedSelection(
         restored.config.selectedCountry === 'auto'
           ? restored.config.defaultCountry === 'none'
             ? null
@@ -707,7 +709,7 @@ export function UniversalConfigurator() {
   const phoneValue = parseConfigValue(config.value);
   const selectedCountry =
     config.selectedCountry === 'auto'
-      ? (observedCountry ??
+      ? (observedSelection ??
         (config.defaultCountry === 'none' ? null : config.defaultCountry))
       : config.selectedCountry;
   const numberingPlan = resolveNumberingPlan(phoneValue, {
@@ -749,7 +751,7 @@ export function UniversalConfigurator() {
     setConfig(next);
     setActivePreset(key);
     setCopyStatus('');
-    setObservedCountry(
+    setObservedSelection(
       next.selectedCountry === 'auto'
         ? next.defaultCountry === 'none'
           ? null
@@ -758,12 +760,8 @@ export function UniversalConfigurator() {
     );
   };
 
-  const handlePhoneChange = (
-    nextValue: PhoneValue,
-    details: PhoneInputChangeDetails,
-  ) => {
+  const handlePhoneChange = (nextValue: PhoneValue) => {
     updateConfig({ value: nextValue ?? '' });
-    setObservedCountry(details.numberingPlan.selectedCountry);
   };
 
   const selectorProps: NonNullable<MuiPhoneInputProps['slotProps']>['countrySelector'] =
@@ -797,10 +795,10 @@ export function UniversalConfigurator() {
       label="Try the real component"
       value={phoneValue}
       onChange={handlePhoneChange}
-      onCountryChange={(country) => {
-        setObservedCountry(country);
+      onCountrySelection={(result) => {
+        setObservedSelection(result.country);
         if (config.selectedCountry !== 'auto') {
-          updateConfig({ selectedCountry: country ?? 'auto' });
+          updateConfig({ selectedCountry: result.country });
         }
       }}
       {...(config.defaultCountry === 'none'
@@ -901,7 +899,11 @@ export function UniversalConfigurator() {
               value={config.defaultCountry}
               onChange={(defaultCountry) => {
                 updateConfig({ defaultCountry });
-                setObservedCountry(defaultCountry === 'none' ? null : defaultCountry);
+                if (config.selectedCountry === 'auto') {
+                  setObservedSelection(
+                    defaultCountry === 'none' ? null : defaultCountry,
+                  );
+                }
               }}
               options={[
                 ['BY', 'Belarus'],
@@ -917,7 +919,13 @@ export function UniversalConfigurator() {
               value={config.selectedCountry}
               onChange={(selectedCountry) => {
                 updateConfig({ selectedCountry });
-                setObservedCountry(selectedCountry === 'auto' ? null : selectedCountry);
+                setObservedSelection(
+                  selectedCountry === 'auto'
+                    ? config.defaultCountry === 'none'
+                      ? null
+                      : config.defaultCountry
+                    : selectedCountry,
+                );
               }}
               options={[
                 ['auto', 'Uncontrolled / auto'],
@@ -1210,6 +1218,12 @@ export function UniversalConfigurator() {
               </div>
               <div>
                 <span>Selected country</span>
+                <output data-testid="config-selected-country">
+                  {selectedCountry ?? 'none'}
+                </output>
+              </div>
+              <div>
+                <span>Authority selection</span>
                 <output>{numberingPlan.selectedCountry ?? 'none'}</output>
               </div>
               <div>
