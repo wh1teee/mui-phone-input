@@ -1423,15 +1423,12 @@ export function usePhoneInputTransactions(
         metadata,
       });
 
-      if (selection.status === 'applied') {
-        if (!countryControlledRef.current) {
-          currentSelectedCountryRef.current = country;
-          setUncontrolledCountry(country);
-        }
-
-        commit(selection.value, 'country-selection', country, previousCountry);
+      if (!countryControlledRef.current) {
+        currentSelectedCountryRef.current = country;
+        setUncontrolledCountry(country);
       }
 
+      commit(selection.value, 'country-selection', country, previousCountry, true);
       onCountrySelection?.(selection);
       return selection;
     },

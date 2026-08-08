@@ -210,18 +210,19 @@ export default function DocumentationPage() {
       <div className="docs-hero docs-hero-grid">
         <div className="docs-hero-copy">
           <p className="docs-kicker">MUI Phone Input</p>
-          <h1>Phone input semantics first, presentation second</h1>
+          <h1>A complete phone input for Material UI</h1>
           <p>
-            <code>@wh1teee/mui-phone-input</code> is a React 19 and Material UI 9 phone
-            input built around one numbering authority: <code>libphonenumber-js</code>.
-            The public contract separates canonical phone state from display formatting,
-            country resolution, extensions, form integration, and server validation.
+            Country search, formatting, validation, extensions, SSR, React Hook Form,
+            and Zod share one canonical phone value backed by{' '}
+            <code>libphonenumber-js</code>. Built for React 19 and Material UI 9 without
+            a second numbering authority.
           </p>
           <p>
-            Start with the live field, then use the{' '}
-            <a href="/playground">universal configurator</a> to exercise the real
-            package surface or the <a href="/migration">migration guide</a> to replace a
-            legacy field without carrying legacy authority forward.
+            Try the real component beside this introduction, then open the{' '}
+            <a href="/playground">interactive configurator</a> to change supported
+            options and copy matching TypeScript. Use the{' '}
+            <a href="/migration">migration guide</a> when replacing a legacy phone
+            field.
           </p>
         </div>
         <LandingDemo />
@@ -310,12 +311,24 @@ export default function DocumentationPage() {
             <tbody>
               <tr>
                 <td>
-                  <code>selectedCountry</code>
+                  <code>state.selectedCountry</code>
                 </td>
-                <td>A compatible explicit user/application choice.</td>
+                <td>The explicit user/application country choice.</td>
                 <td>
-                  Selection intent, not proof that the digits uniquely identify that
-                  country.
+                  Ownership state. It can remain selected while the current digits still
+                  need correction for that country.
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <code>numberingPlan.selectedCountry</code>
+                </td>
+                <td>
+                  An explicit selection still compatible with numbering authority.
+                </td>
+                <td>
+                  Semantic evidence, not raw UI state. It can be <code>null</code> while
+                  <code>state.selectedCountry</code> keeps the user's explicit choice.
                 </td>
               </tr>
               <tr>
@@ -629,11 +642,9 @@ export default function DocumentationPage() {
         </p>
         <p>
           Automated browser coverage does not substitute for physical
-          assistive-technology use. The mandatory pre-RC <code>mpi-oan.24</code> matrix
-          remains pending for real iOS Safari and Android Chrome
-          input/autofill/predictive-keyboard behavior, VoiceOver on Safari and Firefox,
-          NVDA on Firefox, and JAWS on Chrome. No such row is a pass until the gate
-          records genuine evidence or explicit owner approval.
+          assistive-technology use. Physical iOS/Android and desktop screen-reader rows
+          unavailable in the current device lab were accepted as explicit RC residual
+          gaps and remain documented as unavailable rather than passed.
         </p>
       </Section>
 
@@ -649,10 +660,11 @@ export default function DocumentationPage() {
           manifest when auditing an artifact.
         </p>
         <p>
-          Documentation readiness does not publish a release candidate. RC publication
-          is a separate release gate and remains blocked by <code>mpi-oan.24</code>{' '}
-          until its physical-device/assistive-technology evidence is resolved or
-          explicitly accepted by the owner.
+          Published release candidates use the npm <code>next</code> dist-tag with
+          provenance and immutable release evidence. Documentation follows current
+          source, while the registry remains authoritative for the exact published RC.
+          Stable <code>1.0</code> is a separate promotion after final consumer
+          validation; publishing an RC does not move the stable dist-tag.
         </p>
       </Section>
     </DocsShell>

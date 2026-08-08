@@ -65,6 +65,52 @@ describe('validatePhoneValue', () => {
     });
   });
 
+  it('validates a complete draft against an explicit selected-country authority', () => {
+    expect(validatePhoneValue('+12025550123', { selectedCountry: 'CA' })).toMatchObject(
+      {
+        accepted: true,
+        isPossible: true,
+        isValid: false,
+        numberType: null,
+        reason: 'possible',
+        status: 'possible',
+      },
+    );
+    expect(
+      validatePhoneValue('+12025550123', {
+        selectedCountry: 'CA',
+        validationMode: 'valid',
+      }),
+    ).toMatchObject({
+      accepted: false,
+      isPossible: true,
+      isValid: false,
+      reason: 'strict-validity-required',
+      status: 'possible',
+    });
+    expect(validatePhoneValue('+12025550123', { selectedCountry: 'US' })).toMatchObject(
+      {
+        accepted: true,
+        isPossible: true,
+        isValid: true,
+        reason: 'valid',
+        status: 'valid',
+      },
+    );
+  });
+
+  it('lets an explicit international calling code override stale country ownership', () => {
+    expect(
+      validatePhoneValue('+441481123456', { selectedCountry: 'BY' }),
+    ).toMatchObject({
+      accepted: true,
+      isPossible: true,
+      isValid: false,
+      reason: 'possible',
+      status: 'possible',
+    });
+  });
+
   it('makes strict validity an explicit policy', () => {
     expect(
       validatePhoneValue('+441481123456', { validationMode: 'valid' }),

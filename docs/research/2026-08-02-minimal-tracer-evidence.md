@@ -141,9 +141,9 @@ externalizes declared peers.
 
 Current exact-artifact measurements are:
 
-- main closure: 32,719 bytes gzip;
-- server entry: 6,126 bytes gzip;
-- packed tarball: 315,431 bytes. The tarball increase includes the production
+- main closure: 32,672 bytes gzip;
+- server entry: 6,225 bytes gzip;
+- packed tarball: 316,102 bytes. The tarball increase includes the production
   accessibility contract and independently built RHF and Zod JavaScript,
   declaration, and source-map entrypoints; neither adapter is part of the main
   or server runtime closure unless its explicit subpath is imported.

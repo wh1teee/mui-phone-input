@@ -411,16 +411,13 @@ assert.match(
 );
 assert.match(
   clientTypes,
-  /type PhoneCountrySelectionResult = PhoneCountrySelectionAppliedResult \| PhoneCountrySelectionConflictResult;/u,
+  /type PhoneCountrySelectionResult = PhoneCountrySelectionAppliedResult;/u,
 );
 assert.match(
   clientTypes,
   /type PhoneCountrySelectionAppliedReason = "calling-code-initialized" \| "calling-code-preserved" \| "national-digits-preserved" \| "partial-calling-code-replaced";/u,
 );
-assert.match(
-  clientTypes,
-  /type PhoneCountrySelectionConflictReason = "incompatible-draft" \| "impossible-target-draft" \| "non-geographic-draft";/u,
-);
+assert.doesNotMatch(clientTypes, /PhoneCountrySelectionConflict/u);
 assert.match(
   clientTypes,
   /onCountrySelection\?: \(result: PhoneCountrySelectionResult\) => void;/u,
@@ -473,12 +470,12 @@ assert.deepEqual(clientModule.resolvePhoneCountrySelection('+24740123', 'AZ'), {
   candidateValue: '+99440123',
   country: 'AZ',
   numberingPlan: {
-    countryCallingCode: '247',
-    detectedCountry: 'AC',
+    countryCallingCode: '994',
+    detectedCountry: 'AZ',
     kind: 'geographic',
-    possibleCountries: ['AC'],
-    resolvedCountry: 'AC',
-    selectedCountry: null,
+    possibleCountries: ['AZ'],
+    resolvedCountry: 'AZ',
+    selectedCountry: 'AZ',
   },
   previousNumberingPlan: {
     countryCallingCode: '247',
@@ -489,11 +486,11 @@ assert.deepEqual(clientModule.resolvePhoneCountrySelection('+24740123', 'AZ'), {
     selectedCountry: null,
   },
   previousValue: '+24740123',
-  reason: 'impossible-target-draft',
-  status: 'conflict',
-  value: '+24740123',
+  reason: 'national-digits-preserved',
+  status: 'applied',
+  value: '+99440123',
 });
-assert.equal(clientModule.selectPhoneCountryValue('+24740123', 'AZ'), '+24740123');
+assert.equal(clientModule.selectPhoneCountryValue('+24740123', 'AZ'), '+99440123');
 assert.deepEqual(clientModule.resolvePhoneCountrySelection('+12025550123', 'CA'), {
   candidateNumberingPlan: {
     countryCallingCode: '1',
@@ -522,14 +519,46 @@ assert.deepEqual(clientModule.resolvePhoneCountrySelection('+12025550123', 'CA')
     selectedCountry: null,
   },
   previousValue: '+12025550123',
-  reason: 'incompatible-draft',
-  status: 'conflict',
+  reason: 'calling-code-preserved',
+  status: 'applied',
   value: '+12025550123',
 });
 assert.equal(
   clientModule.selectPhoneCountryValue('+12025550123', 'CA'),
   '+12025550123',
 );
+assert.deepEqual(clientModule.resolvePhoneCountrySelection('+80012345678', 'BY'), {
+  candidateNumberingPlan: {
+    countryCallingCode: '375',
+    detectedCountry: 'BY',
+    kind: 'geographic',
+    possibleCountries: ['BY'],
+    resolvedCountry: 'BY',
+    selectedCountry: null,
+  },
+  candidateValue: '+37512345678',
+  country: 'BY',
+  numberingPlan: {
+    countryCallingCode: '375',
+    detectedCountry: 'BY',
+    kind: 'geographic',
+    possibleCountries: ['BY'],
+    resolvedCountry: 'BY',
+    selectedCountry: null,
+  },
+  previousNumberingPlan: {
+    countryCallingCode: '800',
+    detectedCountry: null,
+    kind: 'non-geographic',
+    possibleCountries: [],
+    resolvedCountry: null,
+    selectedCountry: null,
+  },
+  previousValue: '+80012345678',
+  reason: 'national-digits-preserved',
+  status: 'applied',
+  value: '+37512345678',
+});
 assert.deepEqual(clientModule.resolvePhoneCountrySelection('+37', 'BY'), {
   candidateNumberingPlan: {
     countryCallingCode: '375',

@@ -2,15 +2,10 @@ import {
   type CountryCode,
   getCountries,
   getCountryCallingCode,
-  isPossiblePhoneNumber,
   isSupportedCountry,
 } from 'libphonenumber-js/core';
 
-import {
-  isPhoneValuePossibleForCountry,
-  type NumberingPlanResolution,
-  resolveNumberingPlan,
-} from './numbering-plan';
+import { type NumberingPlanResolution, resolveNumberingPlan } from './numbering-plan';
 import { DEFAULT_PHONE_METADATA, type PhoneMetadata } from './phone-metadata';
 import {
   assertPhoneValue,
@@ -66,11 +61,6 @@ export type PhoneCountrySelectionAppliedReason =
   | 'national-digits-preserved'
   | 'partial-calling-code-replaced';
 
-export type PhoneCountrySelectionConflictReason =
-  | 'incompatible-draft'
-  | 'impossible-target-draft'
-  | 'non-geographic-draft';
-
 interface PhoneCountrySelectionResultBase {
   candidateNumberingPlan: NumberingPlanResolution;
   candidateValue: Exclude<PhoneValue, undefined>;
@@ -88,15 +78,7 @@ export interface PhoneCountrySelectionAppliedResult
   value: Exclude<PhoneValue, undefined>;
 }
 
-export interface PhoneCountrySelectionConflictResult
-  extends PhoneCountrySelectionResultBase {
-  reason: PhoneCountrySelectionConflictReason;
-  status: 'conflict';
-}
-
-export type PhoneCountrySelectionResult =
-  | PhoneCountrySelectionAppliedResult
-  | PhoneCountrySelectionConflictResult;
+export type PhoneCountrySelectionResult = PhoneCountrySelectionAppliedResult;
 
 const authorityCallingCodesByMetadata = new WeakMap<PhoneMetadata, readonly string[]>();
 const DEFAULT_INTL_LOCALE = 'en';
@@ -438,32 +420,6 @@ export function resolvePhoneCountrySelection(
     metadata,
     selectedCountry: country,
   });
-  const sourceIsPossible =
-    value !== undefined && value !== '+' && isPossiblePhoneNumber(value, metadata);
-  const conflictReason =
-    previousNumberingPlan.kind === 'non-geographic' && nationalDigits.length > 0
-      ? 'non-geographic-draft'
-      : sourceIsPossible &&
-          !isPhoneValuePossibleForCountry(candidate, country, metadata)
-        ? 'impossible-target-draft'
-        : candidateNumberingPlan.selectedCountry !== country
-          ? 'incompatible-draft'
-          : null;
-
-  if (conflictReason) {
-    return Object.freeze({
-      candidateNumberingPlan,
-      candidateValue: candidate,
-      country,
-      numberingPlan: previousNumberingPlan,
-      previousNumberingPlan,
-      previousValue: value,
-      reason: conflictReason,
-      status: 'conflict',
-      value,
-    });
-  }
-
   const reason: PhoneCountrySelectionAppliedReason = replacesPartialCallingCode
     ? 'partial-calling-code-replaced'
     : nationalDigits.length === 0

@@ -1,12 +1,10 @@
 import mobileExamples from 'libphonenumber-js/examples.mobile.json';
-import { isPossiblePhoneNumber, type MetadataJson } from 'libphonenumber-js/core';
 import {
   type CountryCode,
   getCountries,
   getCountryCallingCode,
   getExampleNumber,
 } from 'libphonenumber-js/max';
-import maxMetadata from 'libphonenumber-js/metadata.max.json';
 import { describe, expect, it, vi } from 'vitest';
 
 import {
@@ -44,19 +42,6 @@ function sortWithReferenceCollator(
         compareCountryCodes(left.country, right.country),
     )
     .map((option) => option.country);
-}
-
-function metadataForCountry(country: CountryCode): MetadataJson {
-  const callingCode = getCountryCallingCode(country);
-  const countryMetadata = maxMetadata.countries[country];
-  expect(countryMetadata).toBeDefined();
-
-  return {
-    version: maxMetadata.version,
-    country_calling_codes: { [callingCode]: [country] },
-    countries: { [country]: countryMetadata! },
-    nonGeographic: {},
-  };
 }
 
 describe('country selector data', () => {
@@ -402,30 +387,30 @@ describe('country selection transaction', () => {
     expect(selectPhoneCountryValue('+24740123', 'DE')).toBe('+4940123');
   });
 
-  it('preserves the draft and exposes a typed shared-code conflict', () => {
+  it('applies an explicit shared-code selection while preserving the canonical digits', () => {
     expect(resolvePhoneCountrySelection('+12025550123', 'CA')).toMatchObject({
       candidateValue: '+12025550123',
       country: 'CA',
       numberingPlan: { resolvedCountry: 'US', selectedCountry: null },
       previousNumberingPlan: { resolvedCountry: 'US', selectedCountry: null },
       previousValue: '+12025550123',
-      reason: 'incompatible-draft',
-      status: 'conflict',
+      reason: 'calling-code-preserved',
+      status: 'applied',
       value: '+12025550123',
     });
     expect(selectPhoneCountryValue('+12025550123', 'CA')).toBe('+12025550123');
   });
 
-  it('rejects an impossible complete target-country conversion', () => {
+  it('applies an explicit target country even when preserved digits need correction', () => {
     expect(resolvePhoneCountrySelection('+24740123', 'AZ')).toMatchObject({
       candidateValue: '+99440123',
       country: 'AZ',
       previousValue: '+24740123',
-      reason: 'impossible-target-draft',
-      status: 'conflict',
-      value: '+24740123',
+      reason: 'national-digits-preserved',
+      status: 'applied',
+      value: '+99440123',
     });
-    expect(selectPhoneCountryValue('+24740123', 'AZ')).toBe('+24740123');
+    expect(selectPhoneCountryValue('+24740123', 'AZ')).toBe('+99440123');
   });
 
   it('keeps an incomplete source draft when the target can still be completed', () => {
@@ -438,34 +423,34 @@ describe('country selection transaction', () => {
     });
   });
 
-  it('keeps the historical US to Belarus reproduction recoverable', () => {
+  it('applies the historical US to Belarus country-selection reproduction', () => {
     expect(resolvePhoneCountrySelection('+12025550123', 'BY')).toMatchObject({
       candidateValue: '+3752025550123',
       country: 'BY',
       previousValue: '+12025550123',
-      reason: 'incompatible-draft',
-      status: 'conflict',
-      value: '+12025550123',
+      reason: 'national-digits-preserved',
+      status: 'applied',
+      value: '+3752025550123',
     });
   });
 
-  it('preserves complete non-geographic drafts as an explicit conflict', () => {
+  it('applies an explicit country to a non-geographic draft without losing national digits', () => {
     expect(resolvePhoneCountrySelection('+80012345678', 'BY')).toMatchObject({
+      candidateValue: '+37512345678',
       country: 'BY',
       previousValue: '+80012345678',
-      reason: 'non-geographic-draft',
-      status: 'conflict',
-      value: '+80012345678',
+      reason: 'national-digits-preserved',
+      status: 'applied',
+      value: '+37512345678',
     });
+    expect(selectPhoneCountryValue('+80012345678', 'BY')).toBe('+37512345678');
   });
 
-  it('proves every authority example pair avoids a bare-calling-code collapse', () => {
+  it('proves every authority example pair applies without a bare-calling-code collapse', () => {
     const countries = getCountries().filter((country) =>
       Boolean(getExampleNumber(country, mobileExamples)),
     );
     let pairCount = 0;
-    let appliedCount = 0;
-    let conflictCount = 0;
 
     for (const sourceCountry of countries) {
       const sourceValue = getExampleNumber(sourceCountry, mobileExamples)?.number;
@@ -479,21 +464,11 @@ describe('country selection transaction', () => {
         );
         const bareCallingCode = `+${getCountryCallingCode(targetCountry)}`;
 
-        if (result.status === 'conflict') {
-          conflictCount += 1;
-          expect(result.value).toBe(sourceValue);
-        } else {
-          appliedCount += 1;
-          expect(result.value).not.toBe(bareCallingCode);
-          expect(
-            isPossiblePhoneNumber(result.value, metadataForCountry(targetCountry)),
-          ).toBe(true);
-        }
+        expect(result.status).toBe('applied');
+        expect(result.value).not.toBe(bareCallingCode);
       }
     }
 
     expect(pairCount).toBe(60_025);
-    expect(appliedCount).toBe(7_433);
-    expect(conflictCount).toBe(52_592);
   }, 15_000);
 });

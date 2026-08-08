@@ -11,8 +11,6 @@ export {
   type PhoneCountryOption,
   type PhoneCountrySelectionAppliedReason,
   type PhoneCountrySelectionAppliedResult,
-  type PhoneCountrySelectionConflictReason,
-  type PhoneCountrySelectionConflictResult,
   type PhoneCountrySelectionOptions,
   type PhoneCountrySelectionResult,
   resolvePhoneCountrySelection,

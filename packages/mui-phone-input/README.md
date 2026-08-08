@@ -367,29 +367,31 @@ history edits. `external-value` covers controlled value/country reconciliation,
 including a distinct correction when a parent rejects an optimistic user
 selection.
 
-For controlled country ownership, treat `onCountryChange` as a transition
-stream rather than an unconditional setter. Update `selectedCountry` for
-`reason === 'user'` from `details.numberingPlan.selectedCountry`; automatic
-detected/resolved transitions remain observable without overwriting explicit
-ownership.
+For controlled country ownership, use `onCountrySelection` as the authoritative
+user-selection stream. `onCountryChange` reports numbering-authority transitions;
+those can differ from the explicit selected country while the current digits are
+still incomplete or incompatible with that selection.
 
-Country selection is lossless. Use `onCountrySelection` or the return value of
-`actions.selectCountry` to observe whether the request was applied or conflicted:
+Country selection preserves the national digits while applying the requested
+geographic calling code. Validation then reports whether the resulting draft is
+possible or valid for that selected country. Use `onCountrySelection` or the return
+value of `actions.selectCountry` to observe the exact transaction:
 
 ```tsx
 <MuiPhoneInput
   onCountrySelection={(result) => {
-    if (result.status === 'conflict') {
-      console.log(result.reason, result.previousValue, result.candidateValue);
-    }
+    console.log(result.country, result.previousValue, result.value);
   }}
 />
 ```
 
 `resolvePhoneCountrySelection(value, country)` exposes the same pure typed
-transaction. `selectPhoneCountryValue` remains a value-only wrapper. Compatible
-national digits are retained; an incompatible or non-geographic draft remains
-unchanged instead of collapsing to the target calling code.
+transaction. `selectPhoneCountryValue` remains a value-only wrapper. Geographic
+selection is an explicit user action: existing national digits are retained under
+the target calling code even when that draft still needs correction. Selecting a
+country from a non-geographic/global-service number follows the same explicit
+transaction: the global calling code is replaced and its national digits are
+retained under the requested country.
 
 An unfinished international prefix is replaced rather than duplicated. For
 example, selecting Belarus from `+3` or `+37` produces `+375` with reason
@@ -484,6 +486,14 @@ An explicit territory remains selected when the complete number is valid for
 that territory even if metadata reports its parent numbering country as the
 detected label. Positively conflicting shared-code digits still clear the
 selection. Non-geographic plans expose no country.
+
+`phone.state.selectedCountry` is the explicit country ownership state used by the
+Country Selector. It is intentionally separate from
+`phone.state.numberingPlan.selectedCountry`, which is retained only while the current
+digits remain compatible with that country. After an explicit country click, the UI can
+therefore show the requested country while `detectedCountry`/`resolvedCountry` continue
+to report numbering-authority evidence and validation reports a draft that still needs
+correction.
 
 ## Validation
 

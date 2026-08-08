@@ -32,7 +32,7 @@ function expectValidGeneratedTsx(source: string) {
   expect(errors).toEqual([]);
 }
 
-test('landing renders a real interactive phone input before the first viewport scroll', async ({
+test('landing keeps the live input prominent while giving mobile users context first', async ({
   page,
 }) => {
   await page.setViewportSize({ width: 1280, height: 800 });
@@ -55,17 +55,20 @@ test('landing renders a real interactive phone input before the first viewport s
     'href',
     '/playground',
   );
-  await expect(page.getByRole('link', { name: 'View API / examples' })).toHaveAttribute(
-    'href',
-    '#phone-semantics',
-  );
+  await expect(
+    page.getByRole('link', { name: 'Read phone semantics' }),
+  ).toHaveAttribute('href', '#phone-semantics');
 
   await page.setViewportSize({ width: 390, height: 844 });
   await expect(phone).toBeVisible();
-  const mobileBounds = await phone.boundingBox();
-  expect(mobileBounds).not.toBeNull();
-  expect((mobileBounds?.y ?? 845) + (mobileBounds?.height ?? 0)).toBeLessThanOrEqual(
-    844,
+  const [headingBounds, demoBounds] = await Promise.all([
+    page.getByRole('heading', { level: 1 }).boundingBox(),
+    page.locator('.landing-demo').boundingBox(),
+  ]);
+  expect(headingBounds).not.toBeNull();
+  expect(demoBounds).not.toBeNull();
+  expect(headingBounds?.y ?? Number.POSITIVE_INFINITY).toBeLessThan(
+    demoBounds?.y ?? Number.NEGATIVE_INFINITY,
   );
   expect(
     await page.evaluate(
@@ -81,10 +84,13 @@ test('documentation navigation and release disclosure are complete', async ({
   await page.goto('/');
 
   await expect(page.getByRole('heading', { level: 1 })).toContainText(
-    'Phone input semantics first',
+    'A complete phone input for Material UI',
   );
-  await expect(page.getByText('mpi-oan.24').first()).toBeVisible();
-  await expect(page.getByText(/release candidate cannot publish/i)).toBeVisible();
+  await expect(
+    page.getByText(/release-candidate channel is live on npm/i),
+  ).toBeVisible();
+  await expect(page.getByText(/@wh1teee\/mui-phone-input@next/i)).toBeVisible();
+  await expect(page.getByText(/mpi-oan\.24/i)).toHaveCount(0);
   await expect(page.getByText(/32,768 bytes gzip/i)).toBeVisible();
   await expect(page.getByText(/virtualization/i).first()).toBeVisible();
 
@@ -169,12 +175,35 @@ test('generated code copy uses the exact current configurator state', async ({
   const expected = await page.getByTestId('generated-code').innerText();
   expect(expected).toContain("displayMode='international-fixed-calling-code'");
   expect(expected).toContain("useState<PhoneValue>('+12025550199')");
+  expect(expected).toContain('selectedCountry={country}');
+  expect(expected).toContain(
+    'onCountrySelection={(result) => setCountry(result.country)}',
+  );
+  expect(expected).not.toContain('onCountryChange={setCountry}');
   expectValidGeneratedTsx(expected);
 
   await page.getByTestId('copy-generated-code').click();
   await expect(page.getByTestId('copy-status')).toContainText(/Code copied/u);
   const clipboard = await page.evaluate(() => navigator.clipboard.readText());
   expect(clipboard).toBe(expected);
+});
+
+test('controlled configurator country ownership follows explicit same-code selection', async ({
+  page,
+}) => {
+  await page.goto('/playground');
+  await page.getByTestId('preset-fixed-calling-code').click();
+  await expect(page.getByTestId('config-selected-country')).toHaveText('US');
+
+  await page.getByTestId('config-country-selector').click();
+  const search = page.getByRole('combobox', { name: 'Search countries' });
+  await search.fill('Canada');
+  await page.getByRole('option', { name: /Canada, CA, \+1/u }).click();
+
+  await expect(page.getByTestId('config-selected-country')).toHaveText('CA');
+  await expect(page.getByTestId('generated-code')).toContainText(
+    "useState<MuiPhoneInputProps['selectedCountry']>('CA')",
+  );
 });
 
 test('configurator deep links restore named presets and current values', async ({

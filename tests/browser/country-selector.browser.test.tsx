@@ -168,6 +168,31 @@ function DesktopSelectorHarness() {
   );
 }
 
+function IncompatibleDraftSelectionHarness() {
+  const [details, setDetails] = useState('');
+
+  return (
+    <>
+      <MuiPhoneInput
+        defaultCountry="BY"
+        defaultValue="+375291234567"
+        label="Migration phone"
+        onChange={(_value, nextDetails) => setDetails(JSON.stringify(nextDetails))}
+        validationDisplay="always"
+        slotProps={{
+          countrySelector: {
+            'data-testid': 'migration-trigger',
+            countryFilter: (country) => ['AS', 'AO', 'BY'].includes(country),
+            mode: 'desktop',
+          },
+          htmlInput: { 'data-testid': 'migration-input' },
+        }}
+      />
+      <output data-testid="migration-details">{details}</output>
+    </>
+  );
+}
+
 function LocalizedDigitSearchHarness() {
   return (
     <MuiPhoneInput
@@ -1448,6 +1473,66 @@ describe('responsive country selector', () => {
       reason: 'country-selection',
       value: '+375',
     });
+  });
+
+  test('commits an explicitly selected country even when preserved digits need correction', async () => {
+    render(<IncompatibleDraftSelectionHarness />);
+    const trigger = page.getByTestId('migration-trigger');
+
+    await expect
+      .element(trigger)
+      .toHaveAccessibleName('Select country. Belarus, BY, +375');
+    await userEvent.click(trigger);
+    await userEvent.click(
+      page.getByRole('option', {
+        exact: true,
+        name: 'American Samoa, AS, +1',
+      }),
+    );
+
+    await expect
+      .element(trigger)
+      .toHaveAccessibleName('Select country. American Samoa, AS, +1');
+    expect(
+      JSON.parse(page.getByTestId('migration-details').element().textContent ?? ''),
+    ).toMatchObject({
+      numberingPlan: { selectedCountry: null },
+      reason: 'country-selection',
+      validation: { accepted: false },
+      value: '+1291234567',
+    });
+  });
+
+  test('commits an explicit country from a non-geographic number', async () => {
+    render(
+      <MuiPhoneInput
+        defaultValue="+80012345678"
+        label="Non-geographic selection phone"
+        slotProps={{
+          countrySelector: {
+            'data-testid': 'non-geographic-selection-trigger',
+            mode: 'desktop',
+          },
+          htmlInput: { 'data-testid': 'non-geographic-selection-input' },
+        }}
+      />,
+    );
+    const trigger = page.getByTestId('non-geographic-selection-trigger');
+    const input = page.getByTestId('non-geographic-selection-input');
+
+    await expect.element(input).toHaveValue('+800 1234 5678');
+    await userEvent.click(trigger);
+    await userEvent.click(
+      page.getByRole('option', {
+        exact: true,
+        name: 'Belarus, BY, +375',
+      }),
+    );
+
+    await expect
+      .element(trigger)
+      .toHaveAccessibleName('Select country. Belarus, BY, +375');
+    await expect.element(input).toHaveValue('+375 12 345 67 8');
   });
 
   test('announces an English country option exactly once', async () => {

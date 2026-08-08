@@ -1,13 +1,18 @@
 import {
   type CountryCode,
   formatIncompletePhoneNumber,
+  getCountryCallingCode,
   type PhoneNumberType,
   parsePhoneNumberFromString,
   type ValidatePhoneNumberLengthResult,
   validatePhoneNumberLength,
 } from 'libphonenumber-js/core';
 
-import { type NumberingPlanResolution, resolveNumberingPlan } from './numbering-plan';
+import {
+  metadataForSelectedCountry,
+  type NumberingPlanResolution,
+  resolveNumberingPlan,
+} from './numbering-plan';
 import { DEFAULT_PHONE_METADATA, type PhoneMetadata } from './phone-metadata';
 import { assertPhoneValue, type PhoneValue } from './phone-value';
 
@@ -137,7 +142,13 @@ function validationReasonFromLength(
 function inspectStructure(
   value: PhoneValue,
   metadata: PhoneMetadata,
+  selectedCountry: CountryCode | null,
 ): StructuralValidation {
+  const structuralMetadata =
+    selectedCountry === null
+      ? metadata
+      : metadataForSelectedCountry(selectedCountry, metadata);
+
   if (value === undefined) {
     return {
       isPossible: null,
@@ -158,11 +169,11 @@ function inspectStructure(
     };
   }
 
-  const phoneNumber = parsePhoneNumberFromString(value, metadata);
+  const phoneNumber = parsePhoneNumberFromString(value, structuralMetadata);
   const isPossible = phoneNumber?.isPossible() ?? null;
   const isValid = phoneNumber?.isValid() ?? null;
   const numberType = phoneNumber?.getType() ?? null;
-  const lengthResult = validatePhoneNumberLength(value, metadata);
+  const lengthResult = validatePhoneNumberLength(value, structuralMetadata);
 
   if (lengthResult) {
     const { reason, status } = validationReasonFromLength(lengthResult);
@@ -198,6 +209,23 @@ function inspectStructure(
   };
 }
 
+function resolveStructuralValidationCountry(
+  value: PhoneValue,
+  selectedCountry: CountryCode | null,
+  metadata: PhoneMetadata,
+): CountryCode | null {
+  if (selectedCountry === null) {
+    return null;
+  }
+
+  const selectedCallingCode = getCountryCallingCode(selectedCountry, metadata);
+  const valueCallingCode = resolveNumberingPlan(value, { metadata }).countryCallingCode;
+
+  return valueCallingCode === null || valueCallingCode === selectedCallingCode
+    ? selectedCountry
+    : null;
+}
+
 export function validatePhoneValue(
   value: PhoneValue,
   options: PhoneValidationOptions = {},
@@ -207,8 +235,14 @@ export function validatePhoneValue(
   const metadata = options.metadata ?? DEFAULT_PHONE_METADATA;
   const validationMode = options.validationMode ?? 'possible';
   validatePolicyConfiguration(validationMode, options.allowedNumberTypes);
+  const selectedCountry = options.selectedCountry ?? null;
+  const structuralValidationCountry = resolveStructuralValidationCountry(
+    value,
+    selectedCountry,
+    metadata,
+  );
 
-  const structure = inspectStructure(value, metadata);
+  const structure = inspectStructure(value, metadata, structuralValidationCountry);
   const mode = typeof validationMode === 'function' ? 'custom' : validationMode;
 
   if (structure.status === 'empty') {
