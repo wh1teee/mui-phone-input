@@ -4,7 +4,8 @@
   "initialVersions": {
     "@mui-phone-input/next-consumer": "0.0.0",
     "@mui-phone-input/vite-consumer": "0.0.0",
-    "@wh1teee/mui-phone-input": "0.0.0"
+    "@wh1teee/mui-phone-input": "0.0.0",
+    "@mui-phone-input/docs": "0.0.0"
   },
   "changesets": [
     "accept-national-keyboard-paste",
@@ -12,6 +13,7 @@
     "basic-country-selector",
     "brave-lemons-wait",
     "bright-phones-validate",
+    "clear-country-selection-intent",
     "expose-server-national-parser",
     "fix-canonical-npm-scope",
     "lossless-country-selection",

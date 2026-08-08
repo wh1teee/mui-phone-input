@@ -118,7 +118,7 @@ assert.match(releaseNotes, /React Hook Form|RHF/u);
 assert.match(releaseNotes, /max, min, mobile/iu);
 assert.match(releaseNotes, /NOT_AVAILABLE/u);
 assert.match(releaseNotes, /mpi-oan\.24/u);
-assert.match(releaseNotes, /mpi-oan\.27/u);
+assert.match(releaseNotes, /fresh exact-artifact RideOS validation/iu);
 assert.match(releaseNotes, /mpi-oan\.19/u);
 assert.match(releaseNotes, /stable 1\.0/iu);
 const rollback = await readFile(join(candidateDirectory, 'ROLLBACK.md'), 'utf8');
