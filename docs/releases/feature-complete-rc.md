@@ -1,8 +1,14 @@
 This prerelease is the **feature-complete release candidate** for the MUI Phone
-Input 1.0 program. It is published as `0.1.0-next.6` through the repository's
+Input 1.0 program. It is published as `0.1.0-next.7` through the repository's
 existing `next` prerelease channel. It is not a development canary, it is not a
 stable 1.0 release, and it does not advance npm `latest`. Final validation must
 install the exact version rather than relying on the mutable `next` dist-tag.
+
+This corrected RC supersedes `0.1.0-next.6` after production documentation use
+exposed a Country Selector no-op: explicit user country choices could be
+silently rejected when the existing digits were incompatible with the target
+country. Explicit selection is now authoritative, while validation separately
+reports whether the migrated draft is acceptable.
 
 ## Feature-complete scope
 
@@ -34,7 +40,7 @@ physical-device or assistive-technology evidence into a passing result.
 
 ## Remaining gates before stable 1.0
 
-- exact-artifact RideOS RC validation: `mpi-oan.27`;
+- fresh exact-artifact RideOS validation of this corrected RC;
 - owner-deferred Christofle validation: `mpi-oan.19`;
 - explicit owner approval for stable 1.0 publication and any npm `latest` promotion.
 
