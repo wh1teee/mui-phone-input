@@ -299,7 +299,12 @@ export default function DocumentationPage() {
         </p>
 
         <h3>Selected, detected, and resolved country</h3>
-        <div className="docs-table-wrap">
+        <section
+          aria-label="Phone country state semantics"
+          className="docs-table-wrap"
+          // biome-ignore lint/a11y/noNoninteractiveTabindex: Horizontal table overflow must be keyboard-scrollable.
+          tabIndex={0}
+        >
           <table className="docs-table">
             <thead>
               <tr>
@@ -363,7 +368,7 @@ export default function DocumentationPage() {
               </tr>
             </tbody>
           </table>
-        </div>
+        </section>
 
         <h3>Unresolved and non-geographic plans</h3>
         <p>
