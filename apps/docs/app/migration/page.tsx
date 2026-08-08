@@ -99,7 +99,12 @@ export default function MigrationPage() {
       </Section>
 
       <Section id="migration-matrix" title="Cross-library migration matrix">
-        <div className="docs-table-wrap">
+        <section
+          aria-label="Cross-library migration matrix"
+          className="docs-table-wrap"
+          // biome-ignore lint/a11y/noNoninteractiveTabindex: Horizontal table overflow must be keyboard-scrollable.
+          tabIndex={0}
+        >
           <table className="docs-table">
             <thead>
               <tr>
@@ -194,7 +199,7 @@ export default function MigrationPage() {
               </tr>
             </tbody>
           </table>
-        </div>
+        </section>
       </Section>
 
       <Section
@@ -367,7 +372,12 @@ export default function MigrationPage() {
           fallback.
         </p>
         <CodeBlock>{christofleMapping}</CodeBlock>
-        <div className="docs-table-wrap">
+        <section
+          aria-label="Christofle migration matrix"
+          className="docs-table-wrap"
+          // biome-ignore lint/a11y/noNoninteractiveTabindex: Horizontal table overflow must be keyboard-scrollable.
+          tabIndex={0}
+        >
           <table className="docs-table">
             <thead>
               <tr>
@@ -421,7 +431,7 @@ export default function MigrationPage() {
               </tr>
             </tbody>
           </table>
-        </div>
+        </section>
       </Section>
 
       <Section id="forms-migration" title="Forms and extensions">

@@ -389,3 +389,39 @@ test('playground has no WCAG 2.2 A/AA axe violations', async ({ page }) => {
 
   expect(violations, JSON.stringify(violations, null, 2)).toEqual([]);
 });
+
+test('narrow documentation tables remain keyboard-scrollable and axe-clean', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 607, height: 900 });
+  await page.goto('/');
+
+  const tableRegion = page.getByRole('region', {
+    name: 'Phone country state semantics',
+  });
+  await expect(tableRegion).toHaveAttribute('tabindex', '0');
+  await tableRegion.focus();
+  await expect(tableRegion).toBeFocused();
+
+  await page.addScriptTag({ content: axe.source });
+  const violations = await page.evaluate(async (): Promise<AxeViolation[]> => {
+    type BrowserAxe = {
+      run(
+        root: Element,
+        options: { runOnly: { type: 'rule'; values: string[] } },
+      ): Promise<{
+        violations: Array<{ id: string; nodes: Array<{ target: unknown }> }>;
+      }>;
+    };
+    const browserWindow = window as typeof window & { axe: BrowserAxe };
+    const results = await browserWindow.axe.run(document.body, {
+      runOnly: { type: 'rule', values: ['scrollable-region-focusable'] },
+    });
+    return results.violations.map((violation) => ({
+      id: violation.id,
+      targets: violation.nodes.map((node) => node.target),
+    }));
+  });
+
+  expect(violations, JSON.stringify(violations, null, 2)).toEqual([]);
+});
