@@ -36,7 +36,7 @@ importers:
         version: 5.3.1(@maskito/core@5.3.1)
       '@maskito/phone':
         specifier: 5.3.1
-        version: 5.3.1(@maskito/core@5.3.1)(@maskito/kit@5.3.1(@maskito/core@5.3.1))(libphonenumber-js@1.13.10)
+        version: 5.3.1(@maskito/core@5.3.1)(@maskito/kit@5.3.1(@maskito/core@5.3.1))(libphonenumber-js@1.13.11)
       '@maskito/react':
         specifier: 5.3.1
         version: 5.3.1(@maskito/core@5.3.1)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
@@ -71,8 +71,8 @@ importers:
         specifier: 0.3.14
         version: 0.3.14(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       libphonenumber-js:
-        specifier: 1.13.10
-        version: 1.13.10
+        specifier: 1.13.11
+        version: 1.13.11
       publint:
         specifier: 0.3.22
         version: 0.3.22
@@ -103,49 +103,6 @@ importers:
       vitest-browser-react:
         specifier: 2.2.0
         version: 2.2.0(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(vitest@4.1.10)
-
-  apps/next-consumer:
-    dependencies:
-      '@emotion/cache':
-        specifier: 11.14.0
-        version: 11.14.0
-      '@emotion/react':
-        specifier: 11.14.0
-        version: 11.14.0(@types/react@19.2.18)(react@19.2.8)
-      '@emotion/styled':
-        specifier: 11.14.1
-        version: 11.14.1(@emotion/react@11.14.0(@types/react@19.2.18)(react@19.2.8))(@types/react@19.2.18)(react@19.2.8)
-      '@mui/material':
-        specifier: 9.2.0
-        version: 9.2.0(@emotion/react@11.14.0(@types/react@19.2.18)(react@19.2.8))(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@19.2.18)(react@19.2.8))(@types/react@19.2.18)(react@19.2.8))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
-      '@mui/material-nextjs':
-        specifier: 9.1.1
-        version: 9.1.1(@emotion/cache@11.14.0)(@emotion/react@11.14.0(@types/react@19.2.18)(react@19.2.8))(@types/react@19.2.18)(next@16.2.12(@playwright/test@1.62.1)(@types/node@24.13.3)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(react@19.2.8)
-      next:
-        specifier: 16.2.12
-        version: 16.2.12(@playwright/test@1.62.1)(@types/node@24.13.3)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
-      react:
-        specifier: 19.2.8
-        version: 19.2.8
-      react-dom:
-        specifier: 19.2.8
-        version: 19.2.8(react@19.2.8)
-      zod:
-        specifier: 4.4.3
-        version: 4.4.3
-    devDependencies:
-      '@types/node':
-        specifier: 24.13.3
-        version: 24.13.3
-      '@types/react':
-        specifier: 19.2.18
-        version: 19.2.18
-      '@types/react-dom':
-        specifier: 19.2.4
-        version: 19.2.4(@types/react@19.2.18)
-      typescript:
-        specifier: 6.0.3
-        version: 6.0.3
 
   apps/docs:
     dependencies:
@@ -202,6 +159,49 @@ importers:
         specifier: 6.0.3
         version: 6.0.3
 
+  apps/next-consumer:
+    dependencies:
+      '@emotion/cache':
+        specifier: 11.14.0
+        version: 11.14.0
+      '@emotion/react':
+        specifier: 11.14.0
+        version: 11.14.0(@types/react@19.2.18)(react@19.2.8)
+      '@emotion/styled':
+        specifier: 11.14.1
+        version: 11.14.1(@emotion/react@11.14.0(@types/react@19.2.18)(react@19.2.8))(@types/react@19.2.18)(react@19.2.8)
+      '@mui/material':
+        specifier: 9.2.0
+        version: 9.2.0(@emotion/react@11.14.0(@types/react@19.2.18)(react@19.2.8))(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@19.2.18)(react@19.2.8))(@types/react@19.2.18)(react@19.2.8))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+      '@mui/material-nextjs':
+        specifier: 9.1.1
+        version: 9.1.1(@emotion/cache@11.14.0)(@emotion/react@11.14.0(@types/react@19.2.18)(react@19.2.8))(@types/react@19.2.18)(next@16.2.12(@playwright/test@1.62.1)(@types/node@24.13.3)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(react@19.2.8)
+      next:
+        specifier: 16.2.12
+        version: 16.2.12(@playwright/test@1.62.1)(@types/node@24.13.3)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+      react:
+        specifier: 19.2.8
+        version: 19.2.8
+      react-dom:
+        specifier: 19.2.8
+        version: 19.2.8(react@19.2.8)
+      zod:
+        specifier: 4.4.3
+        version: 4.4.3
+    devDependencies:
+      '@types/node':
+        specifier: 24.13.3
+        version: 24.13.3
+      '@types/react':
+        specifier: 19.2.18
+        version: 19.2.18
+      '@types/react-dom':
+        specifier: 19.2.4
+        version: 19.2.4(@types/react@19.2.18)
+      typescript:
+        specifier: 6.0.3
+        version: 6.0.3
+
   apps/vite-consumer:
     dependencies:
       '@emotion/react':
@@ -251,8 +251,8 @@ importers:
         specifier: 5.3.1
         version: 5.3.1(@maskito/core@5.3.1)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       libphonenumber-js:
-        specifier: 1.13.10
-        version: 1.13.10
+        specifier: 1.13.11
+        version: 1.13.11
       tabbable:
         specifier: 6.5.0
         version: 6.5.0
@@ -1678,8 +1678,8 @@ packages:
   jsonfile@4.0.0:
     resolution: {integrity: sha512-m6F1R3z8jjlf2imQHS2Qez5sjKWQzbuuhuJ/FKYFRZvPE3PuHcSMVZzfsLhGVOkfd20obL5SWEBew5ShlquNxg==}
 
-  libphonenumber-js@1.13.10:
-    resolution: {integrity: sha512-xJxrdqvbl2rtn2MaUJrUejz8J7/uZNC0V77oks2LxYrO/+ZtVpRmz+fEQMuu6VusnEB1fmpByiLS1WXecOnAnw==}
+  libphonenumber-js@1.13.11:
+    resolution: {integrity: sha512-ETER2kMaIFTI/Nh1a8Gk03dUF/SL0VZqtI+CcVHZxp5WIHYwNS7S+uiYZDYCvLy3lOR4/DAD5jf0h5WkePPpqg==}
 
   lightningcss-android-arm64@1.33.0:
     resolution: {integrity: sha512-gEpRTalKdosp4Bb8qWtc2iOgE5SeIHlpS1up9bFq2wAyYhl1UdTObYiHe98zEM9SQvSoqQZ1IQD0JNpg3Ml5pg==}
@@ -2954,11 +2954,11 @@ snapshots:
     dependencies:
       '@maskito/core': 5.3.1
 
-  '@maskito/phone@5.3.1(@maskito/core@5.3.1)(@maskito/kit@5.3.1(@maskito/core@5.3.1))(libphonenumber-js@1.13.10)':
+  '@maskito/phone@5.3.1(@maskito/core@5.3.1)(@maskito/kit@5.3.1(@maskito/core@5.3.1))(libphonenumber-js@1.13.11)':
     dependencies:
       '@maskito/core': 5.3.1
       '@maskito/kit': 5.3.1(@maskito/core@5.3.1)
-      libphonenumber-js: 1.13.10
+      libphonenumber-js: 1.13.11
 
   '@maskito/react@5.3.1(@maskito/core@5.3.1)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)':
     dependencies:
@@ -3690,7 +3690,7 @@ snapshots:
     optionalDependencies:
       graceful-fs: 4.2.11
 
-  libphonenumber-js@1.13.10: {}
+  libphonenumber-js@1.13.11: {}
 
   lightningcss-android-arm64@1.33.0:
     optional: true
@@ -3948,7 +3948,7 @@ snapshots:
       classnames: 2.5.1
       country-flag-icons: 1.6.20
       input-format: 0.3.14(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
-      libphonenumber-js: 1.13.10
+      libphonenumber-js: 1.13.11
       prop-types: 15.8.1
       react: 19.2.8
       react-dom: 19.2.8(react@19.2.8)
