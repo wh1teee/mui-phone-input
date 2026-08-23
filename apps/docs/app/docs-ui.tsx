@@ -20,10 +20,15 @@ export function DocsHeader() {
 
 export function DocsShell({ children }: { children: ReactNode }) {
   return (
-    <main className="docs-shell">
+    <div className="docs-shell">
+      <a className="docs-skip-link" href="#docs-content">
+        Skip to content
+      </a>
       <DocsHeader />
-      {children}
-    </main>
+      <main id="docs-content" tabIndex={-1}>
+        {children}
+      </main>
+    </div>
   );
 }
 

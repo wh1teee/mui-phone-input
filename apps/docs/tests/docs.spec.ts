@@ -78,6 +78,60 @@ test('landing keeps the live input prominent while giving mobile users context f
   ).toBe(true);
 });
 
+test('documentation shell exposes keyboard skip, reduced motion, and major section navigation', async ({
+  page,
+}) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.goto('/');
+
+  await page.keyboard.press('Tab');
+  const skipLink = page.getByRole('link', { name: 'Skip to content' });
+  await expect(skipLink).toBeFocused();
+  await expect(skipLink).toHaveAttribute('href', '#docs-content');
+  const content = page.locator('main#docs-content');
+  await expect(content).toHaveCount(1);
+  await skipLink.press('Enter');
+  await expect(content).toBeFocused();
+  expect(
+    await page.evaluate(
+      () => getComputedStyle(document.documentElement).scrollBehavior,
+    ),
+  ).toBe('auto');
+
+  const sections = page.getByRole('navigation', { name: 'On this page' });
+  for (const [name, href] of [
+    ['Quick start', '#quick-start'],
+    ['Formatting', '#formatting'],
+    ['Extensions', '#extensions'],
+    ['Country selector', '#country-selector'],
+    ['Localization & RTL', '#flags-localization'],
+    ['MUI integration', '#mui-integration'],
+    ['SSR & security', '#ssr-security'],
+    ['Performance', '#performance'],
+    ['Accessibility', '#accessibility'],
+    ['Provenance', '#provenance'],
+  ] as const) {
+    await expect(sections.getByRole('link', { name, exact: true })).toHaveAttribute(
+      'href',
+      href,
+    );
+  }
+
+  const iconHref = await page.locator('link[rel~="icon"]').first().getAttribute('href');
+  expect(iconHref).toBeTruthy();
+  if (!iconHref) throw new Error('Documentation icon metadata is missing.');
+  const iconResponse = await page.request.get(iconHref);
+  expect(iconResponse.ok()).toBe(true);
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  expect(
+    await page.evaluate(
+      () =>
+        document.documentElement.scrollWidth <= document.documentElement.clientWidth,
+    ),
+  ).toBe(true);
+});
+
 test('documentation navigation and release disclosure are complete', async ({
   page,
 }) => {
