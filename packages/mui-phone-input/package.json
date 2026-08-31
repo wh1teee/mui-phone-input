@@ -96,7 +96,7 @@
   "dependencies": {
     "@maskito/core": "5.3.1",
     "@maskito/react": "5.3.1",
-    "libphonenumber-js": "1.13.10",
+    "libphonenumber-js": "1.13.12",
     "tabbable": "6.5.0"
   },
   "peerDependencies": {
