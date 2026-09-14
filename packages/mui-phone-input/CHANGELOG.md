@@ -1,5 +1,13 @@
 # @wh1teee/mui-phone-input
 
+## 0.1.0-next.8
+
+### Patch Changes
+
+- 7b07e83: Declare `@types/react` as an optional peer so isolated pnpm Global Virtual Store consumers resolve the published declarations without inheriting workspace-only type packages. Runtime exports and bundle bytes are unchanged.
+- 7b07e83: Refresh `libphonenumber-js` metadata from 1.13.10 to 1.13.13 after human review of the checked-in golden-corpus semantic diff. No reviewed possibility, strict-validity, country-resolution, number-type, or example behavior changed.
+- 23ad4b2: Refresh the verified production matrix to Maskito 5.4, React 19.3, MUI 9.4, React Hook Form 7.88, Zod 4.6, Vite 8.3, and current compatible tooling. The published runtime remains within the frozen bundle budget, and tsdown stays pinned to 0.22.14 to preserve the explicit adapter type-export contract.
+
 ## 0.1.0-next.7
 
 ### Patch Changes
