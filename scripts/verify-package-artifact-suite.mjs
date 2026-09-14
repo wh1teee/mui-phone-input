@@ -1,11 +1,14 @@
 import { resolve } from 'node:path';
 
+import { createIsolatedProcessEnvironment } from './lib/isolated-process-environment.mjs';
+
 import {
   createPackageArtifact,
   releasePackageArtifact,
   run,
 } from './lib/package-artifact.mjs';
 
+const isolatedProcessEnvironment = createIsolatedProcessEnvironment();
 const suppliedArtifact = process.env.PACKAGE_ARTIFACT;
 const tarball = suppliedArtifact
   ? resolve(suppliedArtifact)
@@ -26,14 +29,17 @@ try {
     [['scripts/verify-packed-specialized-consumers.mjs', `--artifact=${tarball}`]],
     [
       ['scripts/verify-packed-consumers.mjs', `--artifact=${tarball}`],
-      { env: { ...process.env, SUPPORT_MATRIX: 'latest' } },
+      { env: { ...isolatedProcessEnvironment, SUPPORT_MATRIX: 'latest' } },
     ],
     [
       ['scripts/verify-packed-consumers.mjs', `--artifact=${tarball}`],
-      { env: { ...process.env, SUPPORT_MATRIX: 'minimum' } },
+      { env: { ...isolatedProcessEnvironment, SUPPORT_MATRIX: 'minimum' } },
     ],
   ]) {
-    run(process.execPath, args, options);
+    run(process.execPath, args, {
+      env: isolatedProcessEnvironment,
+      ...options,
+    });
   }
 } finally {
   if (!suppliedArtifact) {

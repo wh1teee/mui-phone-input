@@ -3,19 +3,21 @@ import { execFileSync } from 'node:child_process';
 import {
   cp,
   mkdir,
-  mkdtemp,
   readFile,
   realpath,
   rm,
   symlink,
   writeFile,
 } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import ts from 'typescript';
-
+import { createIsolatedProcessEnvironment } from './isolated-process-environment.mjs';
+import {
+  createIsolatedTemporaryRoot,
+  findAncestorPackage,
+} from './isolated-temporary-root.mjs';
 import {
   packageBoundaryKinds,
   verifyJavaScriptPackageBoundary,
@@ -372,6 +374,7 @@ function readRuntimeProbe(consumerRoot, specifier, mode) {
     execFileSync(process.execPath, ['runtime-probe.mjs', specifier, mode], {
       cwd: consumerRoot,
       encoding: 'utf8',
+      env: createIsolatedProcessEnvironment(),
     }),
   );
 }
@@ -415,7 +418,9 @@ export async function verifyPackageExportContract(
   tarball,
   { extractedPackageRoot } = {},
 ) {
-  const temporaryRoot = await mkdtemp(join(tmpdir(), 'mui-phone-input-exports-'));
+  const temporaryRoot = await createIsolatedTemporaryRoot('mui-phone-input-exports-', {
+    forbiddenPackages: ['react-hook-form', 'zod'],
+  });
   const packageRoot = join(
     temporaryRoot,
     'node_modules',
@@ -470,7 +475,12 @@ try {
     mode === 'json'
       ? await import(specifier, { with: { type: 'json' } })
       : await import(specifier);
-  console.log(JSON.stringify({ exports: Object.keys(loaded).sort() }));
+  console.log(
+    JSON.stringify({
+      exports: Object.keys(loaded).sort(),
+      resolved: import.meta.resolve(specifier),
+    }),
+  );
 } catch (error) {
   console.log(
     JSON.stringify({
@@ -588,6 +598,17 @@ try {
 
       const optionalPeer = optionalPeerBySubpath[subpath];
       if (optionalPeer) {
+        assert.equal(
+          await findAncestorPackage(packageRoot, optionalPeer),
+          undefined,
+          `${subpath} optional peer leaked into the isolated consumer ancestry.`,
+        );
+        const directPeerProbe = readRuntimeProbe(temporaryRoot, optionalPeer, 'module');
+        assert.equal(
+          directPeerProbe.code,
+          'ERR_MODULE_NOT_FOUND',
+          `${optionalPeer} must not resolve directly in the isolated consumer: ${JSON.stringify(directPeerProbe)}.`,
+        );
         const missingPeerProbe = readRuntimeProbe(
           temporaryRoot,
           packageSpecifier(subpath),

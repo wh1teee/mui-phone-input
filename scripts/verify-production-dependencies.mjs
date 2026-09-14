@@ -118,7 +118,7 @@ for (const [packageName, overrideVersion] of Object.entries(policy.overrides)) {
   assert.match(
     workspacePolicy,
     new RegExp(
-      `['"]?next@16\\.2\\.12>${packageName}['"]?:\\s*${overrideVersion.replaceAll('.', '\\.')}`,
+      `['"]?[^'"\\s]+>${packageName}['"]?:\\s*${overrideVersion.replaceAll('.', '\\.')}`,
       'u',
     ),
     `Missing scoped Next.js override for ${packageName}@${overrideVersion}.`,

@@ -17,6 +17,7 @@ export {
   selectPhoneCountryValue,
 } from './country-selector';
 export * from './MuiPhoneInput';
+// biome-ignore lint/style/useExportType: preserve the frozen public export order and generated bundle shape.
 export {
   type PhoneCountryFlagProps,
   type PhoneExternalFlagFallback,

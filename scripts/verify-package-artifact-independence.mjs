@@ -3,6 +3,7 @@ import { spawnSync } from 'node:child_process';
 import { mkdir, mkdtemp, rename, rm, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 
+import { createIsolatedProcessEnvironment } from './lib/isolated-process-environment.mjs';
 import { artifactsDirectory, repositoryRoot } from './lib/package-artifact.mjs';
 
 const artifactArgument = process.argv.find((argument) =>
@@ -18,7 +19,7 @@ function verifyArtifact(artifact) {
     {
       cwd: repositoryRoot,
       encoding: 'utf8',
-      env: process.env,
+      env: createIsolatedProcessEnvironment(),
       shell: false,
     },
   );

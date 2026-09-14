@@ -6,12 +6,36 @@ const readJson = async (path) => JSON.parse(await readFile(path, 'utf8'));
 const rootPackage = await readJson('package.json');
 const packageManifest = await readJson('packages/mui-phone-input/package.json');
 const pnpmWorkspace = await readFile('pnpm-workspace.yaml', 'utf8');
+const docsGvsRunner = await readFile('scripts/run-docs-gvs.mjs', 'utf8');
+const docsGvsTopology = await readFile('scripts/lib/docs-gvs-topology.mjs', 'utf8');
+const pnpmStoreTopology = await readFile('scripts/lib/pnpm-store-topology.mjs', 'utf8');
+const childProcessTreeSource = await readFile(
+  'scripts/lib/child-process-tree.mjs',
+  'utf8',
+);
+const nextConsumerConfig = await readFile('apps/next-consumer/next.config.ts', 'utf8');
+const nextConsumerTurbopackRoot = await readFile(
+  'apps/next-consumer/turbopack-root.ts',
+  'utf8',
+);
+const docsNextConfig = await readFile('apps/docs/next.config.ts', 'utf8');
+const docsTurbopackRoot = await readFile('apps/docs/turbopack-root.ts', 'utf8');
+const docsGvsPolicy = await readFile('docs/release/work-pc-shared-gvs.md', 'utf8');
 const tsdownConfig = await readFile(
   'packages/mui-phone-input/tsdown.config.ts',
   'utf8',
 );
 const ciWorkflow = await readFile('.github/workflows/ci.yml', 'utf8');
 const releaseWorkflow = await readFile('.github/workflows/release.yml', 'utf8');
+const pnpmWorkflowSources = await Promise.all(
+  [
+    '.github/workflows/ci.yml',
+    '.github/workflows/compatibility.yml',
+    '.github/workflows/browser-matrix.yml',
+    '.github/workflows/metadata-freshness.yml',
+    '.github/workflows/release.yml',
+  ].map((path) => readFile(path, 'utf8')),
+);
 const dependabotConfig = await readFile('.github/dependabot.yml', 'utf8');
 const githubActionsPinsVerifier = await readFile(
   'scripts/verify-github-actions-pins.mjs',
@@ -47,6 +71,18 @@ const packedConsumersVerifier = await readFile(
 );
 const packageArtifactSource = await readFile(
   'scripts/lib/package-artifact.mjs',
+  'utf8',
+);
+const isolatedProcessEnvironmentSource = await readFile(
+  'scripts/lib/isolated-process-environment.mjs',
+  'utf8',
+);
+const isolatedTemporaryRootSource = await readFile(
+  'scripts/lib/isolated-temporary-root.mjs',
+  'utf8',
+);
+const specializedConsumersVerifier = await readFile(
+  'scripts/verify-packed-specialized-consumers.mjs',
   'utf8',
 );
 const packageArtifactConcurrencyVerifier = await readFile(
@@ -95,8 +131,77 @@ const publicIntakePattern =
   /github\.com\/wh1teee\/mui-phone-input\/discussions\/new\?category=q-a/u;
 
 assert.equal(rootPackage.private, true);
-assert.match(rootPackage.packageManager, /^pnpm@11\./u);
+assert.equal(rootPackage.packageManager, 'pnpm@11.27.0');
 assert.match(rootPackage.engines.node, /24/u);
+for (const workflow of pnpmWorkflowSources) {
+  assert.match(workflow, /version:\s*11\.27\.0/u);
+  assert.doesNotMatch(workflow, /version:\s*11\.9\.0/u);
+}
+for (const [scriptName, mode] of Object.entries({
+  'docs:build': 'build',
+  'docs:ci': 'ci',
+  'docs:test': 'test',
+  'docs:typecheck': 'typecheck',
+})) {
+  assert.equal(
+    rootPackage.scripts[scriptName],
+    `node scripts/run-docs-gvs.mjs ${mode}`,
+  );
+}
+for (const requiredPackageExtension of [
+  '"next@>=16.3.5 <17"',
+  '"react-hook-form@>=7.83.0 <8"',
+  '"@mui/material@>=9.4.0 <10"',
+  '"@mui/styled-engine@>=9.4.0 <10"',
+  '"@emotion/utils@>=1.4.2 <2"',
+]) {
+  assert.match(pnpmWorkspace, new RegExp(requiredPackageExtension, 'u'));
+}
+assert.match(docsGvsRunner, /install['"], ['"]--frozen-lockfile/u);
+assert.match(docsGvsRunner, /MUI_PHONE_INPUT_KEEP_GVS_STAGE/u);
+assert.match(docsGvsRunner, /generatedPathSegments/u);
+for (const excludedState of ['.beads', '.git', 'node_modules', '.next']) {
+  assert.match(
+    docsGvsRunner,
+    new RegExp(`['"]${excludedState.replace('.', '\\.')}['"]`, 'u'),
+  );
+}
+assert.doesNotMatch(docsGvsRunner, /--store-dir/u);
+assert.doesNotMatch(docsGvsRunner, /enableGlobalVirtualStore(?:=|['"],\s*['"])false/u);
+assert.match(pnpmStoreTopology, /Cannot derive a bounded shared pnpm root/u);
+assert.match(childProcessTreeSource, /process\.kill\(-pid, signal\)/u);
+assert.match(childProcessTreeSource, /taskkill\.exe/u);
+assert.match(childProcessTreeSource, /survived forced shutdown/u);
+assert.match(packedConsumersVerifier, /detachedChildProcessOptions/u);
+assert.match(packedConsumersVerifier, /terminateChildProcessTree/u);
+assert.match(packedConsumersVerifier, /sharedGlobalStoreRoot/u);
+for (const latestConsumerPin of [
+  "'@mui/material': '9.4.0'",
+  "react: '19.3.0'",
+  "'react-dom': '19.3.0'",
+  "'@mui/material-nextjs': '9.4.0'",
+]) {
+  assert.match(
+    packedConsumersVerifier,
+    new RegExp(latestConsumerPin.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&'), 'u'),
+  );
+}
+for (const latestSpecializedPin of ["'react-hook-form': '7.88.0'", "zod: '4.6.4'"]) {
+  assert.match(
+    specializedConsumersVerifier,
+    new RegExp(latestSpecializedPin.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&'), 'u'),
+  );
+}
+assert.match(packedConsumersVerifier, /const muiVersion =/u);
+assert.match(packedConsumersVerifier, /@mui\/styled-engine.*muiVersion/u);
+assert.match(nextConsumerConfig, /resolveBoundedTurbopackRoot/u);
+assert.match(nextConsumerTurbopackRoot, /Refusing to use the filesystem root/u);
+assert.match(docsGvsTopology, /kind:\s*['"]stage['"]/u);
+assert.match(docsNextConfig, /resolveBoundedTurbopackRoot/u);
+assert.match(docsTurbopackRoot, /Refusing to use the filesystem root/u);
+assert.match(docsGvsPolicy, /does not disable GVS/u);
+assert.match(docsGvsPolicy, /does not[\s\S]*switch to Webpack/u);
+assert.match(docsGvsPolicy, /published library manifest is unchanged/u);
 assert.equal(rootPackage.scripts['test:browser'], 'node scripts/run-browser-tests.mjs');
 assert.match(browserTestRunner, /collectBrowserTests/u);
 assert.match(browserTestRunner, /\.\.\.vitestFilters/u);
@@ -142,10 +247,12 @@ for (const publicDocument of [rootReadme, packageReadme, contributingGuide]) {
 assert.match(contributingGuide, /canonical Bead/u);
 assert.equal(packageManifest.peerDependencies.react, '^19.0.0');
 assert.equal(packageManifest.peerDependencies['@mui/material'], '^9.0.0');
+assert.equal(packageManifest.peerDependencies['@types/react'], '^19.0.0');
 assert.equal(packageManifest.peerDependencies['@emotion/react'], '^11.14.0');
 assert.equal(packageManifest.peerDependencies['@emotion/styled'], '^11.14.0');
 assert.equal(packageManifest.peerDependencies['react-hook-form'], '^7.0.0');
 assert.equal(packageManifest.peerDependencies.zod, '^4.0.0');
+assert.equal(packageManifest.peerDependenciesMeta['@types/react'].optional, true);
 assert.equal(packageManifest.peerDependenciesMeta['react-hook-form'].optional, true);
 assert.equal(packageManifest.peerDependenciesMeta.zod.optional, true);
 assert.deepEqual(packageManifest.publishConfig, {
@@ -153,8 +260,8 @@ assert.deepEqual(packageManifest.publishConfig, {
   provenance: true,
   tag: 'next',
 });
-assert.equal(packageManifest.dependencies['@maskito/core'], '5.3.1');
-assert.equal(packageManifest.dependencies['@maskito/react'], '5.3.1');
+assert.equal(packageManifest.dependencies['@maskito/core'], '5.4.0');
+assert.equal(packageManifest.dependencies['@maskito/react'], '5.4.0');
 assert.match(rootPackage.devDependencies['libphonenumber-js'], /^\d+\.\d+\.\d+$/u);
 assert.equal(
   packageManifest.dependencies['libphonenumber-js'],
@@ -289,7 +396,6 @@ assert.match(packedConsumersVerifier, /server-render-probe\.mjs/u);
 assert.match(packedConsumersVerifier, /hydration-marker/u);
 assert.match(packedConsumersVerifier, /responsive-country-selector-trigger/u);
 assert.match(packedConsumersVerifier, /data-packed-slot-country/u);
-assert.match(packedConsumersVerifier, /production-dependency-policy\.json/u);
 assert.match(packedConsumersVerifier, /audit['"],\s*['"]--prod/u);
 assert.match(
   packedConsumersVerifier,
@@ -318,9 +424,36 @@ assert.match(rootPackage.scripts['ci:forward'], /verify:production-dependencies/
 assert.match(rootPackage.scripts['verify:published-runtime'], /expected-major=24/u);
 assert.match(rootPackage.scripts['ci:pr'], /verify:package-concurrency/u);
 assert.match(packageArtifactSource, /mkdtemp\(join\(artifactsDirectory, ['"]run-/u);
+assert.match(packageArtifactSource, /createIsolatedProcessEnvironment/u);
+assert.doesNotMatch(packageArtifactSource, /env:\s*process\.env/u);
+assert.match(isolatedProcessEnvironmentSource, /delete isolated\.NODE_PATH/u);
+assert.match(isolatedProcessEnvironmentSource, /process\.env\.NODE_PATH/u);
+assert.match(isolatedProcessEnvironmentSource, /registerHooks/u);
+assert.match(isolatedTemporaryRootSource, /findAncestorPackage/u);
+assert.match(isolatedTemporaryRootSource, /No isolated temporary root is available/u);
+for (const isolatedConsumerVerifier of [
+  packageArtifactSuite,
+  packageArtifactIndependenceVerifier,
+  packageArtifactConcurrencyVerifier,
+  packedConsumersVerifier,
+  specializedConsumersVerifier,
+  publishedRuntimeVerifier,
+  registryReleaseVerifier,
+  packageExportVerifier,
+  releaseCandidateCreator,
+]) {
+  assert.match(isolatedConsumerVerifier, /createIsolatedProcessEnvironment/u);
+  assert.doesNotMatch(isolatedConsumerVerifier, /env:\s*process\.env/u);
+}
+assert.match(packageExportVerifier, /findAncestorPackage/u);
+assert.match(
+  packageExportVerifier,
+  /must not resolve directly in the isolated consumer/u,
+);
 assert.doesNotMatch(packageArtifactSource, /rm\(artifactsDirectory/u);
 assert.match(packageArtifactConcurrencyVerifier, /assert\.notEqual/u);
 assert.match(packageArtifactConcurrencyVerifier, /siblingEvidencePath/u);
+assert.match(productionDependenciesVerifier, /production-dependency-policy\.json/u);
 assert.match(productionDependenciesVerifier, /audit\.error/u);
 assert.match(
   productionDependenciesVerifier,

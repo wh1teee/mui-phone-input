@@ -8,6 +8,10 @@ const workflow = await readFile(
   join(repositoryRoot, '.github/workflows/metadata-freshness.yml'),
   'utf8',
 );
+const branchAutomation = await readFile(
+  join(repositoryRoot, 'scripts/open-metadata-freshness-pr.mjs'),
+  'utf8',
+);
 const documentation = await readFile(
   join(repositoryRoot, 'docs/metadata-freshness.md'),
   'utf8',
@@ -19,11 +23,14 @@ for (const required of [
   'permissions:',
   'contents: write',
   'pull-requests: write',
+  'group: metadata-freshness',
+  'cancel-in-progress: false',
   'pnpm metadata:snapshot',
   'pnpm metadata:semantic-diff',
+  'pnpm verify:package',
   'docs/metadata-freshness-latest.md',
   '.changeset/metadata-freshness.md',
-  'gh pr create',
+  'node scripts/open-metadata-freshness-pr.mjs',
   'Human review is mandatory',
   'must never be auto-merged',
 ]) {
@@ -33,13 +40,28 @@ for (const required of [
   );
 }
 
+for (const required of [
+  /output\('gh',\s*\[\s*'pr',\s*'list'/u,
+  /'--state',\s*'all'/u,
+  /--force-with-lease=refs\/heads\//u,
+  /output\('gh',\s*\[\s*'pr',\s*'create'/u,
+  /validateAutomationOwnedBranch/u,
+  /METADATA_REVIEW_FILES/u,
+  /No branch mutation performed/u,
+]) {
+  assert.match(branchAutomation, required);
+}
+
 for (const forbidden of [
   'gh pr merge',
   '--auto',
   'enablePullRequestAutoMerge',
   'pull_request_target',
+  'git push --force ',
 ]) {
-  assert.doesNotMatch(workflow, new RegExp(forbidden, 'u'));
+  const pattern = new RegExp(forbidden, 'u');
+  assert.doesNotMatch(workflow, pattern);
+  assert.doesNotMatch(branchAutomation, pattern);
 }
 
 assert.match(documentation, /stale metadata/iu);
@@ -48,4 +70,6 @@ assert.match(documentation, /possible/iu);
 assert.match(documentation, /strict validity/iu);
 assert.match(documentation, /human review/iu);
 
-console.log('Scheduled metadata freshness workflow and human-review policy verified.');
+console.log(
+  'Scheduled metadata freshness workflow, idempotent branch recovery, and human-review policy verified.',
+);

@@ -1,11 +1,12 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { mkdir, mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
+import { mkdir, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { createIsolatedProcessEnvironment } from './lib/isolated-process-environment.mjs';
+import { createIsolatedTemporaryRoot } from './lib/isolated-temporary-root.mjs';
 import { assertEarlyCanaryDistTags } from './lib/npm-dist-tags.mjs';
 import {
   readRegistryJsonWithRetry,
@@ -13,6 +14,7 @@ import {
 } from './lib/npm-registry-retry.mjs';
 
 const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const isolatedProcessEnvironment = createIsolatedProcessEnvironment();
 const directoryArgument = process.argv.find((argument) =>
   argument.startsWith('--directory='),
 );
@@ -45,7 +47,7 @@ function execute(command, args, options = {}) {
   return spawnSync(command, args, {
     cwd: repositoryRoot,
     encoding: 'utf8',
-    env: process.env,
+    env: isolatedProcessEnvironment,
     shell: false,
     ...options,
   });
@@ -72,7 +74,9 @@ assert.equal(registryMetadata.name, candidate.package.name);
 assert.equal(registryMetadata.version, candidate.package.version);
 assertEarlyCanaryDistTags(distTags, candidate.package.version);
 
-const temporaryRoot = await mkdtemp(join(tmpdir(), 'mui-phone-input-registry-'));
+const temporaryRoot = await createIsolatedTemporaryRoot('mui-phone-input-registry-', {
+  forbiddenPackages: ['@wh1teee/mui-phone-input'],
+});
 try {
   const packDirectory = join(temporaryRoot, 'pack');
   await mkdir(packDirectory, { recursive: true });

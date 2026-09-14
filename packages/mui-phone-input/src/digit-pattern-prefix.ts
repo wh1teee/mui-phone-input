@@ -1,3 +1,4 @@
+// biome-ignore-all lint/style/noNonNullAssertion: parser and NFA indexes are constructed and consumed inside this closed module.
 type DigitMask = number;
 
 type DigitPatternNode =

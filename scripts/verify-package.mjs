@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { rmSync } from 'node:fs';
-import { mkdtemp, readFile, readdir } from 'node:fs/promises';
+import { mkdtemp, readdir, readFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
@@ -120,9 +120,9 @@ assert.doesNotMatch(
 assert.deepEqual(
   packedManifest.dependencies,
   {
-    '@maskito/core': '5.3.1',
-    '@maskito/react': '5.3.1',
-    'libphonenumber-js': '1.13.10',
+    '@maskito/core': '5.4.0',
+    '@maskito/react': '5.4.0',
+    'libphonenumber-js': '1.13.13',
     tabbable: '6.5.0',
   },
   'Published runtime dependencies differ from the reviewed feature-complete contract.',
@@ -133,6 +133,7 @@ assert.deepEqual(
     '@emotion/react': '^11.14.0',
     '@emotion/styled': '^11.14.0',
     '@mui/material': '^9.0.0',
+    '@types/react': '^19.0.0',
     react: '^19.0.0',
     'react-dom': '^19.0.0',
     'react-hook-form': '^7.0.0',
@@ -143,10 +144,11 @@ assert.deepEqual(
 assert.deepEqual(
   packedManifest.peerDependenciesMeta,
   {
+    '@types/react': { optional: true },
     'react-hook-form': { optional: true },
     zod: { optional: true },
   },
-  'Only RHF and Zod may be optional integration peers.',
+  'Only React types, RHF, and Zod may be optional peers.',
 );
 assert.equal(
   packedManifest.dependencies?.['country-flag-icons'],

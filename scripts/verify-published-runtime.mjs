@@ -1,11 +1,14 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
+import { readFile, rm, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { createIsolatedProcessEnvironment } from './lib/isolated-process-environment.mjs';
+import { createIsolatedTemporaryRoot } from './lib/isolated-temporary-root.mjs';
+
 const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const isolatedProcessEnvironment = createIsolatedProcessEnvironment();
 const expectedMajorArgument = process.argv.find((argument) =>
   argument.startsWith('--expected-major='),
 );
@@ -26,7 +29,7 @@ function run(command, args, cwd) {
   const result = spawnSync(command, args, {
     cwd,
     encoding: 'utf8',
-    env: process.env,
+    env: isolatedProcessEnvironment,
   });
 
   if (result.stdout) {
@@ -66,8 +69,11 @@ try {
   const rootPackage = JSON.parse(
     await readFile(join(repositoryRoot, 'package.json'), 'utf8'),
   );
-  consumerDirectory = await mkdtemp(
-    join(tmpdir(), `mui-phone-input-node-${expectedMajor}-`),
+  consumerDirectory = await createIsolatedTemporaryRoot(
+    `mui-phone-input-node-${expectedMajor}-`,
+    {
+      forbiddenPackages: ['@wh1teee/mui-phone-input', 'react-hook-form', 'zod'],
+    },
   );
 
   await writeFile(

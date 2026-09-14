@@ -54,7 +54,7 @@ const checksumLines = (await readFile(join(candidateDirectory, 'SHA256SUMS'), 'u
   .trim()
   .split('\n');
 for (const line of checksumLines) {
-  const match = line.match(/^([0-9a-f]{64})  (.+)$/u);
+  const match = line.match(/^([0-9a-f]{64}) {2}(.+)$/u);
   assert.ok(match, `Malformed checksum line: ${line}`);
   const [, expected, file] = match;
   assert.equal(sha256(await readFile(join(candidateDirectory, file))), expected);

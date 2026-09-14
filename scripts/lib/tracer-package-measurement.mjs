@@ -10,8 +10,9 @@ import {
   releasePackageArtifact,
   repositoryRoot,
 } from './package-artifact.mjs';
+import { normalizeTracerClosure } from './tracer-package-normalization.mjs';
 
-const MAIN_GZIP_BUDGET_BYTES = 32 * 1024;
+const MAIN_GZIP_BUDGET_BYTES = 32_636;
 const SERVER_GZIP_BUDGET_BYTES = 10 * 1024;
 
 const MAIN_BUDGET_EXTERNALS = [
@@ -67,7 +68,7 @@ async function buildMainClosure(entry) {
     .filter(({ type }) => type === 'chunk')
     .map(({ code: chunkCode }) => chunkCode)
     .join('\n');
-  return sizeRecord(code);
+  return sizeRecord(normalizeTracerClosure(code));
 }
 
 export async function measureTracerPackage(artifact) {
@@ -91,9 +92,9 @@ export async function measureTracerPackage(artifact) {
     const server = sizeRecord(serverCode);
 
     return {
-      schemaVersion: 1,
+      schemaVersion: 2,
       methodology: {
-        main: 'Vite 8 Oxc-minified ESM closure of the packed main entry with Rolldown cwd pinned to the extracted package root so generated module-region identifiers are artifact-relative. Maskito and tabbable runtime dependencies are bundled; React, React DOM, MUI, Emotion, RHF and Zod peers plus libphonenumber-js metadata are external because metadata has a separate budget.',
+        main: 'Vite 8 Oxc-minified ESM closure of the packed main entry. Paired Rolldown region markers are removed before measurement because their comments encode pnpm store topology but no executable bytes. Maskito and tabbable runtime dependencies are bundled; React, React DOM, MUI, Emotion, RHF and Zod peers plus libphonenumber-js metadata are external because metadata has a separate budget.',
         server:
           'Direct tsdown neutral-platform server entry, excluding metadata presets.',
       },

@@ -5,18 +5,19 @@ part of the production-shaped Next.js consumer used to prove that the exact
 package tarball builds, renders on the server, hydrates, and behaves in a real
 browser.
 
-Next.js 16.2.12 declares PostCSS 8.4.31 and sharp ^0.34.5. The workspace applies
-parent-scoped pnpm overrides only to that Next.js version:
+The verification apps use Next.js 16.3.5. Its declared PostCSS and sharp ranges
+resolve above the current policy floors without parent-scoped overrides:
 
-- PostCSS 8.5.25, above the 8.5.18 floor required by
+- PostCSS must remain at or above 8.5.18, the patched floor for
   `GHSA-r28c-9q8g-f849`;
-- sharp 0.35.3, above the 0.35.0 floor required by
-  `GHSA-f88m-g3jw-g9cj`.
+- sharp must remain at or above 0.35.4, the patched floor for
+  `GHSA-rgj7-g3m4-5g8c`.
 
 `docs/security/production-dependency-policy.json` is the machine-readable
-authority for the minimum and resolved versions. The same overrides are applied
-inside the isolated Next.js tarball consumer; they do not alter the published
-library manifest.
+authority for minimum versions and any narrowly scoped override that might be
+required in the future. The current override set is empty. The isolated Next.js
+tarball consumer installs the same supported framework line independently; none
+of this alters the published library manifest.
 
 `pnpm verify:production-dependencies` fails when:
 
@@ -30,6 +31,5 @@ Only low or moderate advisories may be temporarily accepted. Each entry must
 record its advisory identifier, a non-empty reason, and an ISO `expiresOn`
 date. The current allowlist is empty.
 
-The overrides should be removed after a supported stable Next.js release
-resolves both dependencies at or above the policy floors and passes the same
-packed-consumer evidence.
+Any future override must remain parent-scoped, meet the policy floor, and be
+removed again once a supported framework release resolves the dependency safely.

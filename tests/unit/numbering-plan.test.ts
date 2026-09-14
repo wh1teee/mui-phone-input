@@ -20,6 +20,14 @@ function expectSerializableResolution(resolution: NumberingPlanResolution) {
   expect(JSON.parse(JSON.stringify(resolution))).toEqual(resolution);
 }
 
+function requireMobileExample(country: CountryCode) {
+  const example = getExampleNumber(country, mobileExamples);
+  if (!example) {
+    throw new Error(`Missing pinned mobile example for ${country}.`);
+  }
+  return example;
+}
+
 describe('parseNationalPhoneValue', () => {
   it('exposes the selected-country parser through the server entrypoint', () => {
     expect(parseNationalPhoneValue('80291234567', 'BY')).toBe('+375291234567');
@@ -40,27 +48,25 @@ describe('parseNationalPhoneValue', () => {
     expect(countriesWithExamples).toHaveLength(245);
 
     for (const country of countriesWithExamples) {
-      const example = getExampleNumber(country, mobileExamples);
-      expect(example).toBeDefined();
+      const example = requireMobileExample(country);
 
       expect(
-        parseNationalPhoneValue(example!.nationalNumber, country),
+        parseNationalPhoneValue(example.nationalNumber, country),
         `${country} national autofill did not preserve its authority example`,
-      ).toBe(example!.number);
+      ).toBe(example.number);
     }
   });
 
   it.each(['AX', 'BL', 'CC', 'CX', 'EH', 'IM', 'MF', 'SJ', 'VA'] as const)(
     'preserves explicit territory authority for %s when global detection uses a parent plan',
     (country) => {
-      const example = getExampleNumber(country, mobileExamples);
-      expect(example).toBeDefined();
+      const example = requireMobileExample(country);
       expect(
-        parsePhoneNumberFromString(example!.nationalNumber, country)?.country,
+        parsePhoneNumberFromString(example.nationalNumber, country)?.country,
       ).not.toBe(country);
 
-      expect(parseNationalPhoneValue(example!.nationalNumber, country)).toBe(
-        example!.number,
+      expect(parseNationalPhoneValue(example.nationalNumber, country)).toBe(
+        example.number,
       );
     },
   );
@@ -206,8 +212,7 @@ describe('resolveNumberingPlan', () => {
     expect(countriesWithExamples).toHaveLength(245);
 
     for (const country of countriesWithExamples) {
-      const example = getExampleNumber(country, mobileExamples);
-      expect(example).toBeDefined();
+      const example = requireMobileExample(country);
       const value = example?.number as PhoneValue;
 
       expect(resolveNumberingPlan(value, { selectedCountry: country })).toMatchObject({
@@ -227,16 +232,15 @@ describe('resolveNumberingPlan', () => {
     expect(countriesWithExamples).toHaveLength(245);
 
     for (const country of countriesWithExamples) {
-      const example = getExampleNumber(country, mobileExamples);
-      expect(example).toBeDefined();
+      const example = requireMobileExample(country);
 
       const firstPrefixLength = getCountryCallingCode(country).length + 1;
       for (
         let length = firstPrefixLength;
-        length <= example!.number.length;
+        length <= example.number.length;
         length += 1
       ) {
-        const value = example!.number.slice(0, length) as PhoneValue;
+        const value = example.number.slice(0, length) as PhoneValue;
         const resolution = resolveNumberingPlan(value, { selectedCountry: country });
         prefixCount += 1;
 
@@ -264,9 +268,8 @@ describe('resolveNumberingPlan', () => {
     );
 
     for (const country of countriesWithExamples) {
-      const example = getExampleNumber(country, mobileExamples);
-      expect(example).toBeDefined();
-      const resolution = resolveNumberingPlan(example!.number as PhoneValue, {
+      const example = requireMobileExample(country);
+      const resolution = resolveNumberingPlan(example.number as PhoneValue, {
         selectedCountry: country,
       });
 

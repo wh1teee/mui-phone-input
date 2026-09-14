@@ -36,8 +36,8 @@ const notices = await readFile(
 const sha256 = (source) => createHash('sha256').update(source).digest('hex');
 const formatNumber = (value) => new Intl.NumberFormat('en-US').format(value);
 
-assert.equal(packageManifest.dependencies['@maskito/core'], '5.3.1');
-assert.equal(packageManifest.dependencies['@maskito/react'], '5.3.1');
+assert.equal(packageManifest.dependencies['@maskito/core'], '5.4.0');
+assert.equal(packageManifest.dependencies['@maskito/react'], '5.4.0');
 assert.equal(donorManifest.inputEngineDecision.selected, 'maskito');
 assert.equal(donorManifest.inputEngineDecision.contractVersion, 1);
 assert.deepEqual(donorManifest.inputEngineDecision.runtimePackages, [

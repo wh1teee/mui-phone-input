@@ -21,4 +21,5 @@ declare module '@mui/material/styles' {
   }
 }
 
+// biome-ignore lint/complexity/noUselessEmptyExport: preserve the frozen declaration-module boundary.
 export {};

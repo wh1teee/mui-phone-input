@@ -230,6 +230,20 @@ export default function DocumentationPage() {
 
       <ReleaseStatus />
 
+      <nav className="docs-toc" aria-label="On this page">
+        <span className="docs-toc-label">On this page</span>
+        <a href="#quick-start">Quick start</a>
+        <a href="#formatting">Formatting</a>
+        <a href="#extensions">Extensions</a>
+        <a href="#country-selector">Country selector</a>
+        <a href="#flags-localization">Localization &amp; RTL</a>
+        <a href="#mui-integration">MUI integration</a>
+        <a href="#ssr-security">SSR &amp; security</a>
+        <a href="#performance">Performance</a>
+        <a href="#accessibility">Accessibility</a>
+        <a href="#provenance">Provenance</a>
+      </nav>
+
       <Section id="quick-start" title="Quick start">
         <h3>Install</h3>
         <CodeBlock>{install}</CodeBlock>

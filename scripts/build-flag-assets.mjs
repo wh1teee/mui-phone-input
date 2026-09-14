@@ -1,5 +1,5 @@
-import { createRequire } from 'node:module';
 import { cp, mkdir, readdir, writeFile } from 'node:fs/promises';
+import { createRequire } from 'node:module';
 import { dirname, join, resolve } from 'node:path';
 
 const packageRoot = process.cwd();
@@ -22,7 +22,7 @@ const css = [
   "[class*=' flag:'],[class^='flag:']{display:inline-block;background-position:center;background-repeat:no-repeat;background-size:cover;height:1em;width:1.5em;--CountryFlagIcon-height:1em;height:var(--CountryFlagIcon-height);width:calc(var(--CountryFlagIcon-height)*3/2)}",
   ...flagFiles.map((filename) => {
     const code = filename.slice(0, -'.svg'.length);
-    return `.flag\\:${code}{background-image:url(\"./flags/3x2/${filename}\")}`;
+    return `.flag\\:${code}{background-image:url("./flags/3x2/${filename}")}`;
   }),
   '',
 ].join('\n');

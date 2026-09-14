@@ -4,6 +4,8 @@ import { mkdir, mkdtemp, readdir, rm, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { createIsolatedProcessEnvironment } from './isolated-process-environment.mjs';
+
 const scriptsDirectory = dirname(fileURLToPath(import.meta.url));
 export const repositoryRoot = resolve(scriptsDirectory, '../..');
 export const artifactsDirectory = join(repositoryRoot, '.artifacts');
@@ -19,7 +21,7 @@ export function run(command, args, options = {}) {
   const result = spawnSync(command, args, {
     cwd: repositoryRoot,
     encoding: 'utf8',
-    env: process.env,
+    env: createIsolatedProcessEnvironment(),
     shell: false,
     ...options,
   });

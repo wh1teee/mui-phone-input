@@ -1,38 +1,29 @@
 import assert from 'node:assert/strict';
 import { spawn, spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import {
-  cp,
-  mkdtemp,
-  readFile,
-  realpath,
-  rm,
-  symlink,
-  writeFile,
-} from 'node:fs/promises';
+import { cp, readFile, realpath, rm, symlink, writeFile } from 'node:fs/promises';
 import { createServer } from 'node:net';
-import { tmpdir } from 'node:os';
 import { basename, dirname, join, resolve } from 'node:path';
 import { performance } from 'node:perf_hooks';
 import { chromium } from '@playwright/test';
-
-import { createPackageArtifact, run } from './lib/package-artifact.mjs';
+import {
+  detachedChildProcessOptions,
+  terminateChildProcessTree,
+} from './lib/child-process-tree.mjs';
+import { createIsolatedProcessEnvironment } from './lib/isolated-process-environment.mjs';
+import { createIsolatedTemporaryRoot } from './lib/isolated-temporary-root.mjs';
+import { createPackageArtifact, repositoryRoot, run } from './lib/package-artifact.mjs';
 import { removeLeadingClientDirective } from './lib/package-boundary-contract.mjs';
+import { sharedGlobalStoreRoot } from './lib/pnpm-store-topology.mjs';
 
 const supportMatrix = process.env.SUPPORT_MATRIX ?? 'latest';
-const productionDependencyPolicy = JSON.parse(
-  await readFile(
-    new URL('../docs/security/production-dependency-policy.json', import.meta.url),
-    'utf8',
-  ),
-);
 const matrices = {
   latest: {
     '@emotion/react': '11.14.0',
     '@emotion/styled': '11.14.1',
-    '@mui/material': '9.2.0',
-    react: '19.2.8',
-    'react-dom': '19.2.8',
+    '@mui/material': '9.4.0',
+    react: '19.3.0',
+    'react-dom': '19.3.0',
   },
   minimum: {
     '@emotion/react': '11.14.0',
@@ -53,7 +44,32 @@ const artifactArgument = process.argv.find((argument) =>
 const tarball = artifactArgument
   ? resolve(artifactArgument.slice('--artifact='.length))
   : await createPackageArtifact();
-const temporaryRoot = await mkdtemp(join(tmpdir(), 'mui-phone-input-consumers-'));
+const isolatedProcessEnvironment = createIsolatedProcessEnvironment();
+
+function pnpmOutput(args) {
+  const result = spawnSync('pnpm', args, {
+    cwd: repositoryRoot,
+    encoding: 'utf8',
+    env: isolatedProcessEnvironment,
+    shell: false,
+  });
+  assert.equal(
+    result.status,
+    0,
+    `pnpm ${args.join(' ')} failed while resolving consumer topology.\n${result.stderr ?? ''}`,
+  );
+  return result.stdout.trim().split(/\r?\n/u).filter(Boolean).at(-1) ?? '';
+}
+
+const globalVirtualStoreEnabled =
+  pnpmOutput(['config', 'get', 'enableGlobalVirtualStore']) === 'true';
+const consumerCandidateParents = globalVirtualStoreEnabled
+  ? [join(sharedGlobalStoreRoot(pnpmOutput(['store', 'path'])), 'workspaces')]
+  : undefined;
+const temporaryRoot = await createIsolatedTemporaryRoot('mui-phone-input-consumers-', {
+  ...(consumerCandidateParents ? { candidateParents: consumerCandidateParents } : {}),
+  forbiddenPackages: ['@wh1teee/mui-phone-input', 'react-hook-form', 'zod'],
+});
 
 async function sha256File(file) {
   return createHash('sha256')
@@ -64,6 +80,9 @@ async function sha256File(file) {
 const authoritativeTarballDigest = await sha256File(tarball);
 const INPUT_INTERACTION_BUDGET_MS = 250;
 const INPUT_TOTAL_BUDGET_MS = 1_000;
+function runIsolated(command, args, options = {}) {
+  return run(command, args, { ...options, env: isolatedProcessEnvironment });
+}
 
 function recordUnexpectedNetwork(page, localOrigin) {
   const unexpected = [];
@@ -82,7 +101,6 @@ function recordUnexpectedNetwork(page, localOrigin) {
 async function measurePackedInputPerformance(page, origin) {
   const input = page.getByTestId('performance-input');
   const extension = page.getByTestId('performance-extension');
-  const value = page.getByTestId('performance-value');
   const extensionValue = page.getByTestId('performance-extension-value');
   const maskEnabled = page.getByTestId('performance-mask-enabled');
   const reset = page.getByRole('button', { name: 'Reset performance input' });
@@ -253,20 +271,8 @@ async function waitForServer(url, process, readLogs) {
   throw new Error(`Consumer server did not become ready at ${url}.\n${readLogs()}`);
 }
 
-async function stopServer(process) {
-  if (process.exitCode !== null) {
-    return;
-  }
-
-  process.kill('SIGTERM');
-  await Promise.race([
-    new Promise((resolve) => process.once('exit', resolve)),
-    new Promise((resolve) => setTimeout(resolve, 3_000)),
-  ]);
-
-  if (process.exitCode === null) {
-    process.kill('SIGKILL');
-  }
+async function stopServer(serverProcess) {
+  await terminateChildProcessTree(serverProcess);
 }
 
 async function preparePackedConsumer(consumer, destination) {
@@ -298,11 +304,18 @@ async function preparePackedConsumer(consumer, destination) {
           }
         : {
             '@emotion/cache': '11.14.0',
-            '@mui/material-nextjs': '9.1.1',
+            '@mui/material-nextjs': '9.4.0',
           },
     );
   }
   await writeFile(packagePath, `${JSON.stringify(packageManifest, null, 2)}\n`);
+
+  const muiVersion = packageManifest.dependencies['@mui/material'];
+  const reactTypesVersion = packageManifest.devDependencies['@types/react'];
+  const reactDomTypesVersion = packageManifest.devDependencies['@types/react-dom'];
+  assert.match(muiVersion, /^9\.\d+\.\d+$/u);
+  assert.match(reactTypesVersion, /^19\.\d+\.\d+$/u);
+  assert.match(reactDomTypesVersion, /^19\.\d+\.\d+$/u);
 
   const consumerWorkspacePolicy = [
     'packages:',
@@ -313,21 +326,31 @@ async function preparePackedConsumer(consumer, destination) {
     'autoInstallPeers: false',
     'minimumReleaseAge: 1440',
     'minimumReleaseAgeStrict: false',
+    'packageExtensions:',
+    '  "next@>=16.3.5 <17":',
+    '    dependencies:',
+    `      "@types/react": ${reactTypesVersion}`,
+    `      "@types/react-dom": ${reactDomTypesVersion}`,
+    '  "react-hook-form@>=7 <8":',
+    '    dependencies:',
+    `      "@types/react": ${reactTypesVersion}`,
+    `  "@mui/material@${muiVersion}":`,
+    '    dependencies:',
+    `      "@mui/styled-engine": ^${muiVersion}`,
+    '  "@mui/styled-engine@>=9.0.0 <10":',
+    '    dependencies:',
+    `      "@types/react": ${reactTypesVersion}`,
+    '  "@emotion/utils@>=1.4.2 <2":',
+    '    dependencies:',
+    '      "@emotion/sheet": ^1.4.0',
   ];
-  if (consumer === 'next-consumer') {
-    consumerWorkspacePolicy.push(
-      'overrides:',
-      `  "next@16.2.12>postcss": ${productionDependencyPolicy.overrides.postcss}`,
-      `  "next@16.2.12>sharp": ${productionDependencyPolicy.overrides.sharp}`,
-    );
-  }
   consumerWorkspacePolicy.push('strictPeerDependencies: true', '');
   await writeFile(
     join(destination, 'pnpm-workspace.yaml'),
     consumerWorkspacePolicy.join('\n'),
   );
 
-  run('pnpm', ['--dir', destination, 'install', '--frozen-lockfile=false']);
+  runIsolated('pnpm', ['--dir', destination, 'install', '--frozen-lockfile=false']);
 }
 
 function readBoundaryFailureExcerpt(output) {
@@ -388,7 +411,7 @@ async function verifyMissingPackageBoundaryFails(consumer) {
   const result = spawnSync('pnpm', ['--dir', destination, 'build'], {
     cwd: destination,
     encoding: 'utf8',
-    env: process.env,
+    env: isolatedProcessEnvironment,
     shell: false,
   });
   const output = `${result.stdout ?? ''}\n${result.stderr ?? ''}`;
@@ -551,11 +574,15 @@ async function verifyPackedBrowser(destination, consumer) {
           String(port),
           '--strictPort',
         ];
-  const serverProcess = spawn('pnpm', args, {
-    cwd: destination,
-    env: process.env,
-    stdio: ['ignore', 'pipe', 'pipe'],
-  });
+  const serverProcess = spawn(
+    'pnpm',
+    args,
+    detachedChildProcessOptions({
+      cwd: destination,
+      env: isolatedProcessEnvironment,
+      stdio: ['ignore', 'pipe', 'pipe'],
+    }),
+  );
   let logs = '';
   const captureLogs = (chunk) => {
     logs = `${logs}${chunk}`.slice(-16_000);
@@ -1347,9 +1374,15 @@ try {
     }
     const destination = join(temporaryRoot, consumer);
     await preparePackedConsumer(consumer, destination);
-    run('pnpm', ['--dir', destination, 'exec', 'node', 'package-export-probe.mjs']);
+    runIsolated('pnpm', [
+      '--dir',
+      destination,
+      'exec',
+      'node',
+      'package-export-probe.mjs',
+    ]);
     if (consumer === 'next-consumer') {
-      run('pnpm', [
+      runIsolated('pnpm', [
         '--dir',
         destination,
         'audit',
@@ -1357,9 +1390,15 @@ try {
         '--audit-level',
         'moderate',
       ]);
-      run('pnpm', ['--dir', destination, 'exec', 'node', 'server-render-probe.mjs']);
+      runIsolated('pnpm', [
+        '--dir',
+        destination,
+        'exec',
+        'node',
+        'server-render-probe.mjs',
+      ]);
     }
-    run('pnpm', ['--dir', destination, 'build']);
+    runIsolated('pnpm', ['--dir', destination, 'build']);
     await verifyPackedBrowser(destination, consumer);
     if (consumer === 'next-consumer') {
       await verifyMissingPackageBoundaryFails(consumer);
