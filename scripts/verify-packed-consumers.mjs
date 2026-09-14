@@ -21,9 +21,9 @@ const matrices = {
   latest: {
     '@emotion/react': '11.14.0',
     '@emotion/styled': '11.14.1',
-    '@mui/material': '9.2.0',
-    react: '19.2.8',
-    'react-dom': '19.2.8',
+    '@mui/material': '9.4.0',
+    react: '19.3.0',
+    'react-dom': '19.3.0',
   },
   minimum: {
     '@emotion/react': '11.14.0',
@@ -304,11 +304,18 @@ async function preparePackedConsumer(consumer, destination) {
           }
         : {
             '@emotion/cache': '11.14.0',
-            '@mui/material-nextjs': '9.1.1',
+            '@mui/material-nextjs': '9.4.0',
           },
     );
   }
   await writeFile(packagePath, `${JSON.stringify(packageManifest, null, 2)}\n`);
+
+  const muiVersion = packageManifest.dependencies['@mui/material'];
+  const reactTypesVersion = packageManifest.devDependencies['@types/react'];
+  const reactDomTypesVersion = packageManifest.devDependencies['@types/react-dom'];
+  assert.match(muiVersion, /^9\.\d+\.\d+$/u);
+  assert.match(reactTypesVersion, /^19\.\d+\.\d+$/u);
+  assert.match(reactDomTypesVersion, /^19\.\d+\.\d+$/u);
 
   const consumerWorkspacePolicy = [
     'packages:',
@@ -322,17 +329,17 @@ async function preparePackedConsumer(consumer, destination) {
     'packageExtensions:',
     '  "next@>=16.3.5 <17":',
     '    dependencies:',
-    '      "@types/react": ^19.2.18',
-    '      "@types/react-dom": ^19.2.4',
-    '  "react-hook-form@>=7.83.0 <8":',
+    `      "@types/react": ${reactTypesVersion}`,
+    `      "@types/react-dom": ${reactDomTypesVersion}`,
+    '  "react-hook-form@>=7 <8":',
     '    dependencies:',
-    '      "@types/react": ^19.2.18',
-    '  "@mui/material@>=9.0.0 <10":',
+    `      "@types/react": ${reactTypesVersion}`,
+    `  "@mui/material@${muiVersion}":`,
     '    dependencies:',
-    '      "@mui/styled-engine": ^9.0.0',
+    `      "@mui/styled-engine": ^${muiVersion}`,
     '  "@mui/styled-engine@>=9.0.0 <10":',
     '    dependencies:',
-    '      "@types/react": ^19.2.18',
+    `      "@types/react": ${reactTypesVersion}`,
     '  "@emotion/utils@>=1.4.2 <2":',
     '    dependencies:',
     '      "@emotion/sheet": ^1.4.0',

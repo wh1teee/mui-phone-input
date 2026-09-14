@@ -14,17 +14,17 @@ overrides:
 packageExtensions:
   "next@>=16.3.5 <17":
     dependencies:
-      "@types/react": ^19.2.18
-      "@types/react-dom": ^19.2.4
+      "@types/react": ^19.3.0
+      "@types/react-dom": ^19.3.0
   "react-hook-form@>=7.83.0 <8":
     dependencies:
-      "@types/react": ^19.2.18
-  "@mui/material@>=9.2.0 <10":
+      "@types/react": ^19.3.0
+  "@mui/material@>=9.4.0 <10":
     dependencies:
-      "@mui/styled-engine": ^9.1.1
-  "@mui/styled-engine@>=9.1.1 <10":
+      "@mui/styled-engine": ^9.4.0
+  "@mui/styled-engine@>=9.4.0 <10":
     dependencies:
-      "@types/react": ^19.2.18
+      "@types/react": ^19.3.0
   "@emotion/utils@>=1.4.2 <2":
     dependencies:
       "@emotion/sheet": ^1.4.0

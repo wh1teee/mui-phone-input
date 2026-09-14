@@ -120,8 +120,8 @@ assert.doesNotMatch(
 assert.deepEqual(
   packedManifest.dependencies,
   {
-    '@maskito/core': '5.3.1',
-    '@maskito/react': '5.3.1',
+    '@maskito/core': '5.4.0',
+    '@maskito/react': '5.4.0',
     'libphonenumber-js': '1.13.13',
     tabbable: '6.5.0',
   },

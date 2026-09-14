@@ -151,8 +151,8 @@ for (const [scriptName, mode] of Object.entries({
 for (const requiredPackageExtension of [
   '"next@>=16.3.5 <17"',
   '"react-hook-form@>=7.83.0 <8"',
-  '"@mui/material@>=9.2.0 <10"',
-  '"@mui/styled-engine@>=9.1.1 <10"',
+  '"@mui/material@>=9.4.0 <10"',
+  '"@mui/styled-engine@>=9.4.0 <10"',
   '"@emotion/utils@>=1.4.2 <2"',
 ]) {
   assert.match(pnpmWorkspace, new RegExp(requiredPackageExtension, 'u'));
@@ -175,6 +175,25 @@ assert.match(childProcessTreeSource, /survived forced shutdown/u);
 assert.match(packedConsumersVerifier, /detachedChildProcessOptions/u);
 assert.match(packedConsumersVerifier, /terminateChildProcessTree/u);
 assert.match(packedConsumersVerifier, /sharedGlobalStoreRoot/u);
+for (const latestConsumerPin of [
+  "'@mui/material': '9.4.0'",
+  "react: '19.3.0'",
+  "'react-dom': '19.3.0'",
+  "'@mui/material-nextjs': '9.4.0'",
+]) {
+  assert.match(
+    packedConsumersVerifier,
+    new RegExp(latestConsumerPin.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&'), 'u'),
+  );
+}
+for (const latestSpecializedPin of ["'react-hook-form': '7.88.0'", "zod: '4.6.4'"]) {
+  assert.match(
+    specializedConsumersVerifier,
+    new RegExp(latestSpecializedPin.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&'), 'u'),
+  );
+}
+assert.match(packedConsumersVerifier, /const muiVersion =/u);
+assert.match(packedConsumersVerifier, /@mui\/styled-engine.*muiVersion/u);
 assert.match(nextConsumerConfig, /resolveBoundedTurbopackRoot/u);
 assert.match(nextConsumerTurbopackRoot, /Refusing to use the filesystem root/u);
 assert.match(docsGvsTopology, /kind:\s*['"]stage['"]/u);
@@ -241,8 +260,8 @@ assert.deepEqual(packageManifest.publishConfig, {
   provenance: true,
   tag: 'next',
 });
-assert.equal(packageManifest.dependencies['@maskito/core'], '5.3.1');
-assert.equal(packageManifest.dependencies['@maskito/react'], '5.3.1');
+assert.equal(packageManifest.dependencies['@maskito/core'], '5.4.0');
+assert.equal(packageManifest.dependencies['@maskito/react'], '5.4.0');
 assert.match(rootPackage.devDependencies['libphonenumber-js'], /^\d+\.\d+\.\d+$/u);
 assert.equal(
   packageManifest.dependencies['libphonenumber-js'],

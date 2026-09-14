@@ -77,10 +77,10 @@ const profiles = [
     dependencies: {
       '@emotion/react': '11.14.0',
       '@emotion/styled': '11.14.1',
-      '@mui/material': '9.2.0',
-      react: '19.2.8',
-      'react-dom': '19.2.8',
-      'react-hook-form': '7.83.0',
+      '@mui/material': '9.4.0',
+      react: '19.3.0',
+      'react-dom': '19.3.0',
+      'react-hook-form': '7.88.0',
     },
     expectedExports: ['MuiPhoneInputController'],
     name: 'rhf-only',
@@ -88,7 +88,7 @@ const profiles = [
   },
   {
     absent: ['@mui/material', 'react', 'react-dom', 'react-hook-form'],
-    dependencies: { zod: '4.4.3' },
+    dependencies: { zod: '4.6.4' },
     expectedExports: [
       'createPhoneExtensionSchema',
       'createPhoneFormSchema',
