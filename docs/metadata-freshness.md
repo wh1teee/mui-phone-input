@@ -55,7 +55,17 @@ golden-corpus snapshot before and after the dependency update and writes
 
 The workflow opens a pull request containing a patch changeset. It never
 enables auto-merge and never merges the PR itself. Every semantic change
-requires human review of the diff and the changeset before merge.
+requires human review of the diff and the changeset before merge. The candidate
+must also pass exact package verification, so the packed runtime dependency
+contract cannot lag behind the reviewed metadata version.
+
+Runs are serialized and use one deterministic branch per metadata version. A
+rerun reuses an existing review without mutating it. If a previous run pushed a
+branch but failed before opening the pull request, recovery replaces that orphan
+only when every commit is authored by the GitHub Actions bot and every changed
+path belongs to the generated metadata review contract. The replacement push is
+protected by an exact `--force-with-lease`; human-authored or broader branches
+fail closed.
 
 ## Rollback procedure
 

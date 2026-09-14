@@ -1,10 +1,10 @@
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { access, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
+import { access, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
-
+import { createIsolatedProcessEnvironment } from './lib/isolated-process-environment.mjs';
+import { createIsolatedTemporaryRoot } from './lib/isolated-temporary-root.mjs';
 import {
   createPackageArtifact,
   releasePackageArtifact,
@@ -18,7 +18,19 @@ const ownsArtifact = !artifactArgument;
 const tarball = artifactArgument
   ? resolve(artifactArgument.slice('--artifact='.length))
   : await createPackageArtifact();
-const temporaryRoot = await mkdtemp(join(tmpdir(), 'mui-phone-input-specialized-'));
+const temporaryRoot = await createIsolatedTemporaryRoot(
+  'mui-phone-input-specialized-',
+  {
+    forbiddenPackages: [
+      '@mui/material',
+      '@wh1teee/mui-phone-input',
+      'react',
+      'react-dom',
+      'react-hook-form',
+      'zod',
+    ],
+  },
+);
 
 async function sha256File(file) {
   return createHash('sha256')
@@ -35,6 +47,7 @@ async function pathExists(path) {
   }
 }
 
+const isolatedProcessEnvironment = createIsolatedProcessEnvironment();
 const authoritativeTarballDigest = await sha256File(tarball);
 
 const profiles = [
@@ -128,11 +141,14 @@ try {
       `const loaded = await import(${JSON.stringify(profile.specifier)});\nconsole.log(JSON.stringify(Object.keys(loaded).sort()));\n`,
     );
 
-    run('pnpm', ['--dir', destination, 'install', '--frozen-lockfile=false']);
+    run('pnpm', ['--dir', destination, 'install', '--frozen-lockfile=false'], {
+      env: isolatedProcessEnvironment,
+    });
     const result = JSON.parse(
       execFileSync(process.execPath, ['probe.mjs'], {
         cwd: destination,
         encoding: 'utf8',
+        env: isolatedProcessEnvironment,
       }),
     );
     assert.deepEqual(

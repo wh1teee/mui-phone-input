@@ -132,27 +132,30 @@ repeatability evidence is recorded in
 from the exact artifact. The main measurement bundles runtime dependencies but
 externalizes declared peers.
 
-- Main closure budget: 32 KB gzip. The previous 28 KB budget covered the
-  formatting/mask surface; the extension UI, independent ownership state and
-  standards-based import/export advance the production-shaped public surface.
-  The budget remains bounded instead of weakening transaction or accessibility
-  behavior to fit the earlier tracer envelope.
+- Main executable closure budget: 32,636 bytes gzip. Paired Rolldown region
+  comments are removed before measurement because they contain only pnpm store
+  paths and vary between local and Global Virtual Store installations. The
+  numerical budget was reduced from 32,768 bytes so the normalized baseline
+  keeps the same 96-byte headroom; the gate is deterministic, not looser. The
+  earlier 28 KB budget covered the formatting/mask surface; the extension UI,
+  independent ownership state and standards-based import/export advance the
+  production-shaped public surface.
 - Server entry budget: 10 KB gzip.
 
 Current exact-artifact measurements are:
 
-- main closure: 32,672 bytes gzip;
+- main closure: 32,540 bytes gzip;
 - server entry: 6,225 bytes gzip;
-- packed tarball: 316,102 bytes. The tarball increase includes the production
+- packed tarball: 316,479 bytes. The tarball increase includes the production
   accessibility contract and independently built RHF and Zod JavaScript,
   declaration, and source-map entrypoints; neither adapter is part of the main
   or server runtime closure unless its explicit subpath is imported.
 
 CI creates one immutable package artifact, reuses that same tarball across the
 package/runtime/tracer/consumer gates, and requires exact byte/hash equality
-with the committed measurement. The tracer build pins Rolldown's working
-directory to the extracted package root so temporary extraction names cannot
-enter generated module-region comments.
+with the committed measurement. The tracer measurement removes only balanced
+Rolldown region-marker comment lines before hashing and compression, so local
+workspace and shared Global Virtual Store paths cannot change the result.
 
 ## Release boundary
 

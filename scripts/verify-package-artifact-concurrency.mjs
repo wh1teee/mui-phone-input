@@ -4,6 +4,7 @@ import { mkdir, mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 
+import { createIsolatedProcessEnvironment } from './lib/isolated-process-environment.mjs';
 import { artifactsDirectory, repositoryRoot } from './lib/package-artifact.mjs';
 
 const coordinationDirectory = await mkdtemp(
@@ -23,7 +24,7 @@ const workerPath = join(
 function startWorker(workerId) {
   const child = spawn(process.execPath, [workerPath, workerId, coordinationDirectory], {
     cwd: repositoryRoot,
-    env: process.env,
+    env: createIsolatedProcessEnvironment(),
     stdio: ['ignore', 'pipe', 'pipe'],
   });
   let output = '';

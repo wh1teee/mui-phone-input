@@ -5,8 +5,8 @@ import {
   chmod,
   copyFile,
   mkdir,
-  readFile,
   readdir,
+  readFile,
   rm,
   stat,
   writeFile,
@@ -14,12 +14,14 @@ import {
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { createIsolatedProcessEnvironment } from './lib/isolated-process-environment.mjs';
 import {
   createPackageArtifact,
   releasePackageArtifact,
 } from './lib/package-artifact.mjs';
 
 const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const isolatedProcessEnvironment = createIsolatedProcessEnvironment();
 const outputArgument = process.argv.find((argument) =>
   argument.startsWith('--output-dir='),
 );
@@ -32,7 +34,7 @@ function run(command, args, options = {}) {
   const result = spawnSync(command, args, {
     cwd: repositoryRoot,
     encoding: 'utf8',
-    env: process.env,
+    env: isolatedProcessEnvironment,
     shell: false,
     ...options,
   });

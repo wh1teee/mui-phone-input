@@ -16,7 +16,7 @@
     "@mui/material": "9.2.0",
     "@mui/material-nextjs": "9.1.1",
     "@wh1teee/mui-phone-input": "workspace:*",
-    "next": "16.2.12",
+    "next": "16.3.5",
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "react-hook-form": "7.83.0",

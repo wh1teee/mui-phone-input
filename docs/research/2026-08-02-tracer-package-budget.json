@@ -1,18 +1,18 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "methodology": {
-    "main": "Vite 8 Oxc-minified ESM closure of the packed main entry with Rolldown cwd pinned to the extracted package root so generated module-region identifiers are artifact-relative. Maskito and tabbable runtime dependencies are bundled; React, React DOM, MUI, Emotion, RHF and Zod peers plus libphonenumber-js metadata are external because metadata has a separate budget.",
+    "main": "Vite 8 Oxc-minified ESM closure of the packed main entry. Paired Rolldown region markers are removed before measurement because their comments encode pnpm store topology but no executable bytes. Maskito and tabbable runtime dependencies are bundled; React, React DOM, MUI, Emotion, RHF and Zod peers plus libphonenumber-js metadata are external because metadata has a separate budget.",
     "server": "Direct tsdown neutral-platform server entry, excluding metadata presets."
   },
   "budgets": {
-    "mainGzipBytes": 32768,
+    "mainGzipBytes": 32636,
     "serverGzipBytes": 10240
   },
   "main": {
-    "brotliBytes": 27992,
-    "gzipBytes": 32672,
-    "rawBytes": 118335,
-    "sha256": "4f6730257905b0d409f26c090b085b39db38349db3b86eebce96f523d0e701f6"
+    "brotliBytes": 27872,
+    "gzipBytes": 32540,
+    "rawBytes": 118004,
+    "sha256": "0d7fab9a8a7e1ea554cb5dcce1fe4e0da44795fe6351b21e611fedc9e563572a"
   },
   "server": {
     "brotliBytes": 5476,
@@ -20,6 +20,6 @@
     "rawBytes": 25768,
     "sha256": "e4206929ab937afae56601f9464371a5295a289bf94daab1401252760c55e373"
   },
-  "tarballBytes": 316102,
+  "tarballBytes": 316479,
   "status": "pass"
 }

@@ -96,19 +96,23 @@
   "dependencies": {
     "@maskito/core": "5.3.1",
     "@maskito/react": "5.3.1",
-    "libphonenumber-js": "1.13.10",
+    "libphonenumber-js": "1.13.13",
     "tabbable": "6.5.0"
   },
   "peerDependencies": {
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.0",
     "@mui/material": "^9.0.0",
+    "@types/react": "^19.0.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-hook-form": "^7.0.0",
     "zod": "^4.0.0"
   },
   "peerDependenciesMeta": {
+    "@types/react": {
+      "optional": true
+    },
     "react-hook-form": {
       "optional": true
     },
@@ -130,6 +134,7 @@
     "@emotion/react": "11.14.0",
     "@emotion/styled": "11.14.1",
     "@mui/material": "9.2.0",
+    "@types/react": "19.2.18",
     "country-flag-icons": "1.6.20",
     "react": "19.2.8",
     "react-dom": "19.2.8",

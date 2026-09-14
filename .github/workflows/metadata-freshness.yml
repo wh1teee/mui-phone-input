@@ -21,7 +21,7 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
       - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.4.0
         with:
-          version: 11.9.0
+          version: 11.27.0
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           cache: pnpm
@@ -101,26 +101,12 @@ jobs:
           pnpm typecheck
           pnpm build
           pnpm verify:metadata-presets
+          pnpm verify:package
           pnpm verify:metadata-freshness
-      - name: Open human-reviewed pull request
+      - name: Open or reuse human-reviewed pull request
         if: steps.versions.outputs.update_required == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
           LATEST: ${{ steps.versions.outputs.latest }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          branch="automation/metadata-freshness-$LATEST"
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git switch -c "$branch"
-          git add package.json pnpm-lock.yaml packages/mui-phone-input/package.json \
-            .changeset/metadata-freshness.md docs/metadata-freshness-latest.md
-          git commit -m "chore: refresh phone metadata to $LATEST"
-          git push --set-upstream origin "$branch"
-          gh pr create \
-            --base main \
-            --head "$branch" \
-            --title "chore: refresh phone metadata to $LATEST" \
-            --body-file .metadata-freshness/pr-body.md
+        run: node scripts/open-metadata-freshness-pr.mjs
 
