@@ -234,7 +234,10 @@ assert.match(npmIdentityVerifier, /authenticated-identity-mismatch/u);
 assert.match(npmIdentityVerifier, /packageScope !== repositoryOwner/u);
 assert.match(packageManifest.version, /^0\.1\.0-next\.\d+$/u);
 assert.equal(packageManifest.type, 'module');
-assert.deepEqual(packageManifest.sideEffects, ['./dist/flags.css']);
+assert.deepEqual(packageManifest.sideEffects, [
+  './dist/flags.css',
+  './dist/shadcn.css',
+]);
 assert.equal(packageManifest.engines, undefined);
 assert.equal(
   packageManifest.bugs.url,
@@ -245,6 +248,19 @@ for (const publicDocument of [rootReadme, packageReadme, contributingGuide]) {
   assert.doesNotMatch(publicDocument, /github\.com\/wh1teee\/mui-phone-input\/issues/u);
 }
 assert.match(contributingGuide, /canonical Bead/u);
+assert.equal(packageManifest.peerDependencies['@base-ui/react'], '^1.8.0');
+for (const renderer of [
+  '@base-ui/react',
+  '@mui/material',
+  '@emotion/react',
+  '@emotion/styled',
+]) {
+  assert.equal(packageManifest.peerDependenciesMeta[renderer].optional, true);
+}
+assert.equal(
+  rootPackage.scripts['verify:ui-adapters'],
+  'node scripts/verify-packed-ui-adapters.mjs',
+);
 assert.equal(packageManifest.peerDependencies.react, '^19.0.0');
 assert.equal(packageManifest.peerDependencies['@mui/material'], '^9.0.0');
 assert.equal(packageManifest.peerDependencies['@types/react'], '^19.0.0');
@@ -317,9 +333,20 @@ assert.deepEqual(consumerExportContract.implemented, [
   './locales/en',
   './locales/ru',
   './package.json',
+  './mui',
+  './headless',
+  './base-ui',
+  './shadcn',
+  './base-ui/react-hook-form',
+  './shadcn/react-hook-form',
 ]);
-assert.deepEqual(consumerExportContract.implementedAssets, ['./flags.css']);
+assert.deepEqual(consumerExportContract.implementedAssets, [
+  './flags.css',
+  './shadcn.css',
+]);
 assert.deepEqual(consumerExportContract.optionalPeers, {
+  './base-ui/react-hook-form': 'react-hook-form',
+  './shadcn/react-hook-form': 'react-hook-form',
   './react-hook-form': 'react-hook-form',
   './zod': 'zod',
 });

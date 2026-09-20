@@ -1,6 +1,6 @@
 # @wh1teee/mui-phone-input
 
-Modern React 19 and Material UI 9 phone input. The current prerelease tracer
+Modern React 19 phone input for Material UI 9 and Base UI/shadcn. The current prerelease tracer
 provides a canonical international candidate, controlled and uncontrolled
 ownership, authority-backed numbering-plan resolution, possible-by-default
 validation, a shared headless controller, supported composable primitives, MUI
@@ -16,10 +16,17 @@ continues in later gated slices.
 
 ## Published subpaths
 
-The current canary publishes only these implemented paths:
+This version provides these explicit entrypoints:
 
 - `@wh1teee/mui-phone-input` — React/MUI component, controller, primitives and
   shared phone helpers;
+- `@wh1teee/mui-phone-input/mui` — explicit alias for the legacy root;
+- `@wh1teee/mui-phone-input/headless` — phone controller and helpers without UI peers;
+- `@wh1teee/mui-phone-input/base-ui` — unstyled `PhoneInput` and country selector;
+- `@wh1teee/mui-phone-input/shadcn` — the same Base UI composition;
+- `@wh1teee/mui-phone-input/shadcn.css` — optional semantic-variable skin;
+- `@wh1teee/mui-phone-input/base-ui/react-hook-form` — Base UI form binding;
+- `@wh1teee/mui-phone-input/shadcn/react-hook-form` — alias for the Base UI form binding;
 - `@wh1teee/mui-phone-input/server` — neutral parsing, numbering-plan,
   formatting and validation helpers;
 - `@wh1teee/mui-phone-input/react-hook-form` — optional React Hook Form
@@ -34,7 +41,7 @@ The current canary publishes only these implemented paths:
 - `@wh1teee/mui-phone-input/locales/{en,be,ru}` — independent locale packs;
 - `@wh1teee/mui-phone-input/package.json` — package metadata.
 
-React Hook Form and Zod are optional peers. Core, `/server`, metadata, flags,
+MUI, Emotion, Base UI, React Hook Form and Zod are optional peers. Core, `/server`, metadata, flags,
 and locale consumers do not need either package. Using only one adapter does
 not require installing the other adapter's peer.
 
@@ -48,14 +55,73 @@ Discussions do not carry implementation status.
 ## Install
 
 ```sh
-pnpm add @wh1teee/mui-phone-input @mui/material @emotion/react @emotion/styled
+pnpm add @wh1teee/mui-phone-input@next @mui/material@^9 @emotion/react @emotion/styled
 ```
 
-React 19, React DOM 19, and MUI 9 are peer dependencies. The package is ESM
+React 19 and React DOM 19 are required client peers. MUI 9 is required only by the MUI entrypoints. The package is ESM
 only and intentionally has no published Node engine constraint, so browser
 consumers are not blocked by the repository toolchain. Exact tarballs are
 installed and loaded under Node 22 and Node 24; repository development and
 release tooling requires Node 24 LTS.
+
+## Base UI and shadcn
+
+```sh
+pnpm add @wh1teee/mui-phone-input@next @base-ui/react@^1.8
+```
+
+```tsx
+'use client';
+
+import { useState } from 'react';
+import { PhoneInput, type PhoneValue } from '@wh1teee/mui-phone-input/shadcn';
+import '@wh1teee/mui-phone-input/shadcn.css';
+
+export function ContactPhone() {
+  const [phone, setPhone] = useState<PhoneValue>();
+  return <PhoneInput label="Phone" name="phone" defaultCountry="BY"
+    value={phone} onChange={setPhone} helperText="Include your country code" />;
+}
+```
+
+The default field skin uses shadcn variables such as `--background`, `--input`,
+`--ring` and `--popover`. Import it once in the application's permitted global
+stylesheet location, or omit it and style the documented `data-slot`/`classNames`
+surfaces yourself. No Tailwind scanning or global Preflight is required. CSS is
+never imported implicitly from JavaScript. `/base-ui` exports the identical
+unstyled composition. Neither entrypoint imports MUI or Emotion at runtime or in
+its declarations. The MUI root similarly does not depend on Base UI.
+
+The native input ref, phone value, extensions, metadata, validation and edit
+transactions use the same contracts as MUI. `inputProps` forwards native field
+attributes. `countrySelector` accepts locale/filter/order/preferred countries,
+messages, flags, slot classes and a `portalContainer`. Set `countrySelector={false}`
+to render without the picker. Flag assets are opt-in; country names and ISO codes
+remain available without external image requests. `dir="rtl"` affects the field
+and popup, not the LTR phone digits.
+
+For a product-owned field, import `usePhoneInput` from `/headless`, spread
+`phone.getInputProps()` onto its native input (including its ref), and pass the
+same `phone` to `PhoneInputCountrySelector` from `/base-ui`. This is the supported
+integration path for PayAtTable's scoped customer TextField. Keep the popup in
+the same theme scope with `portalContainer`; `null` defers it during hydration.
+
+`PhoneValue` is a normalized international **candidate**, not proof that the
+number is valid or allocated. It uses `undefined` for empty, while the formatted
+value is owned by the controller. A string-based form can translate `undefined`
+to `''` at its boundary. Existing formatted values can be normalized with the
+neutral `parsePhoneValue` helper. Do not implement another mask or parser.
+
+`PhoneInputController` from `/base-ui/react-hook-form` (or the shadcn alias)
+accepts `name`, `control`, `rules` and optionally `extensionName`,
+`extensionLabel`, `extensionRules`. The fields remain independent, including
+leading-zero extensions, reset, server errors, native focus and unregistration.
+
+Strict pnpm global-virtual-store installations can expose missing type edges in
+upstream packages. The reviewed `packageExtensions` in the repository's
+`pnpm-workspace.yaml` includes a repair for `@floating-ui/react-dom@2.1.9` →
+`@types/react@19.3.0`. Our exact-tarball consumer tests use those explicit repairs
+with `skipLibCheck=false`; they do not disable GVS or hoist hidden dependencies.
 
 ## React Hook Form
 

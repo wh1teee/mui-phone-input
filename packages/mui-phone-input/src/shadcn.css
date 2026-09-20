@@ -1,0 +1,206 @@
+/* Opt-in shadcn skin. No global reset, remote assets, or Tailwind scanning. */
+[data-slot="phone-input"] {
+  display: grid;
+  gap: 0.5rem;
+  min-width: 0;
+  color: var(--foreground, #171717);
+  font: inherit;
+}
+
+[data-slot="phone-input-label"],
+[data-slot="phone-input-extension"] > label {
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+[data-slot="phone-input-control"] {
+  display: flex;
+  align-items: stretch;
+  min-width: 0;
+  min-height: 2.5rem;
+  border: 1px solid var(--input, #d4d4d4);
+  border-radius: var(--radius, 0.5rem);
+  background: var(--background, white);
+  transition:
+    border-color 120ms,
+    box-shadow 120ms;
+}
+
+[data-slot="phone-input-control"]:focus-within {
+  border-color: var(--ring, #737373);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ring, #737373) 35%, transparent);
+}
+
+[data-slot="phone-input-native"] {
+  width: 100%;
+  min-width: 0;
+  padding: 0.5rem 0.75rem;
+  border: 0;
+  border-radius: inherit;
+  outline: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 1rem;
+}
+
+[data-slot="phone-country-trigger"],
+[data-slot="phone-country-close"] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  flex: none;
+  min-height: 2.5rem;
+  min-width: 2.5rem;
+  padding: 0.375rem 0.625rem;
+  border: 0;
+  border-radius: var(--radius, 0.5rem);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+[data-slot="phone-country-trigger"]:focus-visible,
+[data-slot="phone-country-close"]:focus-visible {
+  outline: 2px solid var(--ring, #737373);
+  outline-offset: -2px;
+}
+
+[data-slot="phone-country-positioner"] {
+  z-index: var(--phone-input-popup-z-index, 50);
+  outline: none;
+}
+
+[data-slot="phone-country-popup"] {
+  box-sizing: border-box;
+  width: min(24rem, var(--available-width));
+  max-width: calc(100vw - 1rem);
+  max-height: min(28rem, var(--available-height));
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--border, #d4d4d4);
+  border-radius: var(--radius, 0.5rem);
+  background: var(--popover, white);
+  color: var(--popover-foreground, #171717);
+  font: inherit;
+  box-shadow: 0 4px 16px rgb(0 0 0 / 12%);
+  transform-origin: var(--transform-origin);
+}
+
+[data-slot="phone-country-search-row"] {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.375rem;
+  border-bottom: 1px solid var(--border, #d4d4d4);
+}
+
+[data-slot="phone-country-search"],
+[data-slot="phone-input-extension-native"] {
+  box-sizing: border-box;
+  min-width: 0;
+  width: 100%;
+  padding: 0.5rem 0.625rem;
+  border: 1px solid var(--input, #d4d4d4);
+  border-radius: var(--radius, 0.5rem);
+  background: var(--background, white);
+  color: inherit;
+  font: inherit;
+  font-size: 1rem;
+}
+
+[data-slot="phone-country-search"]:focus-visible,
+[data-slot="phone-input-extension-native"]:focus-visible {
+  outline: 2px solid var(--ring, #737373);
+  outline-offset: -2px;
+}
+
+[data-slot="phone-country-list"] {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 0.25rem;
+}
+
+[data-slot="phone-country-option"] {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 2.5rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: calc(var(--radius, 0.5rem) - 2px);
+  cursor: default;
+}
+
+[data-slot="phone-country-option"][data-highlighted] {
+  background: var(--accent, #f5f5f5);
+  color: var(--accent-foreground, #171717);
+}
+
+[data-slot="phone-country-name"] {
+  flex: 1;
+}
+[data-slot="phone-country-code"] {
+  font-size: 0.75rem;
+}
+[data-slot="phone-country-calling-code"] {
+  font-variant-numeric: tabular-nums;
+}
+[data-slot="phone-country-indicator"] {
+  flex: none;
+  width: 1rem;
+}
+[data-slot="phone-country-empty"]:empty {
+  display: none;
+}
+[data-slot="phone-country-empty"] {
+  padding: 0.75rem;
+}
+[data-slot="phone-input-extension"] {
+  display: grid;
+  gap: 0.5rem;
+}
+[data-slot="phone-input-description"] {
+  margin: 0;
+  color: var(--muted-foreground, #737373);
+  font-size: 0.875rem;
+}
+[data-slot="phone-input"][data-invalid] [data-slot="phone-input-control"] {
+  border-color: var(--destructive, #b91c1c);
+}
+[data-slot="phone-input"][data-invalid] [data-slot="phone-input-description"] {
+  color: var(--destructive, #b91c1c);
+}
+[data-slot="phone-input"][data-disabled] {
+  opacity: 0.5;
+}
+[data-slot="phone-country-trigger"]:disabled {
+  cursor: not-allowed;
+}
+
+@media (pointer: coarse) {
+  [data-slot="phone-country-trigger"],
+  [data-slot="phone-country-close"],
+  [data-slot="phone-country-option"] {
+    min-height: 2.75rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-slot="phone-input-control"] {
+    transition: none;
+  }
+}
+
+@media (forced-colors: active) {
+  [data-slot="phone-input-control"]:focus-within {
+    outline: 2px solid Highlight;
+  }
+  [data-slot="phone-country-option"][data-highlighted] {
+    outline: 1px solid Highlight;
+  }
+}

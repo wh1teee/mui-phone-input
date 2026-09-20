@@ -1,6 +1,7 @@
 import { defineConfig } from 'tsdown';
 
 const externalDependencies = [
+  '@base-ui/react',
   '@maskito/core',
   '@maskito/react',
   'libphonenumber-js',
@@ -27,6 +28,27 @@ export default defineConfig([
       'locales/en': 'src/locales/en.ts',
       'locales/index': 'src/locales/index.ts',
       'locales/ru': 'src/locales/ru.ts',
+    },
+    deps: {
+      neverBundle: externalDependencies,
+    },
+    format: ['esm'],
+    outDir: 'dist',
+    platform: 'browser',
+    sourcemap: true,
+    target: ['Chrome117', 'Edge121', 'Firefox121', 'Safari17'],
+  },
+  {
+    clean: false,
+    define: {
+      'process.env.NODE_ENV': 'process.env.NODE_ENV',
+    },
+    dts: true,
+    entry: {
+      headless: 'src/headless.ts',
+      'base-ui': 'src/base-ui.ts',
+      shadcn: 'src/shadcn.ts',
+      'base-ui/react-hook-form': 'src/base-ui-react-hook-form.tsx',
     },
     deps: {
       neverBundle: externalDependencies,

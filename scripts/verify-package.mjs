@@ -25,6 +25,7 @@ run('pnpm', [
   'esm-only',
   '--exclude-entrypoints',
   './flags.css',
+  './shadcn.css',
 ]);
 const extractionRoot = await mkdtemp(
   join(repositoryRoot, 'packages/mui-phone-input/.verify-package-'),
@@ -65,6 +66,15 @@ for (const requiredFile of [
   'package/dist/metadata/mobile.d.ts',
   'package/dist/metadata/mobile.js.map',
   'package/dist/flags.css',
+  'package/dist/headless.js',
+  'package/dist/headless.d.ts',
+  'package/dist/base-ui.js',
+  'package/dist/base-ui.d.ts',
+  'package/dist/base-ui/react-hook-form.js',
+  'package/dist/base-ui/react-hook-form.d.ts',
+  'package/dist/shadcn.js',
+  'package/dist/shadcn.d.ts',
+  'package/dist/shadcn.css',
   'package/dist/flags.js',
   'package/dist/flags.d.ts',
   'package/dist/flags.js.map',
@@ -105,8 +115,8 @@ assert.equal(
 );
 assert.deepEqual(
   packedManifest.sideEffects,
-  ['./dist/flags.css'],
-  'Only the generated local flag stylesheet may be marked as a package side effect.',
+  ['./dist/flags.css', './dist/shadcn.css'],
+  'Only explicitly imported flag and shadcn stylesheets may be package side effects.',
 );
 assert.equal(
   packedManifest.bugs?.url,
@@ -130,6 +140,7 @@ assert.deepEqual(
 assert.deepEqual(
   packedManifest.peerDependencies,
   {
+    '@base-ui/react': '^1.8.0',
     '@emotion/react': '^11.14.0',
     '@emotion/styled': '^11.14.0',
     '@mui/material': '^9.0.0',
@@ -144,11 +155,15 @@ assert.deepEqual(
 assert.deepEqual(
   packedManifest.peerDependenciesMeta,
   {
+    '@base-ui/react': { optional: true },
+    '@emotion/react': { optional: true },
+    '@emotion/styled': { optional: true },
+    '@mui/material': { optional: true },
     '@types/react': { optional: true },
     'react-hook-form': { optional: true },
     zod: { optional: true },
   },
-  'Only React types, RHF, and Zod may be optional peers.',
+  'Renderers, React types, RHF and Zod must remain optional peers.',
 );
 assert.equal(
   packedManifest.dependencies?.['country-flag-icons'],

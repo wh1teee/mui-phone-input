@@ -1,4 +1,4 @@
-import type { PhoneCountrySelectorMessages } from '../PhoneInputCountrySelector';
+import type { PhoneCountrySelectorMessages } from '../country-selector-messages';
 
 export interface PhoneInputLocale {
   locale: string;
