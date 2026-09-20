@@ -43,7 +43,10 @@ for (const adapter of ['base', 'mui'] as const) {
     test('national input, mid-string replacement, clear and controlled reset', async () => {
       await render(<Controlled adapter={adapter} />);
       const input = page.getByLabelText('Phone', { exact: true });
-      await input.fill('291234567');
+      // Exercise actual incremental typing. Playwright's fill() emits different
+      // replacement metadata across engines and is not a native autofill proof.
+      await input.click();
+      await userEvent.keyboard('291234567');
       await expect
         .element(page.getByTestId('value'))
         .toHaveTextContent('+375291234567');
@@ -258,12 +261,14 @@ describe('Base UI country selector and field', () => {
     }
     await render(<ScopedField />);
     await page.getByLabelText('Select country', { exact: true }).click();
-    expect(
-      page
-        .getByTestId('scoped-portal')
-        .element()
-        .querySelector('[data-slot="phone-country-popup"]'),
-    ).not.toBeNull();
+    await expect
+      .poll(() =>
+        page
+          .getByTestId('scoped-portal')
+          .element()
+          .querySelector('[data-slot="phone-country-popup"]'),
+      )
+      .not.toBeNull();
     await expect
       .element(page.getByLabelText('Owned phone'))
       .toHaveAttribute('dir', 'ltr');
@@ -292,6 +297,9 @@ describe('Base UI country selector and field', () => {
       'Enter a complete phone number',
     );
     await page.getByLabelText('Select country', { exact: true }).click();
+    await expect
+      .element(page.getByRole('combobox', { name: 'Search countries' }))
+      .toBeVisible();
     const result = await axe.run(document.body, {
       runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21aa'] },
     });
