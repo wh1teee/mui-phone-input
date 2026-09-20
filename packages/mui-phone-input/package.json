@@ -1,6 +1,6 @@
 {
   "name": "@wh1teee/mui-phone-input",
-  "version": "0.1.0-next.8",
+  "version": "0.1.0-next.9",
   "description": "Accessible, deeply customizable international phone input for React and Material UI.",
   "license": "MIT",
   "author": "Konstantsin Petrovskiy",
@@ -14,7 +14,8 @@
   },
   "type": "module",
   "sideEffects": [
-    "./dist/flags.css"
+    "./dist/flags.css",
+    "./dist/shadcn.css"
   ],
   "files": [
     "dist",
@@ -84,7 +85,38 @@
       "import": "./dist/locales/ru.js",
       "default": "./dist/locales/ru.js"
     },
-    "./package.json": "./package.json"
+    "./package.json": "./package.json",
+    "./mui": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./headless": {
+      "types": "./dist/headless.d.ts",
+      "import": "./dist/headless.js",
+      "default": "./dist/headless.js"
+    },
+    "./base-ui": {
+      "types": "./dist/base-ui.d.ts",
+      "import": "./dist/base-ui.js",
+      "default": "./dist/base-ui.js"
+    },
+    "./shadcn": {
+      "types": "./dist/shadcn.d.ts",
+      "import": "./dist/shadcn.js",
+      "default": "./dist/shadcn.js"
+    },
+    "./base-ui/react-hook-form": {
+      "types": "./dist/base-ui/react-hook-form.d.ts",
+      "import": "./dist/base-ui/react-hook-form.js",
+      "default": "./dist/base-ui/react-hook-form.js"
+    },
+    "./shadcn/react-hook-form": {
+      "types": "./dist/base-ui/react-hook-form.d.ts",
+      "import": "./dist/base-ui/react-hook-form.js",
+      "default": "./dist/base-ui/react-hook-form.js"
+    },
+    "./shadcn.css": "./dist/shadcn.css"
   },
   "browserslist": [
     "Chrome >= 117",
@@ -107,7 +139,8 @@
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-hook-form": "^7.0.0",
-    "zod": "^4.0.0"
+    "zod": "^4.0.0",
+    "@base-ui/react": "^1.8.0"
   },
   "peerDependenciesMeta": {
     "@types/react": {
@@ -118,6 +151,18 @@
     },
     "zod": {
       "optional": true
+    },
+    "@base-ui/react": {
+      "optional": true
+    },
+    "@mui/material": {
+      "optional": true
+    },
+    "@emotion/react": {
+      "optional": true
+    },
+    "@emotion/styled": {
+      "optional": true
     }
   },
   "publishConfig": {
@@ -126,11 +171,12 @@
     "tag": "next"
   },
   "scripts": {
-    "build": "tsdown && node ../../scripts/build-flag-assets.mjs",
+    "build": "tsdown && node ../../scripts/build-flag-assets.mjs && node ../../scripts/build-ui-assets.mjs",
     "clean": "node ../../scripts/clean-package.mjs",
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "devDependencies": {
+    "@base-ui/react": "1.8.0",
     "@emotion/react": "11.14.0",
     "@emotion/styled": "11.14.1",
     "@mui/material": "9.4.0",

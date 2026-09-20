@@ -12,10 +12,18 @@
     "./locales/be",
     "./locales/en",
     "./locales/ru",
-    "./package.json"
+    "./package.json",
+    "./mui",
+    "./headless",
+    "./base-ui",
+    "./shadcn",
+    "./base-ui/react-hook-form",
+    "./shadcn/react-hook-form"
   ],
-  "implementedAssets": ["./flags.css"],
+  "implementedAssets": ["./flags.css", "./shadcn.css"],
   "optionalPeers": {
+    "./base-ui/react-hook-form": "react-hook-form",
+    "./shadcn/react-hook-form": "react-hook-form",
     "./react-hook-form": "react-hook-form",
     "./zod": "zod"
   },

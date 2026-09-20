@@ -1,13 +1,15 @@
-# MUI Phone Input
+# Phone Input — MUI, Base UI and shadcn
 
-A highly customizable, accessible phone input for React and Material UI, with `libphonenumber-js` as the only phone-number authority.
+A highly customizable, accessible phone input for React, MUI and Base UI, with `libphonenumber-js` as the only phone-number authority.
 
-> Status: foundations, the Input Transaction bake-off, the production-shaped
-> `MuiPhoneInput` tracer, numbering-plan resolution, and possible-by-default
-> validation/server parity, MUI theme integration, `usePhoneInput`, composable
-> primitives, and the basic responsive Country Selector are implemented on the
-> delivery branch. npm publication remains blocked on the explicit owner gate
-> `mpi-g7a`.
+The package supports Material UI and Base UI/shadcn over one phone-editing engine.
+The existing npm identity and MUI imports remain compatible. New consumers select
+an explicit UI entrypoint instead of installing a second implementation. See
+[the multi-adapter guide](./docs/guides/ui-adapters.md) and
+[ADR 0007](./docs/adr/0007-share-phone-state-across-independent-ui-adapters.md).
+
+The prerelease channel is `@wh1teee/mui-phone-input@next`; `latest` is not the
+active release-candidate channel. Live delivery/release state belongs to Beads.
 
 ## Goals
 
@@ -21,14 +23,14 @@ A highly customizable, accessible phone input for React and Material UI, with `l
   locale, and flag entrypoints, while keeping integrations independently
   tree-shakeable and optional.
 
-The current export map contains `.`, `./server`, `./react-hook-form`, `./zod`,
-the metadata presets, flags, locale packs, and `./package.json`. React Hook
-Form and Zod are optional peers: core and server consumers do not install them,
-and each adapter can be consumed without the other adapter's peer.
+The public export map preserves the root MUI API and adds `/mui`, `/headless`,
+`/base-ui`, `/shadcn`, `/base-ui/react-hook-form`, `/shadcn/react-hook-form` and
+an opt-in `/shadcn.css` skin. Server, metadata, flags, locale packs and Zod
+remain independent. Each renderer requires only its own optional peers.
 
-The canonical npm package name is `@wh1teee/mui-phone-input`, matching the
-authenticated npm and GitHub identity. The first registry publication and
-Trusted Publishing proof are tracked by the release gate `mpi-g7a`.
+The canonical npm identity remains `@wh1teee/mui-phone-input`. The original
+publishing identity gate `mpi-g7a` is closed; subsequent releases continue using
+the existing trusted-publishing, exact-artifact and provenance workflow.
 
 ## Reporting problems
 

@@ -335,9 +335,87 @@ const expectedExportContract = {
   },
 };
 
-const optionalPeerBySubpath = {
-  './react-hook-form': 'react-hook-form',
-  './zod': 'zod',
+const headlessFunctions = [
+  'createPhoneCountryOptions',
+  'filterPhoneCountryOptions',
+  'resolvePhoneCountrySelection',
+  'selectPhoneCountryValue',
+  'usePhoneInput',
+];
+expectedExportContract['./headless'] = {
+  boundary: 'client',
+  runtime: [...expectedExportContract['./server'].runtime, ...headlessFunctions],
+  types: [
+    ...expectedExportContract['./server'].types,
+    ...headlessFunctions,
+    'CreatePhoneCountryOptionsParameters',
+    'FilterPhoneCountryOptionsParameters',
+    'PhoneCountryChangeDetails',
+    'PhoneCountryOption',
+    'PhoneCountrySelectionResult',
+    'PhoneCountrySelectorMessages',
+    'PhoneExtensionChangeDetails',
+    'PhoneExtensionInputExternalProps',
+    'PhoneInputActions',
+    'PhoneInputChangeDetails',
+    'PhoneInputInputExternalProps',
+    'PhoneInputResolvedInputProps',
+    'PhoneInputState',
+    'PhoneValidationDisplay',
+    'UsePhoneInputParameters',
+    'UsePhoneInputReturn',
+  ],
+};
+expectedExportContract['./base-ui'] = {
+  boundary: 'client',
+  runtime: [
+    ...expectedExportContract['./headless'].runtime,
+    'PhoneInput',
+    'PhoneInputCountrySelector',
+  ],
+  types: [
+    ...expectedExportContract['./headless'].types,
+    'PhoneInput',
+    'PhoneInputClassNames',
+    'PhoneInputProps',
+    'PhoneInputCountrySelector',
+    'PhoneInputCountrySelectorClassNames',
+    'PhoneInputCountrySelectorProps',
+  ],
+};
+expectedExportContract['./base-ui/react-hook-form'] = {
+  boundary: 'client',
+  runtime: ['PhoneInputController'],
+  types: [
+    'PhoneControllerFieldPath',
+    'PhoneExtensionControllerFieldPath',
+    'PhoneInputController',
+    'PhoneInputControllerProps',
+  ],
+};
+expectedExportContract['./shadcn'] = expectedExportContract['./base-ui'];
+expectedExportContract['./shadcn/react-hook-form'] =
+  expectedExportContract['./base-ui/react-hook-form'];
+expectedExportContract['./mui'] = expectedExportContract['.'];
+expectedExportContract['./shadcn.css'] = {
+  boundary: 'data-only',
+  exception: {
+    kind: 'asset-only',
+    reason:
+      'An explicitly imported, phone-slot-scoped stylesheet with no JavaScript exports.',
+  },
+};
+
+const muiPeers = ['@mui/material', '@emotion/react', '@emotion/styled'];
+const optionalPeersBySubpath = {
+  '.': muiPeers,
+  './mui': muiPeers,
+  './react-hook-form': [...muiPeers, 'react-hook-form'],
+  './zod': ['zod'],
+  './base-ui': ['@base-ui/react'],
+  './shadcn': ['@base-ui/react'],
+  './base-ui/react-hook-form': ['@base-ui/react', 'react-hook-form'],
+  './shadcn/react-hook-form': ['@base-ui/react', 'react-hook-form'],
 };
 const absentFutureSubpaths = [];
 
@@ -419,7 +497,7 @@ export async function verifyPackageExportContract(
   { extractedPackageRoot } = {},
 ) {
   const temporaryRoot = await createIsolatedTemporaryRoot('mui-phone-input-exports-', {
-    forbiddenPackages: ['react-hook-form', 'zod'],
+    forbiddenPackages: [...muiPeers, '@base-ui/react', 'react-hook-form', 'zod'],
   });
   const packageRoot = join(
     temporaryRoot,
@@ -596,8 +674,8 @@ try {
       );
       assert.ok(contract.types.length > 0, `${subpath} unexpectedly has no type API.`);
 
-      const optionalPeer = optionalPeerBySubpath[subpath];
-      if (optionalPeer) {
+      const optionalPeers = optionalPeersBySubpath[subpath] ?? [];
+      for (const optionalPeer of optionalPeers) {
         assert.equal(
           await findAncestorPackage(packageRoot, optionalPeer),
           undefined,
@@ -609,6 +687,8 @@ try {
           'ERR_MODULE_NOT_FOUND',
           `${optionalPeer} must not resolve directly in the isolated consumer: ${JSON.stringify(directPeerProbe)}.`,
         );
+      }
+      if (optionalPeers.length > 0) {
         const missingPeerProbe = readRuntimeProbe(
           temporaryRoot,
           packageSpecifier(subpath),
@@ -619,11 +699,12 @@ try {
           'ERR_MODULE_NOT_FOUND',
           `${subpath} must fail only because its optional peer is absent.`,
         );
-        assert.match(
-          missingPeerProbe.message,
-          new RegExp(optionalPeer, 'u'),
-          `${subpath} missing-peer failure must name ${optionalPeer}.`,
+        assert.ok(
+          optionalPeers.some((peer) => missingPeerProbe.message.includes(peer)),
+          `${subpath} missing-peer failure must name its renderer/integration dependency: ${missingPeerProbe.message}.`,
         );
+      }
+      for (const optionalPeer of optionalPeers) {
         await linkDependency(temporaryRoot, optionalPeer);
       }
 
@@ -654,7 +735,7 @@ try {
         `${subpath} type exports differ from the explicit contract.`,
       );
 
-      if (optionalPeer) {
+      for (const optionalPeer of optionalPeers) {
         await rm(join(temporaryRoot, 'node_modules', optionalPeer), {
           force: true,
           recursive: true,
@@ -679,7 +760,7 @@ try {
       `Semantic export and boundary contract verified for ${Object.keys(expectedExportContract).length} public paths; ${absentFutureSubpaths.length} future paths remain absent.`,
     );
     console.log(
-      'Optional peer isolation verified: core paths load without RHF/Zod, and each adapter loads with only its own optional peer.',
+      'Optional peer isolation verified: neutral/headless paths load without renderers, and each adapter loads with only its own renderer and integration peers.',
     );
   } finally {
     await rm(temporaryRoot, { force: true, recursive: true });

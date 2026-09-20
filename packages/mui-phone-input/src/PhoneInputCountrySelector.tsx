@@ -36,19 +36,23 @@ import {
   type PhoneCountryNameResolver,
   type PhoneCountryOption,
 } from './country-selector';
+import type { PhoneCountrySelectorMessages } from './country-selector-messages';
+
+export type { PhoneCountrySelectorMessages } from './country-selector-messages';
+
 import {
+  PhoneCountryFlag,
   type PhoneCountryFlagProps,
   type PhoneExternalFlagOptions,
   type PhoneFlagMode,
   type PhoneFlagProvider,
-  PhoneCountryFlag,
 } from './flags';
 import { warnInvalidAccessibilitySlot } from './internal/accessibility-diagnostics';
 import type { MuiPhoneInputOwnerState } from './MuiPhoneInput/MuiPhoneInput';
 import type { MuiPhoneInputClasses } from './MuiPhoneInput/muiPhoneInputClasses';
 import { muiPhoneInputClasses } from './MuiPhoneInput/muiPhoneInputClasses';
-import type { PhoneMetadata } from './phone-metadata';
 import { usePhoneInputContext } from './PhoneInputPrimitives';
+import type { PhoneMetadata } from './phone-metadata';
 import type { PhoneInputDataAttributes } from './usePhoneInput';
 
 const presentationHighlightRestoreMarker = Symbol(
@@ -77,16 +81,6 @@ export type PhoneCountrySelectorClasses = Pick<
   | 'countrySelectorPopup'
   | 'countrySelectorSearchInput'
 >;
-
-export interface PhoneCountrySelectorMessages {
-  allCountries: string;
-  close: string;
-  dialogTitle: string;
-  noOptions: string;
-  preferredCountries: string;
-  searchLabel: string;
-  selectCountry: string;
-}
 
 export type PhoneCountrySelectorPresentation = 'desktop' | 'mobile';
 

@@ -50,10 +50,12 @@
     "verify:specialized-consumers": "node scripts/verify-packed-specialized-consumers.mjs",
     "verify:tracer-package": "node scripts/verify-tracer-package.mjs",
     "verify:wcag22-visual": "node scripts/verify-wcag22-visual.mjs",
-    "verify:workspace": "node scripts/verify-workspace-contract.mjs"
+    "verify:workspace": "node scripts/verify-workspace-contract.mjs",
+    "verify:ui-adapters": "node scripts/verify-packed-ui-adapters.mjs"
   },
   "devDependencies": {
     "@arethetypeswrong/cli": "0.18.5",
+    "@base-ui/react": "1.8.0",
     "@biomejs/biome": "2.5.13",
     "@changesets/cli": "2.31.1",
     "@emotion/react": "11.14.0",

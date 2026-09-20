@@ -83,8 +83,11 @@ assert.deepEqual(packedManifest.publishConfig, {
 });
 assert.deepEqual(Object.keys(packedManifest.exports).sort(), [
   '.',
+  './base-ui',
+  './base-ui/react-hook-form',
   './flags',
   './flags.css',
+  './headless',
   './locales/be',
   './locales/en',
   './locales/ru',
@@ -92,9 +95,13 @@ assert.deepEqual(Object.keys(packedManifest.exports).sort(), [
   './metadata/max',
   './metadata/min',
   './metadata/mobile',
+  './mui',
   './package.json',
   './react-hook-form',
   './server',
+  './shadcn',
+  './shadcn.css',
+  './shadcn/react-hook-form',
   './zod',
 ]);
 

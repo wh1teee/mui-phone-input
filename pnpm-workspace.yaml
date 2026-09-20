@@ -12,6 +12,11 @@ minimumReleaseAgeStrict: false
 overrides:
   "nanoid@<3.3.18": 3.3.18
 packageExtensions:
+  # Published Floating UI declarations import React but omit the type dependency.
+  # An explicit edge preserves strict types in the shared global virtual store.
+  "@floating-ui/react-dom@2.1.9":
+    dependencies:
+      "@types/react": 19.3.0
   "next@>=16.3.5 <17":
     dependencies:
       "@types/react": ^19.3.0

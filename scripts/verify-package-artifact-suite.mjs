@@ -27,6 +27,7 @@ try {
     ],
     [['scripts/verify-tracer-package.mjs', `--artifact=${tarball}`]],
     [['scripts/verify-packed-specialized-consumers.mjs', `--artifact=${tarball}`]],
+    [['scripts/verify-packed-ui-adapters.mjs', `--artifact=${tarball}`]],
     [
       ['scripts/verify-packed-consumers.mjs', `--artifact=${tarball}`],
       { env: { ...isolatedProcessEnvironment, SUPPORT_MATRIX: 'latest' } },

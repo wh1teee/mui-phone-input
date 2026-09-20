@@ -19,6 +19,7 @@ import { sharedGlobalStoreRoot } from './lib/pnpm-store-topology.mjs';
 const supportMatrix = process.env.SUPPORT_MATRIX ?? 'latest';
 const matrices = {
   latest: {
+    '@base-ui/react': '1.8.0',
     '@emotion/react': '11.14.0',
     '@emotion/styled': '11.14.1',
     '@mui/material': '9.4.0',
@@ -26,6 +27,7 @@ const matrices = {
     'react-dom': '19.3.0',
   },
   minimum: {
+    '@base-ui/react': '1.8.0',
     '@emotion/react': '11.14.0',
     '@emotion/styled': '11.14.1',
     '@mui/material': '9.0.0',
@@ -327,6 +329,9 @@ async function preparePackedConsumer(consumer, destination) {
     'minimumReleaseAge: 1440',
     'minimumReleaseAgeStrict: false',
     'packageExtensions:',
+    '  "@floating-ui/react-dom@2.1.9":',
+    '    dependencies:',
+    `      "@types/react": ${reactTypesVersion}`,
     '  "next@>=16.3.5 <17":',
     '    dependencies:',
     `      "@types/react": ${reactTypesVersion}`,

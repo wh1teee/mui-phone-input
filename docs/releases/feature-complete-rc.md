@@ -1,14 +1,20 @@
 This prerelease is the **feature-complete release candidate** for the MUI Phone
-Input 1.0 program. It is published as `0.1.0-next.7` through the repository's
+Input 1.0 program. It is published as `0.1.0-next.9` through the repository's
 existing `next` prerelease channel. It is not a development canary, it is not a
 stable 1.0 release, and it does not advance npm `latest`. Final validation must
 install the exact version rather than relying on the mutable `next` dist-tag.
 
-This corrected RC supersedes `0.1.0-next.6` after production documentation use
-exposed a Country Selector no-op: explicit user country choices could be
-silently rejected when the existing digits were incompatible with the target
-country. Explicit selection is now authoritative, while validation separately
-reports whether the migrated draft is acceptable.
+This RC adds independent headless, Base UI and shadcn entrypoints over the same
+phone-editing engine. Existing MUI imports remain compatible; `/mui` is an
+explicit alias. MUI, Emotion and Base UI are optional peers, needed only by the
+selected renderer. Base UI forms support independently controlled extensions.
+The shadcn stylesheet is opt-in, semantic-variable based and has no global reset.
+The MUI main and neutral server bundle hashes and sizes remain unchanged.
+
+Exact-tarball consumers verify the new renderer boundaries, strict declarations
+and SSR without unused UI peers. PayAtTable's owned customer field consumes the
+headless controller and searchable Base UI picker with its existing scoped theme.
+See `docs/guides/ui-adapters.md` for integration and compatibility details.
 
 ## Feature-complete scope
 

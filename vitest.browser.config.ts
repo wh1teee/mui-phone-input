@@ -26,6 +26,8 @@ if (!Number.isInteger(browserPort) || browserPort < 1 || browserPort > 65_535) {
 export default defineConfig({
   optimizeDeps: {
     include: [
+      '@base-ui/react/combobox',
+      '@base-ui/react/direction-provider',
       '@emotion/react',
       '@emotion/styled',
       '@maskito/core',

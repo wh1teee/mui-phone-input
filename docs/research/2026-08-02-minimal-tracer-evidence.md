@@ -146,10 +146,10 @@ Current exact-artifact measurements are:
 
 - main closure: 32,522 bytes gzip;
 - server entry: 6,225 bytes gzip;
-- packed tarball: 315,970 bytes. The tarball increase includes the production
-  accessibility contract and independently built RHF and Zod JavaScript,
-  declaration, and source-map entrypoints; neither adapter is part of the main
-  or server runtime closure unless its explicit subpath is imported.
+- packed tarball: 399,738 bytes. The current artifact adds
+  independently built headless, Base UI/shadcn and form entrypoints plus the
+  opt-in stylesheet. The MUI main and server closure hashes and byte sizes
+  remain unchanged; unused renderer code is not part of either closure.
 
 CI creates one immutable package artifact, reuses that same tarball across the
 package/runtime/tracer/consumer gates, and requires exact byte/hash equality
