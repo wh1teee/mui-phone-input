@@ -146,7 +146,10 @@ Current exact-artifact measurements are:
 
 - main closure: 32,597 bytes gzip;
 - server entry: 6,247 bytes gzip;
-- packed tarball: 435,530 bytes. The stable artifact adds independently built
+- packed tarball: 435,762 bytes. The 232-byte increase is package-manifest
+  metadata that makes the native TypeScript 7 compiler and official TypeScript 6
+  compiler-API compatibility boundary explicit; the measured main/server
+  executable bytes and hashes are unchanged. The stable artifact adds independently built
   max/min headless, MUI, Base UI/shadcn and form entrypoints plus the opt-in
   stylesheet. Min entrypoint source maps and duplicate declarations are omitted;
   all min variants reuse the canonical type surface. The executable MUI main and

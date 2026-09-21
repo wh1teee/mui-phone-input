@@ -1,5 +1,12 @@
 # @wh1teee/mui-phone-input
 
+## 1.0.5
+
+### Patch Changes
+
+- Move the blocking compiler and declaration checks to the stable native TypeScript 7.0.2 toolchain. Keep the official `@typescript/typescript6` compatibility package only for tsdown, documentation transforms, and repository checks that still embed TypeScript's programmatic API.
+- Add an executable toolchain contract that proves `tsc` resolves to TypeScript 7, `tsc6` remains available for API consumers, and exact packed Next.js/Vite/renderer consumers type-check with the same dual-toolchain boundary.
+
 ## 1.0.4
 
 ### Patch Changes

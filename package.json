@@ -11,8 +11,8 @@
   "scripts": {
     "build": "pnpm --filter @wh1teee/mui-phone-input build",
     "check": "biome check .",
-    "ci:forward": "pnpm verify:workspace && pnpm verify:donors && pnpm verify:input-engine && pnpm verify:production-dependencies && pnpm verify:metadata-freshness && pnpm typecheck && pnpm test:unit && pnpm build && pnpm verify:metadata-presets && pnpm verify:tracer-package",
-    "ci:pr": "pnpm format:check && pnpm lint && pnpm verify:github-actions-pins && pnpm verify:metadata-freshness && pnpm verify:workspace && pnpm verify:donors && pnpm verify:input-engine && pnpm verify:production-dependencies && pnpm typecheck && pnpm test:unit && pnpm test:browser && pnpm verify:wcag22-visual && pnpm verify:package-artifact-suite && pnpm verify:metadata-presets && pnpm verify:package-concurrency && pnpm docs:ci",
+    "ci:forward": "pnpm verify:typescript && pnpm verify:workspace && pnpm verify:donors && pnpm verify:input-engine && pnpm verify:production-dependencies && pnpm verify:metadata-freshness && pnpm typecheck && pnpm test:unit && pnpm build && pnpm verify:metadata-presets && pnpm verify:tracer-package",
+    "ci:pr": "pnpm format:check && pnpm lint && pnpm verify:github-actions-pins && pnpm verify:metadata-freshness && pnpm verify:typescript && pnpm verify:workspace && pnpm verify:donors && pnpm verify:input-engine && pnpm verify:production-dependencies && pnpm typecheck && pnpm test:unit && pnpm test:browser && pnpm verify:wcag22-visual && pnpm verify:package-artifact-suite && pnpm verify:metadata-presets && pnpm verify:package-concurrency && pnpm docs:ci",
     "docs:build": "node scripts/run-docs-gvs.mjs build",
     "docs:ci": "node scripts/run-docs-gvs.mjs ci",
     "docs:lint": "biome lint apps/docs",
@@ -50,6 +50,7 @@
     "verify:release-candidate": "node scripts/verify-release-candidate.mjs",
     "verify:specialized-consumers": "node scripts/verify-packed-specialized-consumers.mjs",
     "verify:tracer-package": "node scripts/verify-tracer-package.mjs",
+    "verify:typescript": "node scripts/verify-typescript-toolchain.mjs",
     "verify:ui-adapters": "node scripts/verify-packed-ui-adapters.mjs",
     "verify:wcag22-visual": "node scripts/verify-wcag22-visual.mjs",
     "verify:workspace": "node scripts/verify-workspace-contract.mjs"
@@ -70,6 +71,7 @@
     "@types/node": "24.13.3",
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
+    "@typescript/native": "npm:typescript@7.0.2",
     "@vitejs/plugin-react": "6.1.1",
     "@vitest/browser-playwright": "4.1.10",
     "axe-core": "4.13.0",
@@ -82,7 +84,7 @@
     "react-hook-form": "7.88.0",
     "react-phone-number-input": "3.4.18",
     "tsdown": "0.22.14",
-    "typescript": "6.0.3",
+    "typescript": "npm:@typescript/typescript6@6.0.2",
     "vite": "8.3.0",
     "vitest": "4.1.10",
     "vitest-browser-react": "2.3.0"

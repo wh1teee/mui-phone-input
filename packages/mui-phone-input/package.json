@@ -1,6 +1,6 @@
 {
   "name": "@wh1teee/mui-phone-input",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "Accessible international phone input for React with independent MUI, Base UI and shadcn adapters.",
   "license": "MIT",
   "author": "Konstantsin Petrovskiy",
@@ -220,12 +220,13 @@
     "@emotion/styled": "11.14.1",
     "@mui/material": "9.4.0",
     "@types/react": "19.3.0",
+    "@typescript/native": "npm:typescript@7.0.2",
     "country-flag-icons": "1.6.20",
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "react-hook-form": "7.88.0",
     "tsdown": "0.22.14",
-    "typescript": "6.0.3",
+    "typescript": "npm:@typescript/typescript6@6.0.2",
     "zod": "4.6.4"
   }
 }

@@ -37,7 +37,7 @@ Sources:
 
 ### Toolchain and browser matrices must distinguish blocking and forward signals
 
-Node 24 is LTS while Node 26 is Current; Node recommends LTS for production use. MUI 9 targets Chrome 117, Edge 121, Firefox 121, and Safari/iOS Safari 17. The blocking matrix uses Node 24, TypeScript 6, React 19, and MUI 9 minimum/latest combinations. Node 26, TypeScript 7, and future MUI prereleases remain non-blocking forward checks.
+Node 24 is LTS while Node 26 is Current; Node recommends LTS for production use. MUI 9 targets Chrome 117, Edge 121, Firefox 121, and Safari/iOS Safari 17. The blocking matrix now uses Node 24, the native TypeScript 7 compiler, React 19, and MUI 9 minimum/latest combinations. Compiler-embedding tools use the official TypeScript 6 compatibility package; Node 26 and future MUI prereleases remain non-blocking forward checks.
 
 Sources:
 
