@@ -12,7 +12,7 @@
     "build": "pnpm --filter @wh1teee/mui-phone-input build",
     "check": "biome check .",
     "ci:forward": "pnpm verify:workspace && pnpm verify:donors && pnpm verify:input-engine && pnpm verify:production-dependencies && pnpm verify:metadata-freshness && pnpm typecheck && pnpm test:unit && pnpm build && pnpm verify:metadata-presets && pnpm verify:tracer-package",
-    "ci:pr": "pnpm format:check && pnpm lint && pnpm verify:github-actions-pins && pnpm verify:metadata-freshness && pnpm verify:workspace && pnpm verify:donors && pnpm verify:input-engine && pnpm verify:production-dependencies && pnpm typecheck && pnpm test:unit && pnpm test:browser && pnpm verify:package-artifact-suite && pnpm verify:metadata-presets && pnpm verify:package-concurrency && pnpm docs:ci",
+    "ci:pr": "pnpm format:check && pnpm lint && pnpm verify:github-actions-pins && pnpm verify:metadata-freshness && pnpm verify:workspace && pnpm verify:donors && pnpm verify:input-engine && pnpm verify:production-dependencies && pnpm typecheck && pnpm test:unit && pnpm test:browser && pnpm verify:wcag22-visual && pnpm verify:package-artifact-suite && pnpm verify:metadata-presets && pnpm verify:package-concurrency && pnpm docs:ci",
     "docs:build": "node scripts/run-docs-gvs.mjs build",
     "docs:ci": "node scripts/run-docs-gvs.mjs ci",
     "docs:lint": "biome lint apps/docs",

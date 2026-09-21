@@ -1,5 +1,11 @@
 # @wh1teee/mui-phone-input
 
+## 1.0.2
+
+### Patch Changes
+
+- Replace the build-only virtual metadata specifier with a normal source-resolvable max-metadata module while preserving compile-time `/min` substitution. Direct Vite/WCAG source consumers, exact package builds, max/min metadata isolation and the WebKit selection reconciliation fix now share one release-safe graph.
+
 ## 1.0.1
 
 ### Patch Changes
