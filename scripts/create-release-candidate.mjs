@@ -19,6 +19,7 @@ import {
   createPackageArtifact,
   releasePackageArtifact,
 } from './lib/package-artifact.mjs';
+import { resolveReleaseChannel } from './lib/release-channel.mjs';
 
 const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const isolatedProcessEnvironment = createIsolatedProcessEnvironment();
@@ -86,15 +87,10 @@ const packageManifest = JSON.parse(
   await readFile(join(repositoryRoot, 'packages/mui-phone-input/package.json'), 'utf8'),
 );
 assert.equal(packageManifest.name, '@wh1teee/mui-phone-input');
-assert.match(
-  packageManifest.version,
-  /^0\.1\.0-next\.\d+$/u,
-  'Feature-complete RC must use the existing 0.1.0-next.x prerelease channel.',
-);
+const releaseChannel = resolveReleaseChannel(packageManifest.version);
 assert.deepEqual(packageManifest.publishConfig, {
   access: 'public',
   provenance: true,
-  tag: 'next',
 });
 
 await rm(outputDirectory, { force: true, recursive: true });
@@ -121,11 +117,21 @@ try {
   }
 
   const releaseNotes = await readFile(
-    join(repositoryRoot, 'docs/releases/feature-complete-rc.md'),
+    join(
+      repositoryRoot,
+      releaseChannel.prerelease
+        ? 'docs/releases/feature-complete-rc.md'
+        : `docs/releases/${packageManifest.version}.md`,
+    ),
     'utf8',
   );
   const rollback = await readFile(
-    join(repositoryRoot, 'docs/releases/rollback-feature-complete-rc.md'),
+    join(
+      repositoryRoot,
+      releaseChannel.prerelease
+        ? 'docs/releases/rollback-feature-complete-rc.md'
+        : `docs/releases/rollback-${packageManifest.version}.md`,
+    ),
     'utf8',
   );
   await writeFile(
@@ -171,9 +177,10 @@ try {
     },
     publication: {
       access: 'public',
-      distTag: 'next',
+      distTag: releaseChannel.distTag,
+      prerelease: releaseChannel.prerelease,
       provenance: true,
-      releaseTag: `v${packageManifest.version}`,
+      releaseTag: releaseChannel.releaseTag,
       workflow: '.github/workflows/release.yml',
     },
     source: {

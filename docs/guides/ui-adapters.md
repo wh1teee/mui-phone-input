@@ -14,9 +14,12 @@ and the [accepted specification](../specs/0002-multiple-ui-adapters.md).
 | `/base-ui/react-hook-form` or `/shadcn/react-hook-form` | Base UI and RHF | Independent phone and extension form fields |
 | `/server` | No UI renderer | Parsing and validation outside React |
 
-Install the `@next` channel during prerelease development. `latest` is not the
-active release-candidate channel. Refer to the package README for complete,
-copyable installation and component examples.
+Append `/min` after the renderer name (`/mui/min`, `/headless/min`,
+`/base-ui/min`, `/shadcn/min`) when the application deliberately accepts the
+smaller official metadata's reduced strict-validity/type detail. Form adapters
+follow the same pattern, for example `/base-ui/min/react-hook-form`. The default
+paths retain max metadata. Install the stable package from `latest` or pin an
+exact 1.x version.
 
 ## An application-owned field
 
@@ -76,3 +79,10 @@ Browser tests exercise both MUI and Base UI through the same number-editing
 scenarios, then cover the new picker, native refs, locale/RTL/scoped portals,
 independent extensions, accessibility and RHF bindings. Browser automation does
 not substitute for physical-device or screen-reader certification.
+
+The bundle verifier separately bundles every public renderer path from the
+exact tarball. It includes phone runtime dependencies and the selected metadata,
+keeps app-owned React/UI peers external, enforces gzip/Brotli ceilings, confirms
+that max and min paths do not mix metadata, and rejects MUI/Base UI leakage in
+either direction. The Next.js 16 App Router consumer uses no package-specific
+transpilation, server externalization, or experimental import optimizer.

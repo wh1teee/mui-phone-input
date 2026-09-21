@@ -1,0 +1,92 @@
+{
+  "schemaVersion": 1,
+  "measurement": {
+    "bundled": ["@maskito/core", "@maskito/react", "libphonenumber-js", "tabbable"],
+    "external": [
+      "@base-ui/react",
+      "@emotion/react",
+      "@emotion/styled",
+      "@mui/material",
+      "react",
+      "react-dom",
+      "react-hook-form",
+      "zod"
+    ],
+    "minifier": "oxc",
+    "note": "Limits measure the package-owned client closure including the selected phone metadata, but excluding renderer and form peers already owned by the consuming application."
+  },
+  "profiles": {
+    "index": {
+      "metadata": "max",
+      "renderer": "mui",
+      "gzipLimit": 98000,
+      "brotliLimit": 82500
+    },
+    "headless": {
+      "metadata": "max",
+      "renderer": "headless",
+      "gzipLimit": 85000,
+      "brotliLimit": 72000
+    },
+    "base-ui": {
+      "metadata": "max",
+      "renderer": "base-ui",
+      "gzipLimit": 88000,
+      "brotliLimit": 74500
+    },
+    "shadcn": {
+      "metadata": "max",
+      "renderer": "base-ui",
+      "gzipLimit": 88000,
+      "brotliLimit": 74500
+    },
+    "react-hook-form": {
+      "metadata": "max",
+      "renderer": "mui-rhf",
+      "gzipLimit": 98000,
+      "brotliLimit": 82500
+    },
+    "base-ui/react-hook-form": {
+      "metadata": "max",
+      "renderer": "base-ui-rhf",
+      "gzipLimit": 88000,
+      "brotliLimit": 74500
+    },
+    "mui/min": {
+      "metadata": "min",
+      "renderer": "mui",
+      "gzipLimit": 76000,
+      "brotliLimit": 64000
+    },
+    "headless/min": {
+      "metadata": "min",
+      "renderer": "headless",
+      "gzipLimit": 63500,
+      "brotliLimit": 53500
+    },
+    "base-ui/min": {
+      "metadata": "min",
+      "renderer": "base-ui",
+      "gzipLimit": 66000,
+      "brotliLimit": 55500
+    },
+    "shadcn/min": {
+      "metadata": "min",
+      "renderer": "base-ui",
+      "gzipLimit": 66000,
+      "brotliLimit": 55500
+    },
+    "mui/min/react-hook-form": {
+      "metadata": "min",
+      "renderer": "mui-rhf",
+      "gzipLimit": 76000,
+      "brotliLimit": 64000
+    },
+    "base-ui/min/react-hook-form": {
+      "metadata": "min",
+      "renderer": "base-ui-rhf",
+      "gzipLimit": 66500,
+      "brotliLimit": 56000
+    }
+  }
+}

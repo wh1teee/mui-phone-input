@@ -1,6 +1,6 @@
 # @wh1teee/mui-phone-input
 
-Modern React 19 phone input for Material UI 9 and Base UI/shadcn. The current prerelease tracer
+Stable React 19 phone input for Material UI 9 and Base UI/shadcn. The package
 provides a canonical international candidate, controlled and uncontrolled
 ownership, authority-backed numbering-plan resolution, possible-by-default
 validation, a shared headless controller, supported composable primitives, MUI
@@ -10,9 +10,8 @@ event-independent change details. Formatting modes, Display Masks, independent
 phone extensions, and RFC 3966 import/export are part of the same public
 contract.
 
-The package is still under active 1.0 development. The official React Hook Form
-and Zod adapters are included as optional subpaths; remaining release hardening
-continues in later gated slices.
+Version 1.0 freezes the documented public surface. React Hook Form and Zod are
+optional subpaths, and every renderer is independently consumable.
 
 ## Published subpaths
 
@@ -21,12 +20,17 @@ This version provides these explicit entrypoints:
 - `@wh1teee/mui-phone-input` — React/MUI component, controller, primitives and
   shared phone helpers;
 - `@wh1teee/mui-phone-input/mui` — explicit alias for the legacy root;
+- `@wh1teee/mui-phone-input/mui/react-hook-form` — explicit MUI form alias;
 - `@wh1teee/mui-phone-input/headless` — phone controller and helpers without UI peers;
 - `@wh1teee/mui-phone-input/base-ui` — unstyled `PhoneInput` and country selector;
 - `@wh1teee/mui-phone-input/shadcn` — the same Base UI composition;
 - `@wh1teee/mui-phone-input/shadcn.css` — optional semantic-variable skin;
 - `@wh1teee/mui-phone-input/base-ui/react-hook-form` — Base UI form binding;
 - `@wh1teee/mui-phone-input/shadcn/react-hook-form` — alias for the Base UI form binding;
+- `@wh1teee/mui-phone-input/{mui,headless,base-ui,shadcn}/min` — the same
+  renderer/controller APIs with the official smaller metadata graph;
+- `@wh1teee/mui-phone-input/{mui,base-ui,shadcn}/min/react-hook-form` — form
+  adapters for those smaller-metadata entrypoints;
 - `@wh1teee/mui-phone-input/server` — neutral parsing, numbering-plan,
   formatting and validation helpers;
 - `@wh1teee/mui-phone-input/react-hook-form` — optional React Hook Form
@@ -55,7 +59,7 @@ Discussions do not carry implementation status.
 ## Install
 
 ```sh
-pnpm add @wh1teee/mui-phone-input@next @mui/material@^9 @emotion/react @emotion/styled
+pnpm add @wh1teee/mui-phone-input @mui/material@^9 @emotion/react @emotion/styled
 ```
 
 React 19 and React DOM 19 are required client peers. MUI 9 is required only by the MUI entrypoints. The package is ESM
@@ -67,7 +71,7 @@ release tooling requires Node 24 LTS.
 ## Base UI and shadcn
 
 ```sh
-pnpm add @wh1teee/mui-phone-input@next @base-ui/react@^1.8
+pnpm add @wh1teee/mui-phone-input @base-ui/react@^1.8
 ```
 
 ```tsx
@@ -637,6 +641,24 @@ generator and pass `validatePhoneMetadata()` from
 calling-code overrides, and locally authored validity/type rules are not a
 supported numbering authority.
 
+For a bundle-sensitive client that uses possible-number checks and formatting,
+select the renderer's `/min` path directly instead of importing max metadata and
+passing a second preset at runtime:
+
+```tsx
+import { PhoneInput } from '@wh1teee/mui-phone-input/shadcn/min';
+import '@wh1teee/mui-phone-input/shadcn.css';
+```
+
+The current exact-artifact budgets include Maskito, `libphonenumber-js`,
+`tabbable`, and the selected metadata, but exclude React and the renderer peers
+already owned by the application. The measured gzip closures are approximately
+82 KiB for max headless and 61 KiB for min headless, 85 KiB for max Base UI and
+63 KiB for min Base UI, and 95 KiB for max MUI and 73 KiB for min MUI. CI checks
+both gzip and Brotli ceilings and rejects cross-renderer imports. Use the default
+max entries when strict validity or number-type precision is product-critical;
+the smaller official metadata deliberately contains less validation/type detail.
+
 ## Headless controller and primitives
 
 `usePhoneInput` is the same controller used by `MuiPhoneInput`. Advanced
@@ -719,6 +741,13 @@ output and the post-hydration DOM for empty, geographic, unresolved shared-code
 and non-geographic states. The same tarball is production-built and exercised
 in Vite. Import pure helpers from `@wh1teee/mui-phone-input/server`; that entry
 contains no MUI or React component graph.
+
+No Next.js package exception is required. Do not add `transpilePackages`,
+`serverExternalPackages`, or experimental `optimizePackageImports` for this
+library. Import browser UI from its explicit renderer subpath in a Client
+Component and neutral helpers from `/server` in Server Components or route
+handlers. The exact packed consumer proves this contract on Next.js 16 with the
+default App Router/Turbopack build.
 
 ## MUI customization
 

@@ -59,6 +59,12 @@ export default defineConfig({
   },
   plugins: [react()],
   resolve: {
+    alias: {
+      '#phone-default-metadata': new URL(
+        './packages/mui-phone-input/src/metadata/default-max.ts',
+        import.meta.url,
+      ).pathname,
+    },
     dedupe: [
       '@emotion/react',
       '@emotion/styled',

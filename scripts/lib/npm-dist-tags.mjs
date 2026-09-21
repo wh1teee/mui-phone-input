@@ -11,3 +11,16 @@ export function assertEarlyCanaryDistTags(distTags, expectedVersion) {
     );
   }
 }
+
+export function assertReleaseDistTags(distTags, expectedVersion, distTag) {
+  if (distTags[distTag] !== expectedVersion) {
+    throw new Error(`The ${distTag} dist-tag must point to ${expectedVersion}.`);
+  }
+  if (distTag === 'next') {
+    assertEarlyCanaryDistTags(distTags, expectedVersion);
+    return;
+  }
+  if (!/^0\.1\.0-next\.\d+$/u.test(distTags.next ?? '')) {
+    throw new Error('The next dist-tag must retain the reviewed prerelease channel.');
+  }
+}

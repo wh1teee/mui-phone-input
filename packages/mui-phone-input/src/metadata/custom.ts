@@ -1,5 +1,5 @@
 export {
   validatePhoneMetadata as default,
   validatePhoneMetadata,
-} from '../phone-metadata';
-export type { PhoneMetadata } from '../phone-metadata';
+} from '../phone-metadata-core';
+export type { PhoneMetadata } from '../phone-metadata-core';

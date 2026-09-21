@@ -4,6 +4,7 @@ import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { resolveReleaseChannel } from './lib/release-channel.mjs';
 
 const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const directoryArgument = process.argv.find((argument) =>
@@ -31,11 +32,12 @@ const candidate = JSON.parse(
 );
 assert.equal(candidate.schemaVersion, 1);
 assert.equal(candidate.package.name, '@wh1teee/mui-phone-input');
-assert.match(candidate.package.version, /^0\.1\.0-next\.\d+$/u);
+const releaseChannel = resolveReleaseChannel(candidate.package.version);
 assert.equal(candidate.publication.access, 'public');
-assert.equal(candidate.publication.distTag, 'next');
+assert.equal(candidate.publication.distTag, releaseChannel.distTag);
+assert.equal(candidate.publication.prerelease, releaseChannel.prerelease);
 assert.equal(candidate.publication.provenance, true);
-assert.equal(candidate.publication.releaseTag, `v${candidate.package.version}`);
+assert.equal(candidate.publication.releaseTag, releaseChannel.releaseTag);
 assert.equal(candidate.publication.workflow, '.github/workflows/release.yml');
 assert.equal(candidate.source.repository, 'wh1teee/mui-phone-input');
 assert.equal(candidate.source.commit, git('rev-parse', 'HEAD'));
@@ -79,15 +81,17 @@ assert.equal(packedManifest.version, candidate.package.version);
 assert.deepEqual(packedManifest.publishConfig, {
   access: 'public',
   provenance: true,
-  tag: 'next',
 });
 assert.deepEqual(Object.keys(packedManifest.exports).sort(), [
   '.',
   './base-ui',
+  './base-ui/min',
+  './base-ui/min/react-hook-form',
   './base-ui/react-hook-form',
   './flags',
   './flags.css',
   './headless',
+  './headless/min',
   './locales/be',
   './locales/en',
   './locales/ru',
@@ -96,11 +100,16 @@ assert.deepEqual(Object.keys(packedManifest.exports).sort(), [
   './metadata/min',
   './metadata/mobile',
   './mui',
+  './mui/min',
+  './mui/min/react-hook-form',
+  './mui/react-hook-form',
   './package.json',
   './react-hook-form',
   './server',
   './shadcn',
   './shadcn.css',
+  './shadcn/min',
+  './shadcn/min/react-hook-form',
   './shadcn/react-hook-form',
   './zod',
 ]);
@@ -117,17 +126,24 @@ const releaseNotes = await readFile(
   join(candidateDirectory, 'RELEASE_NOTES.md'),
   'utf8',
 );
-assert.match(releaseNotes, /feature-complete release candidate/iu);
 assert.match(releaseNotes, new RegExp(candidate.source.commit, 'u'));
 assert.match(releaseNotes, new RegExp(candidate.source.tree, 'u'));
-assert.match(releaseNotes, /does not advance npm `latest`/iu);
 assert.match(releaseNotes, /React Hook Form|RHF/u);
 assert.match(releaseNotes, /max, min, mobile/iu);
 assert.match(releaseNotes, /NOT_AVAILABLE/u);
 assert.match(releaseNotes, /mpi-oan\.24/u);
 assert.match(releaseNotes, /fresh exact-artifact RideOS validation/iu);
 assert.match(releaseNotes, /mpi-oan\.19/u);
-assert.match(releaseNotes, /stable 1\.0/iu);
+if (releaseChannel.prerelease) {
+  assert.match(releaseNotes, /feature-complete release candidate/iu);
+  assert.match(releaseNotes, /does not advance npm `latest`/iu);
+  assert.match(releaseNotes, /stable 1\.0/iu);
+} else {
+  assert.match(releaseNotes, /stable 1\.0/iu);
+  assert.match(releaseNotes, /entrypoint bundle budgets/iu);
+  assert.match(releaseNotes, /metadata\.min|\/min/iu);
+  assert.match(releaseNotes, /Next\.js 16/iu);
+}
 const rollback = await readFile(join(candidateDirectory, 'ROLLBACK.md'), 'utf8');
 assert.match(rollback, /npm deprecate/u);
 assert.match(rollback, /dist-tag/u);

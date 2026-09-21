@@ -1,4 +1,5 @@
 import { defineConfig } from 'tsdown';
+import { resolve } from 'node:path';
 
 const externalDependencies = [
   '@base-ui/react',
@@ -14,12 +15,28 @@ const externalDependencies = [
   'zod',
 ];
 
+const browserTarget = ['Chrome117', 'Edge121', 'Firefox121', 'Safari17'];
+const browserDefine = {
+  'process.env.NODE_ENV': 'process.env.NODE_ENV',
+};
+const maxMetadataAlias = {
+  '#phone-default-metadata': resolve(
+    import.meta.dirname,
+    'src/metadata/default-max.ts',
+  ),
+};
+const minMetadataAlias = {
+  '#phone-default-metadata': resolve(
+    import.meta.dirname,
+    'src/metadata/default-min.ts',
+  ),
+};
+
 export default defineConfig([
   {
+    alias: maxMetadataAlias,
     clean: true,
-    define: {
-      'process.env.NODE_ENV': 'process.env.NODE_ENV',
-    },
+    define: browserDefine,
     dts: true,
     entry: {
       flags: 'src/flags.tsx',
@@ -36,13 +53,12 @@ export default defineConfig([
     outDir: 'dist',
     platform: 'browser',
     sourcemap: true,
-    target: ['Chrome117', 'Edge121', 'Firefox121', 'Safari17'],
+    target: browserTarget,
   },
   {
+    alias: maxMetadataAlias,
     clean: false,
-    define: {
-      'process.env.NODE_ENV': 'process.env.NODE_ENV',
-    },
+    define: browserDefine,
     dts: true,
     entry: {
       headless: 'src/headless.ts',
@@ -57,9 +73,32 @@ export default defineConfig([
     outDir: 'dist',
     platform: 'browser',
     sourcemap: true,
-    target: ['Chrome117', 'Edge121', 'Firefox121', 'Safari17'],
+    target: browserTarget,
   },
   {
+    alias: minMetadataAlias,
+    clean: false,
+    define: browserDefine,
+    dts: false,
+    entry: {
+      'mui/min': 'src/index.ts',
+      'headless/min': 'src/headless.ts',
+      'base-ui/min': 'src/base-ui.ts',
+      'shadcn/min': 'src/shadcn.ts',
+      'mui/min/react-hook-form': 'src/react-hook-form.tsx',
+      'base-ui/min/react-hook-form': 'src/base-ui-react-hook-form.tsx',
+    },
+    deps: {
+      neverBundle: externalDependencies,
+    },
+    format: ['esm'],
+    outDir: 'dist',
+    platform: 'browser',
+    sourcemap: false,
+    target: browserTarget,
+  },
+  {
+    alias: maxMetadataAlias,
     clean: false,
     dts: true,
     entry: {
@@ -79,10 +118,9 @@ export default defineConfig([
     target: 'es2024',
   },
   {
+    alias: maxMetadataAlias,
     clean: false,
-    define: {
-      'process.env.NODE_ENV': 'process.env.NODE_ENV',
-    },
+    define: browserDefine,
     dts: true,
     entry: {
       'react-hook-form': 'src/react-hook-form.tsx',
@@ -94,9 +132,10 @@ export default defineConfig([
     outDir: 'dist',
     platform: 'browser',
     sourcemap: true,
-    target: ['Chrome117', 'Edge121', 'Firefox121', 'Safari17'],
+    target: browserTarget,
   },
   {
+    alias: maxMetadataAlias,
     clean: false,
     dts: true,
     entry: {

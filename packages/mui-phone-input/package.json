@@ -1,7 +1,7 @@
 {
   "name": "@wh1teee/mui-phone-input",
-  "version": "0.1.0-next.9",
-  "description": "Accessible, deeply customizable international phone input for React and Material UI.",
+  "version": "1.0.0",
+  "description": "Accessible international phone input for React with independent MUI, Base UI and shadcn adapters.",
   "license": "MIT",
   "author": "Konstantsin Petrovskiy",
   "repository": {
@@ -91,30 +91,70 @@
       "import": "./dist/index.js",
       "default": "./dist/index.js"
     },
+    "./mui/react-hook-form": {
+      "types": "./dist/react-hook-form.d.ts",
+      "import": "./dist/react-hook-form.js",
+      "default": "./dist/react-hook-form.js"
+    },
+    "./mui/min": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/mui/min.js",
+      "default": "./dist/mui/min.js"
+    },
+    "./mui/min/react-hook-form": {
+      "types": "./dist/react-hook-form.d.ts",
+      "import": "./dist/mui/min/react-hook-form.js",
+      "default": "./dist/mui/min/react-hook-form.js"
+    },
     "./headless": {
       "types": "./dist/headless.d.ts",
       "import": "./dist/headless.js",
       "default": "./dist/headless.js"
+    },
+    "./headless/min": {
+      "types": "./dist/headless.d.ts",
+      "import": "./dist/headless/min.js",
+      "default": "./dist/headless/min.js"
     },
     "./base-ui": {
       "types": "./dist/base-ui.d.ts",
       "import": "./dist/base-ui.js",
       "default": "./dist/base-ui.js"
     },
+    "./base-ui/min": {
+      "types": "./dist/base-ui.d.ts",
+      "import": "./dist/base-ui/min.js",
+      "default": "./dist/base-ui/min.js"
+    },
     "./shadcn": {
       "types": "./dist/shadcn.d.ts",
       "import": "./dist/shadcn.js",
       "default": "./dist/shadcn.js"
+    },
+    "./shadcn/min": {
+      "types": "./dist/shadcn.d.ts",
+      "import": "./dist/shadcn/min.js",
+      "default": "./dist/shadcn/min.js"
     },
     "./base-ui/react-hook-form": {
       "types": "./dist/base-ui/react-hook-form.d.ts",
       "import": "./dist/base-ui/react-hook-form.js",
       "default": "./dist/base-ui/react-hook-form.js"
     },
+    "./base-ui/min/react-hook-form": {
+      "types": "./dist/base-ui/react-hook-form.d.ts",
+      "import": "./dist/base-ui/min/react-hook-form.js",
+      "default": "./dist/base-ui/min/react-hook-form.js"
+    },
     "./shadcn/react-hook-form": {
       "types": "./dist/base-ui/react-hook-form.d.ts",
       "import": "./dist/base-ui/react-hook-form.js",
       "default": "./dist/base-ui/react-hook-form.js"
+    },
+    "./shadcn/min/react-hook-form": {
+      "types": "./dist/base-ui/react-hook-form.d.ts",
+      "import": "./dist/base-ui/min/react-hook-form.js",
+      "default": "./dist/base-ui/min/react-hook-form.js"
     },
     "./shadcn.css": "./dist/shadcn.css"
   },
@@ -167,8 +207,7 @@
   },
   "publishConfig": {
     "access": "public",
-    "provenance": true,
-    "tag": "next"
+    "provenance": true
   },
   "scripts": {
     "build": "tsdown && node ../../scripts/build-flag-assets.mjs && node ../../scripts/build-ui-assets.mjs",

@@ -144,12 +144,14 @@ externalizes declared peers.
 
 Current exact-artifact measurements are:
 
-- main closure: 32,522 bytes gzip;
-- server entry: 6,225 bytes gzip;
-- packed tarball: 399,738 bytes. The current artifact adds
-  independently built headless, Base UI/shadcn and form entrypoints plus the
-  opt-in stylesheet. The MUI main and server closure hashes and byte sizes
-  remain unchanged; unused renderer code is not part of either closure.
+- main closure: 32,526 bytes gzip;
+- server entry: 6,247 bytes gzip;
+- packed tarball: 434,197 bytes. The stable artifact adds independently built
+  max/min headless, MUI, Base UI/shadcn and form entrypoints plus the opt-in
+  stylesheet. Min entrypoint source maps and duplicate declarations are omitted;
+  all min variants reuse the canonical type surface. The executable MUI main and
+  server closures remain inside their frozen budgets, and unused renderers are
+  excluded from each consumer closure.
 
 CI creates one immutable package artifact, reuses that same tarball across the
 package/runtime/tracer/consumer gates, and requires exact byte/hash equality

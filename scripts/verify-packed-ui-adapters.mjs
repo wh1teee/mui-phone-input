@@ -52,9 +52,12 @@ const profiles = [
     dependencies: {},
     absent: [...muiPeers, '@base-ui/react', 'react-hook-form', 'zod'],
     source: `import { usePhoneInput } from '@wh1teee/mui-phone-input/headless';
+import { usePhoneInput as useMinPhoneInput } from '@wh1teee/mui-phone-input/headless/min';
 export function App() {
   const phone = usePhoneInput({ defaultValue: '+375291234567' });
-  return <input {...phone.getInputProps({ 'aria-label': 'Phone', type: 'tel' })} />;
+  const minPhone = useMinPhoneInput({ defaultValue: '+375291234567' });
+  return <><input {...phone.getInputProps({ 'aria-label': 'Phone', type: 'tel' })} />
+    <input {...minPhone.getInputProps({ 'aria-label': 'Min phone', type: 'tel' })} /></>;
 }`,
   },
   {
@@ -63,10 +66,14 @@ export function App() {
     absent: [...muiPeers, 'react-hook-form', 'zod'],
     source: `import { PhoneInput } from '@wh1teee/mui-phone-input/base-ui';
 import { PhoneInput as ShadcnPhoneInput } from '@wh1teee/mui-phone-input/shadcn';
+import { PhoneInput as MinPhoneInput } from '@wh1teee/mui-phone-input/base-ui/min';
+import { PhoneInput as MinShadcnPhoneInput } from '@wh1teee/mui-phone-input/shadcn/min';
 import { ru } from '@wh1teee/mui-phone-input/locales/ru';
 export function App() {
   return <><PhoneInput label="Phone" defaultValue="+375291234567" countrySelector={ru} />
-    <ShadcnPhoneInput label="Styled phone" dir="rtl" /></>;
+    <ShadcnPhoneInput label="Styled phone" dir="rtl" />
+    <MinPhoneInput label="Min phone" defaultValue="+375291234567" />
+    <MinShadcnPhoneInput label="Min styled phone" /></>;
 }`,
   },
   {
@@ -76,11 +83,15 @@ export function App() {
     source: `import { useForm } from 'react-hook-form';
 import { PhoneInputController } from '@wh1teee/mui-phone-input/base-ui/react-hook-form';
 import { PhoneInputController as StyledController } from '@wh1teee/mui-phone-input/shadcn/react-hook-form';
+import { PhoneInputController as MinController } from '@wh1teee/mui-phone-input/base-ui/min/react-hook-form';
+import { PhoneInputController as MinStyledController } from '@wh1teee/mui-phone-input/shadcn/min/react-hook-form';
 import type { PhoneValue } from '@wh1teee/mui-phone-input/headless';
 export function App() {
   const { control } = useForm<{ phone: PhoneValue }>({ defaultValues: { phone: '+375291234567' } });
   return <><PhoneInputController name="phone" label="Phone" control={control} />
-    <StyledController name="phone" label="Styled phone" control={control} /></>;
+    <StyledController name="phone" label="Styled phone" control={control} />
+    <MinController name="phone" label="Min phone" control={control} />
+    <MinStyledController name="phone" label="Min styled phone" control={control} /></>;
 }`,
   },
   {
@@ -93,9 +104,11 @@ export function App() {
     absent: ['@base-ui/react', 'react-hook-form', 'zod'],
     source: `import { MuiPhoneInput } from '@wh1teee/mui-phone-input/mui';
 import { MuiPhoneInput as LegacyPhoneInput } from '@wh1teee/mui-phone-input';
+import { MuiPhoneInput as MinMuiPhoneInput } from '@wh1teee/mui-phone-input/mui/min';
 export function App() {
   return <><MuiPhoneInput label="Phone" defaultValue="+375291234567" />
-    <LegacyPhoneInput label="Legacy phone" /></>;
+    <LegacyPhoneInput label="Legacy phone" />
+    <MinMuiPhoneInput label="Min phone" defaultValue="+375291234567" /></>;
 }`,
   },
 ];
