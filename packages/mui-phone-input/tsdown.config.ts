@@ -19,22 +19,12 @@ const browserTarget = ['Chrome117', 'Edge121', 'Firefox121', 'Safari17'];
 const browserDefine = {
   'process.env.NODE_ENV': 'process.env.NODE_ENV',
 };
-const maxMetadataAlias = {
-  '#phone-default-metadata': resolve(
-    import.meta.dirname,
-    'src/metadata/default-max.ts',
-  ),
-};
 const minMetadataAlias = {
-  '#phone-default-metadata': resolve(
-    import.meta.dirname,
-    'src/metadata/default-min.ts',
-  ),
+  './metadata/default': resolve(import.meta.dirname, 'src/metadata/default-min.ts'),
 };
 
 export default defineConfig([
   {
-    alias: maxMetadataAlias,
     clean: true,
     define: browserDefine,
     dts: true,
@@ -56,7 +46,6 @@ export default defineConfig([
     target: browserTarget,
   },
   {
-    alias: maxMetadataAlias,
     clean: false,
     define: browserDefine,
     dts: true,
@@ -98,7 +87,6 @@ export default defineConfig([
     target: browserTarget,
   },
   {
-    alias: maxMetadataAlias,
     clean: false,
     dts: true,
     entry: {
@@ -118,7 +106,6 @@ export default defineConfig([
     target: 'es2024',
   },
   {
-    alias: maxMetadataAlias,
     clean: false,
     define: browserDefine,
     dts: true,
@@ -135,7 +122,6 @@ export default defineConfig([
     target: browserTarget,
   },
   {
-    alias: maxMetadataAlias,
     clean: false,
     dts: true,
     entry: {

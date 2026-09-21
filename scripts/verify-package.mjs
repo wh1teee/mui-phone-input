@@ -235,7 +235,7 @@ for (const requiredClientSource of [
 }
 assert.deepEqual(packedServerSourceMap.sources, [
   '../src/digit-pattern-prefix.ts',
-  '../src/metadata/default-max.ts',
+  '../src/metadata/default.ts',
   '../src/phone-metadata.ts',
   '../src/phone-value.ts',
   '../src/numbering-plan.ts',

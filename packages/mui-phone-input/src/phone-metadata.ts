@@ -1,4 +1,4 @@
-import defaultMetadata from '#phone-default-metadata';
+import defaultMetadata from './metadata/default';
 
 import { type PhoneMetadata, validatePhoneMetadata } from './phone-metadata-core';
 
