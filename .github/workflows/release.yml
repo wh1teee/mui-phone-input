@@ -1,9 +1,9 @@
-name: Release feature-complete prerelease
+name: Release
 
 on:
   push:
     tags:
-      - v0.1.0-next.*
+      - v*
 
 permissions:
   contents: read
@@ -14,7 +14,7 @@ concurrency:
 
 jobs:
   publish:
-    name: Verify and publish exact RC
+    name: Verify and publish exact package
     runs-on: ubuntu-latest
     timeout-minutes: 45
     permissions:
@@ -43,6 +43,13 @@ jobs:
           echo "directory=$candidate_dir" >> "$GITHUB_OUTPUT"
           echo "tarball=$tarball" >> "$GITHUB_OUTPUT"
           echo "version=$version" >> "$GITHUB_OUTPUT"
+          if [[ "$version" == *-* ]]; then
+            echo "dist_tag=next" >> "$GITHUB_OUTPUT"
+            echo "prerelease=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "dist_tag=latest" >> "$GITHUB_OUTPUT"
+            echo "prerelease=false" >> "$GITHUB_OUTPUT"
+          fi
       - run: pnpm ci:pr
         env:
           PACKAGE_ARTIFACT: ${{ steps.candidate.outputs.tarball }}
@@ -94,7 +101,7 @@ jobs:
           node-version: 24
           registry-url: https://registry.npmjs.org
       - run: npm install --global npm@11.16.0
-      - name: Create or refresh draft prerelease
+      - name: Create or refresh draft release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -103,9 +110,12 @@ jobs:
           if gh release view "$tag" >/dev/null 2>&1; then
             gh release upload "$tag" "$directory"/* --clobber
           else
+            release_flags=(--draft)
+            if [[ "${{ steps.candidate.outputs.prerelease }}" == "true" ]]; then
+              release_flags+=(--prerelease)
+            fi
             gh release create "$tag" "$directory"/* \
-              --draft \
-              --prerelease \
+              "${release_flags[@]}" \
               --target "$GITHUB_SHA" \
               --title "@wh1teee/mui-phone-input ${{ steps.candidate.outputs.version }}" \
               --notes-file "$directory/RELEASE_NOTES.md"
@@ -113,15 +123,20 @@ jobs:
       - name: Publish exact tarball through npm OIDC
         env:
           NPM_CONFIG_PROVENANCE: "true"
-        run: >-
-          npm publish "${{ steps.candidate.outputs.tarball }}"
-          --access public
-          --tag next
-          --provenance
+        run: |
+          specifier="@wh1teee/mui-phone-input@${{ steps.candidate.outputs.version }}"
+          if npm view "$specifier" version >/dev/null 2>&1; then
+            echo "$specifier is already present; registry parity verification remains mandatory."
+          else
+            npm publish "${{ steps.candidate.outputs.tarball }}" \
+              --access public \
+              --tag "${{ steps.candidate.outputs.dist_tag }}" \
+              --provenance
+          fi
       - run: >-
           node scripts/verify-registry-release.mjs
           --directory="${{ steps.candidate.outputs.directory }}"
-      - name: Publish registry evidence and prerelease
+      - name: Publish registry evidence and release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -132,4 +147,8 @@ jobs:
             "$directory/registry-tarball-sha256.txt" \
             "$directory/provenance-audit.json" \
             --clobber
-          gh release edit "$tag" --draft=false --prerelease
+          if [[ "${{ steps.candidate.outputs.prerelease }}" == "true" ]]; then
+            gh release edit "$tag" --draft=false --prerelease
+          else
+            gh release edit "$tag" --draft=false --prerelease=false --latest
+          fi

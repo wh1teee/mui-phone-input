@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
  */
 export function createRegistryConsumerDependencies(manifest) {
   assert.equal(manifest.name, '@wh1teee/mui-phone-input');
-  assert.match(manifest.version, /^0\.1\.0-next\.\d+$/u);
+  assert.match(manifest.version, /^(?:0\.1\.0-next\.\d+|[1-9]\d*\.\d+\.\d+)$/u);
   const peers = [
     'react',
     'react-dom',

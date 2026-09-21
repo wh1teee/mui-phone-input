@@ -1,5 +1,13 @@
 # @wh1teee/mui-phone-input
 
+## 1.0.0
+
+### Major Changes
+
+- Publish the stable renderer-independent phone-input contract. The legacy root remains the MUI API, while explicit MUI, headless, Base UI and shadcn entrypoints keep optional renderer peers isolated.
+- Add renderer-specific `/min` and React Hook Form entrypoints backed by official `libphonenumber-js` min metadata. Exact-artifact gzip/Brotli budgets include runtime phone dependencies and reject metadata or renderer leakage.
+- Generalize the trusted npm OIDC workflow for immutable prerelease and stable publication, with exact registry byte parity, provenance, Next.js 16 App Router, Vite, browser and accessibility evidence.
+
 ## 0.1.0-next.9
 
 ### Minor Changes

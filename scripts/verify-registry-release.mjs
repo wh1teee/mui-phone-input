@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 
 import { createIsolatedProcessEnvironment } from './lib/isolated-process-environment.mjs';
 import { createIsolatedTemporaryRoot } from './lib/isolated-temporary-root.mjs';
-import { assertEarlyCanaryDistTags } from './lib/npm-dist-tags.mjs';
+import { assertReleaseDistTags } from './lib/npm-dist-tags.mjs';
 import {
   readRegistryJsonWithRetry,
   runRegistryCommandWithRetry,
@@ -80,7 +80,11 @@ const distTags = await readRegistryJsonWithRetry({
 });
 assert.equal(registryMetadata.name, candidate.package.name);
 assert.equal(registryMetadata.version, candidate.package.version);
-assertEarlyCanaryDistTags(distTags, candidate.package.version);
+assertReleaseDistTags(
+  distTags,
+  candidate.package.version,
+  candidate.publication.distTag,
+);
 
 const temporaryRoot = await createIsolatedTemporaryRoot('mui-phone-input-registry-', {
   forbiddenPackages: ['@wh1teee/mui-phone-input'],

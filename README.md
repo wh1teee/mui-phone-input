@@ -8,8 +8,9 @@ an explicit UI entrypoint instead of installing a second implementation. See
 [the multi-adapter guide](./docs/guides/ui-adapters.md) and
 [ADR 0007](./docs/adr/0007-share-phone-state-across-independent-ui-adapters.md).
 
-The prerelease channel is `@wh1teee/mui-phone-input@next`; `latest` is not the
-active release-candidate channel. Live delivery/release state belongs to Beads.
+The stable channel is `@wh1teee/mui-phone-input@latest`. The historical
+`0.1.0-next.x` line remains available only for reproducibility; new production
+adoptions should use the stable major or an exact version.
 
 ## Goals
 
@@ -24,9 +25,19 @@ active release-candidate channel. Live delivery/release state belongs to Beads.
   tree-shakeable and optional.
 
 The public export map preserves the root MUI API and adds `/mui`, `/headless`,
-`/base-ui`, `/shadcn`, `/base-ui/react-hook-form`, `/shadcn/react-hook-form` and
-an opt-in `/shadcn.css` skin. Server, metadata, flags, locale packs and Zod
-remain independent. Each renderer requires only its own optional peers.
+`/base-ui`, `/shadcn`, renderer-specific React Hook Form paths and an opt-in
+`/shadcn.css` skin. Every browser renderer also has a `/min` variant that uses
+the smaller official `libphonenumber-js` metadata graph. Server, metadata,
+flags, locale packs and Zod remain independent. Each renderer requires only its
+own optional peers.
+
+Exact-artifact bundle gates measure package-owned closures with runtime phone
+dependencies and metadata included, while leaving the application's React/UI
+peers external. The `/min` entries reduce the current phone closure by roughly
+21–22 KiB gzip without importing another renderer. Next.js App Router proof uses
+normal package exports and package-owned client boundaries; no
+`transpilePackages`, `serverExternalPackages`, or experimental package-import
+rewriting is required.
 
 The canonical npm identity remains `@wh1teee/mui-phone-input`. The original
 publishing identity gate `mpi-g7a` is closed; subsequent releases continue using

@@ -393,8 +393,20 @@ expectedExportContract['./base-ui/react-hook-form'] = {
     'PhoneInputControllerProps',
   ],
 };
+expectedExportContract['./headless/min'] = expectedExportContract['./headless'];
+expectedExportContract['./base-ui/min'] = expectedExportContract['./base-ui'];
+expectedExportContract['./mui/min'] = expectedExportContract['.'];
+expectedExportContract['./mui/react-hook-form'] =
+  expectedExportContract['./react-hook-form'];
+expectedExportContract['./mui/min/react-hook-form'] =
+  expectedExportContract['./react-hook-form'];
+expectedExportContract['./base-ui/min/react-hook-form'] =
+  expectedExportContract['./base-ui/react-hook-form'];
 expectedExportContract['./shadcn'] = expectedExportContract['./base-ui'];
+expectedExportContract['./shadcn/min'] = expectedExportContract['./base-ui'];
 expectedExportContract['./shadcn/react-hook-form'] =
+  expectedExportContract['./base-ui/react-hook-form'];
+expectedExportContract['./shadcn/min/react-hook-form'] =
   expectedExportContract['./base-ui/react-hook-form'];
 expectedExportContract['./mui'] = expectedExportContract['.'];
 expectedExportContract['./shadcn.css'] = {
@@ -410,12 +422,19 @@ const muiPeers = ['@mui/material', '@emotion/react', '@emotion/styled'];
 const optionalPeersBySubpath = {
   '.': muiPeers,
   './mui': muiPeers,
+  './mui/min': muiPeers,
   './react-hook-form': [...muiPeers, 'react-hook-form'],
+  './mui/react-hook-form': [...muiPeers, 'react-hook-form'],
+  './mui/min/react-hook-form': [...muiPeers, 'react-hook-form'],
   './zod': ['zod'],
   './base-ui': ['@base-ui/react'],
+  './base-ui/min': ['@base-ui/react'],
   './shadcn': ['@base-ui/react'],
+  './shadcn/min': ['@base-ui/react'],
   './base-ui/react-hook-form': ['@base-ui/react', 'react-hook-form'],
+  './base-ui/min/react-hook-form': ['@base-ui/react', 'react-hook-form'],
   './shadcn/react-hook-form': ['@base-ui/react', 'react-hook-form'],
+  './shadcn/min/react-hook-form': ['@base-ui/react', 'react-hook-form'],
 };
 const absentFutureSubpaths = [];
 

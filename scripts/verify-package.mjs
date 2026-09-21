@@ -54,6 +54,8 @@ for (const requiredFile of [
   'package/dist/react-hook-form.js',
   'package/dist/react-hook-form.d.ts',
   'package/dist/react-hook-form.js.map',
+  'package/dist/mui/min.js',
+  'package/dist/mui/min/react-hook-form.js',
   'package/dist/metadata/custom.js',
   'package/dist/metadata/custom.d.ts',
   'package/dist/metadata/max.js',
@@ -68,12 +70,16 @@ for (const requiredFile of [
   'package/dist/flags.css',
   'package/dist/headless.js',
   'package/dist/headless.d.ts',
+  'package/dist/headless/min.js',
   'package/dist/base-ui.js',
   'package/dist/base-ui.d.ts',
+  'package/dist/base-ui/min.js',
   'package/dist/base-ui/react-hook-form.js',
   'package/dist/base-ui/react-hook-form.d.ts',
+  'package/dist/base-ui/min/react-hook-form.js',
   'package/dist/shadcn.js',
   'package/dist/shadcn.d.ts',
+  'package/dist/shadcn/min.js',
   'package/dist/shadcn.css',
   'package/dist/flags.js',
   'package/dist/flags.d.ts',
@@ -229,6 +235,8 @@ for (const requiredClientSource of [
 }
 assert.deepEqual(packedServerSourceMap.sources, [
   '../src/digit-pattern-prefix.ts',
+  '../src/metadata/default-max.ts',
+  '../src/phone-metadata.ts',
   '../src/phone-value.ts',
   '../src/numbering-plan.ts',
   '../src/phone-validation.ts',
@@ -407,10 +415,7 @@ for (const [locale, source] of Object.entries(localeBundles)) {
 }
 assert.match(serverBundle, /from\s+["']libphonenumber-js\/core["']/u);
 assert.match(serverMetadataBundle, /from\s+["']libphonenumber-js\/core["']/u);
-assert.match(
-  serverMetadataBundle,
-  /from\s+["']libphonenumber-js\/metadata\.max\.json["']/u,
-);
+assert.match(serverBundle, /from\s+["']libphonenumber-js\/metadata\.max\.json["']/u);
 assert.match(clientBundle, /from\s+["']libphonenumber-js\/core["']/u);
 assert.match(clientBundle, /from\s+["']libphonenumber-js\/metadata\.max\.json["']/u);
 for (const bundle of [serverBundle, serverMetadataBundle, clientBundle]) {

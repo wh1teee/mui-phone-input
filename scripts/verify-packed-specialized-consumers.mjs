@@ -84,7 +84,21 @@ const profiles = [
     },
     expectedExports: ['MuiPhoneInputController'],
     name: 'rhf-only',
-    specifier: '@wh1teee/mui-phone-input/react-hook-form',
+    specifier: '@wh1teee/mui-phone-input/mui/react-hook-form',
+  },
+  {
+    absent: ['zod'],
+    dependencies: {
+      '@emotion/react': '11.14.0',
+      '@emotion/styled': '11.14.1',
+      '@mui/material': '9.4.0',
+      react: '19.3.0',
+      'react-dom': '19.3.0',
+      'react-hook-form': '7.88.0',
+    },
+    expectedExports: ['MuiPhoneInputController'],
+    name: 'rhf-min-only',
+    specifier: '@wh1teee/mui-phone-input/mui/min/react-hook-form',
   },
   {
     absent: ['@mui/material', 'react', 'react-dom', 'react-hook-form'],

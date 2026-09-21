@@ -195,6 +195,17 @@ for (const latestSpecializedPin of ["'react-hook-form': '7.88.0'", "zod: '4.6.4'
 assert.match(packedConsumersVerifier, /const muiVersion =/u);
 assert.match(packedConsumersVerifier, /@mui\/styled-engine.*muiVersion/u);
 assert.match(nextConsumerConfig, /resolveBoundedTurbopackRoot/u);
+for (const unnecessaryNextPackageEscape of [
+  'transpilePackages',
+  'serverExternalPackages',
+  'optimizePackageImports',
+]) {
+  assert.doesNotMatch(
+    nextConsumerConfig,
+    new RegExp(unnecessaryNextPackageEscape, 'u'),
+    `Exact Next consumer must not require ${unnecessaryNextPackageEscape}.`,
+  );
+}
 assert.match(nextConsumerTurbopackRoot, /Refusing to use the filesystem root/u);
 assert.match(docsGvsTopology, /kind:\s*['"]stage['"]/u);
 assert.match(docsNextConfig, /resolveBoundedTurbopackRoot/u);
@@ -232,7 +243,7 @@ assert.equal(
 );
 assert.match(npmIdentityVerifier, /authenticated-identity-mismatch/u);
 assert.match(npmIdentityVerifier, /packageScope !== repositoryOwner/u);
-assert.match(packageManifest.version, /^0\.1\.0-next\.\d+$/u);
+assert.match(packageManifest.version, /^(?:0\.1\.0-next\.\d+|1\.0\.0)$/u);
 assert.equal(packageManifest.type, 'module');
 assert.deepEqual(packageManifest.sideEffects, [
   './dist/flags.css',
@@ -274,7 +285,6 @@ assert.equal(packageManifest.peerDependenciesMeta.zod.optional, true);
 assert.deepEqual(packageManifest.publishConfig, {
   access: 'public',
   provenance: true,
-  tag: 'next',
 });
 assert.equal(packageManifest.dependencies['@maskito/core'], '5.4.0');
 assert.equal(packageManifest.dependencies['@maskito/react'], '5.4.0');
@@ -334,11 +344,19 @@ assert.deepEqual(consumerExportContract.implemented, [
   './locales/ru',
   './package.json',
   './mui',
+  './mui/min',
+  './mui/react-hook-form',
+  './mui/min/react-hook-form',
   './headless',
+  './headless/min',
   './base-ui',
+  './base-ui/min',
   './shadcn',
+  './shadcn/min',
   './base-ui/react-hook-form',
+  './base-ui/min/react-hook-form',
   './shadcn/react-hook-form',
+  './shadcn/min/react-hook-form',
 ]);
 assert.deepEqual(consumerExportContract.implementedAssets, [
   './flags.css',
@@ -346,7 +364,11 @@ assert.deepEqual(consumerExportContract.implementedAssets, [
 ]);
 assert.deepEqual(consumerExportContract.optionalPeers, {
   './base-ui/react-hook-form': 'react-hook-form',
+  './base-ui/min/react-hook-form': 'react-hook-form',
+  './mui/react-hook-form': 'react-hook-form',
+  './mui/min/react-hook-form': 'react-hook-form',
   './shadcn/react-hook-form': 'react-hook-form',
+  './shadcn/min/react-hook-form': 'react-hook-form',
   './react-hook-form': 'react-hook-form',
   './zod': 'zod',
 });
@@ -508,6 +530,7 @@ assert.match(packageArtifactSuite, /process\.env\.PACKAGE_ARTIFACT/u);
 for (const verifier of [
   'verify-package.mjs',
   'verify-package-artifact-independence.mjs',
+  'verify-entrypoint-bundles.mjs',
   'verify-published-runtime.mjs',
   'verify-tracer-package.mjs',
   'verify-packed-consumers.mjs',
@@ -520,7 +543,7 @@ assert.match(
   /divergent local dist must never be inspected/u,
 );
 assert.match(packageArtifactIndependenceVerifier, /mutated\.tgz/u);
-assert.match(releaseWorkflow, /tags:\s*\n\s*- v0\.1\.0-next\.\*/u);
+assert.match(releaseWorkflow, /tags:\s*\n\s*- v\*/u);
 assert.match(releaseWorkflow, /runs-on:\s*ubuntu-latest/u);
 assert.match(releaseWorkflow, /id-token:\s*write/u);
 assert.match(releaseWorkflow, /npm@11\.16\.0/u);
@@ -536,7 +559,9 @@ assert.match(releaseWorkflow, /verify-packed-consumers\.mjs[\s\S]*--artifact=/u)
 assert.match(releaseWorkflow, /verify-published-runtime\.mjs[\s\S]*--artifact=/u);
 assert.match(releaseWorkflow, /npm publish[\s\S]*candidate\.outputs\.tarball/u);
 assert.match(releaseWorkflow, /--access public/u);
-assert.match(releaseWorkflow, /--tag next/u);
+assert.match(releaseWorkflow, /candidate\.outputs\.dist_tag/u);
+assert.match(releaseWorkflow, /candidate\.outputs\.prerelease/u);
+assert.match(releaseWorkflow, /--latest/u);
 assert.match(releaseWorkflow, /--provenance/u);
 assert.match(releaseWorkflow, /verify-registry-release\.mjs/u);
 assert.doesNotMatch(releaseWorkflow, /NODE_AUTH_TOKEN|NPM_TOKEN/u);
