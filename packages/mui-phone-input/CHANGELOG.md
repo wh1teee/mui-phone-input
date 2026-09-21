@@ -1,5 +1,11 @@
 # @wh1teee/mui-phone-input
 
+## 1.0.4
+
+### Patch Changes
+
+- Correct the stable release evidence contract by explicitly documenting the max, min, mobile and custom metadata presets. Runtime bytes and the WebKit popup-dismissal fix are unchanged from the verified 1.0.3 candidate.
+
 ## 1.0.3
 
 ### Patch Changes
