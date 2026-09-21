@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
 import { describe, expect, test, vi } from 'vitest';
 import { page, userEvent } from 'vitest/browser';
 import { render } from 'vitest-browser-react';
@@ -131,6 +131,30 @@ function ManualErrorHarness() {
     <input
       {...phone.getInputProps({
         'data-testid': 'manual-error-input',
+      })}
+    />
+  );
+}
+
+function StaleDomSelectionHarness() {
+  const mutatedRef = useRef(false);
+  const phone = usePhoneInput({ defaultValue: '+1' });
+
+  useLayoutEffect(() => {
+    if (mutatedRef.current) return;
+    mutatedRef.current = true;
+    const input = phone.inputElementRef.current;
+    if (!input) throw new Error('Expected stale-selection test input.');
+
+    input.focus();
+    input.value = '+1 202 555';
+    input.setSelectionRange(input.value.length, input.value.length);
+  }, [phone.inputElementRef]);
+
+  return (
+    <input
+      {...phone.getInputProps({
+        'data-testid': 'stale-selection-input',
       })}
     />
   );
@@ -540,6 +564,20 @@ describe('usePhoneInput and composable primitives', () => {
     await expect.element(input).toHaveAttribute('aria-invalid', 'true');
     await expect.element(input).not.toHaveAttribute('aria-describedby');
     await expect.element(input).not.toHaveAttribute('aria-errormessage');
+  });
+
+  test('reconciles a live DOM value and caret that advanced before the passive effect', async () => {
+    render(<StaleDomSelectionHarness />);
+    const input = page.getByTestId('stale-selection-input');
+    await expect.element(input).toBeInTheDocument();
+    const element = input.element();
+    if (!(element instanceof HTMLInputElement)) {
+      throw new Error('Expected stale-selection test input.');
+    }
+
+    await expect.element(input).toHaveValue('+1');
+    await expect.poll(() => element.selectionStart).toBe(2);
+    await expect.poll(() => element.selectionEnd).toBe(2);
   });
 
   test('classifies initial country transitions by ownership source', async () => {

@@ -1,6 +1,6 @@
 {
   "name": "@wh1teee/mui-phone-input",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Accessible international phone input for React with independent MUI, Base UI and shadcn adapters.",
   "license": "MIT",
   "author": "Konstantsin Petrovskiy",

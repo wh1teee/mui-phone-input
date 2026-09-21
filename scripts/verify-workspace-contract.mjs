@@ -243,7 +243,7 @@ assert.equal(
 );
 assert.match(npmIdentityVerifier, /authenticated-identity-mismatch/u);
 assert.match(npmIdentityVerifier, /packageScope !== repositoryOwner/u);
-assert.match(packageManifest.version, /^(?:0\.1\.0-next\.\d+|1\.0\.0)$/u);
+assert.match(packageManifest.version, /^(?:0\.1\.0-next\.\d+|1\.\d+\.\d+)$/u);
 assert.equal(packageManifest.type, 'module');
 assert.deepEqual(packageManifest.sideEffects, [
   './dist/flags.css',

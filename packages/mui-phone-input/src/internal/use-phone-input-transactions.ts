@@ -1350,7 +1350,10 @@ export function usePhoneInputTransactions(
         pendingCompositionSelection.digitOffset,
       );
       selection = [offset, offset];
-    } else if (input) {
+    } else if (input?.value === displayValue) {
+      // Selection offsets are meaningful only for the exact DOM string they
+      // were read from. WebKit can advance the native value and caret before
+      // the passive effect for the current presentation runs.
       selection = [
         input.selectionStart ?? displayValue.length,
         input.selectionEnd ?? displayValue.length,

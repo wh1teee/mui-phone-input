@@ -144,9 +144,9 @@ externalizes declared peers.
 
 Current exact-artifact measurements are:
 
-- main closure: 32,526 bytes gzip;
+- main closure: 32,531 bytes gzip;
 - server entry: 6,247 bytes gzip;
-- packed tarball: 434,197 bytes. The stable artifact adds independently built
+- packed tarball: 434,499 bytes. The stable artifact adds independently built
   max/min headless, MUI, Base UI/shadcn and form entrypoints plus the opt-in
   stylesheet. Min entrypoint source maps and duplicate declarations are omitted;
   all min variants reuse the canonical type surface. The executable MUI main and
