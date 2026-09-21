@@ -1,5 +1,11 @@
 # @wh1teee/mui-phone-input
 
+## 1.0.1
+
+### Patch Changes
+
+- Prevent a WebKit/native-input reconciliation race from pairing caret offsets from an advanced live DOM value with an older formatted presentation. Reconciliation now consumes DOM selection only when it belongs to the exact authoritative display string; the integrity guard remains strict and controlled ownership is unchanged.
+
 ## 1.0.0
 
 ### Major Changes
