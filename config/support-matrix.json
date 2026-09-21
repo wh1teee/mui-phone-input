@@ -1,7 +1,7 @@
 {
   "blocking": {
     "node": "24",
-    "typescript": "6.0.3",
+    "typescript": "7.0.2",
     "react": {
       "minimum": "19.0.0",
       "latest": "19.2.8"
@@ -21,10 +21,10 @@
       "firefox": "121",
       "safari": "17",
       "iosSafari": "17"
-    }
+    },
+    "typescriptApiCompatibility": "@typescript/typescript6@6.0.2"
   },
   "forwardSignals": {
-    "node": "26",
-    "typescript": "7.0.2"
+    "node": "26"
   }
 }

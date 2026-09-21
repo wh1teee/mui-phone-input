@@ -94,7 +94,7 @@ The component exposes a normalized Phone Value independently from Display Value,
 ## Implementation Decisions
 
 - Create one public repository and one published package with a clean history and no legacy API obligation.
-- Target React 19+, MUI 9+, Emotion 11, TypeScript 6 declarations, Node 24 LTS tooling, ESM-only output, and the MUI 9 browser floor: Chrome 117, Edge 121, Firefox 121, and Safari/iOS Safari 17. Node 26, TypeScript 7, and future MUI prereleases are non-blocking forward signals until separately accepted.
+- Target React 19+, MUI 9+, Emotion 11, declarations checked by TypeScript 7, Node 24 LTS tooling, ESM-only output, and the MUI 9 browser floor: Chrome 117, Edge 121, Firefox 121, and Safari/iOS Safari 17. Compiler-embedding build tools use the official TypeScript 6 compatibility package until TypeScript 7 exposes a stable programmatic API. Node 26 and future MUI prereleases are non-blocking forward signals.
 - Use `libphonenumber-js` as the only phone-number authority. Pin and verify the latest stable version at implementation time.
 - Make max metadata the default and expose API-compatible min, mobile, and validated custom metadata entrypoints.
 - Compute possibility, strict validity, and number type, but make `validationMode="possible"` the default acceptance policy. Expose `valid`, `possible-and-type`, and custom strategies explicitly.

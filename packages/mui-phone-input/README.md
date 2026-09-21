@@ -786,3 +786,11 @@ Replace `slots.countrySelector` for a custom selector implementation or use
 `slotProps.countrySelector` for locale, preferred countries, ordering, filtering,
 portal policy, messages, classes, and result bounds. The official slot renders
 inside `PhoneInputProvider` and uses the same controller as the phone input.
+
+## TypeScript 7
+
+The package source, declarations, examples, and exact consumer applications are
+checked with the stable native TypeScript 7 compiler. Repository tools that
+still embed TypeScript's programmatic API use Microsoft's official TypeScript 6
+compatibility package through an npm alias; they do not downgrade `tsc`.
+`pnpm verify:typescript` enforces this boundary.

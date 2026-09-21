@@ -38,7 +38,7 @@ Changes to `libphonenumber-js`, metadata presets, country resolution, validation
 
 - Use Vitest Node for pure state, parsing, formatting, server helpers, and property/model-based tests.
 - Use Vitest Browser Mode for component behavior in a real browser; jsdom is not evidence for caret, focus, paste, autofill, or IME behavior.
-- Run the blocking support matrix on Node 24 LTS, TypeScript 6, React 19, MUI 9, and the MUI 9 browser floor. Node 26, TypeScript 7, and future MUI prereleases are forward-looking non-blocking signals until separately accepted.
+- Run the blocking support matrix on Node 24 LTS, the native TypeScript 7 compiler, React 19, MUI 9, and the MUI 9 browser floor. Tools that still embed the compiler use the official TypeScript 6 compatibility package; Node 26 and future MUI prereleases remain forward-looking non-blocking signals.
 - The release path includes real iOS Safari and Android Chrome evidence when external open-source device infrastructure is available, plus recorded manual fallbacks for autofill, predictive keyboards, and assistive technologies.
 
 ## Issue triage
