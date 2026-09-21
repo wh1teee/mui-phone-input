@@ -12,6 +12,7 @@ import {
   readRegistryJsonWithRetry,
   runRegistryCommandWithRetry,
 } from './lib/npm-registry-retry.mjs';
+import { createRegistryConsumerDependencies } from './lib/registry-consumer.mjs';
 
 const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const isolatedProcessEnvironment = createIsolatedProcessEnvironment();
@@ -62,8 +63,15 @@ const candidate = JSON.parse(
 );
 const specifier = `${candidate.package.name}@${candidate.package.version}`;
 const registryMetadata = await readRegistryJsonWithRetry({
+  // The next.9 registry read first became visible after the old 30s window.
+  // Keep propagation retries bounded; auth/integrity errors still fail at once.
+  attempts: 61,
+  delayMs: 5_000,
   description: `npm view ${specifier} --json`,
-  execute: () => execute('npm', ['view', specifier, '--json']),
+  execute: () =>
+    execute('npm', ['view', specifier, '--json', '--prefer-online'], {
+      timeout: 30_000,
+    }),
 });
 const distTags = await readRegistryJsonWithRetry({
   description: `npm view ${candidate.package.name} dist-tags --json`,
@@ -88,9 +96,7 @@ try {
         version: '0.0.0',
         private: true,
         type: 'module',
-        dependencies: {
-          [candidate.package.name]: candidate.package.version,
-        },
+        dependencies: createRegistryConsumerDependencies(registryMetadata),
       },
       null,
       2,
@@ -141,6 +147,17 @@ import { isPhoneValue } from '@wh1teee/mui-phone-input/server';
 
 assert.equal(typeof MuiPhoneInput, 'function');
 assert.equal(isPhoneValue('+37529'), true);
+${
+  registryMetadata.exports?.['./base-ui']
+    ? `
+const base = await import('@wh1teee/mui-phone-input/base-ui');
+const headless = await import('@wh1teee/mui-phone-input/headless');
+assert.equal(typeof base.PhoneInput, 'function');
+assert.equal(typeof base.PhoneInputCountrySelector, 'function');
+assert.equal(typeof headless.usePhoneInput, 'function');
+`
+    : ''
+}
 console.log('Registry package imports verified.');
 `,
   );

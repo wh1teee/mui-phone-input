@@ -20,6 +20,28 @@ const failure = (stderr: string) => ({
 });
 
 describe('npm registry propagation retry', () => {
+  it('supports the bounded five-minute post-publish window without retrying forever', async () => {
+    let attempt = 0;
+    const execute = vi.fn(() =>
+      ++attempt <= 60
+        ? failure('npm error code E404\nNo match found for version')
+        : success({ version: '0.1.0-next.9' }),
+    );
+    const sleep = vi.fn().mockResolvedValue(undefined);
+    await expect(
+      readRegistryJsonWithRetry({
+        attempts: 61,
+        delayMs: 5_000,
+        description: 'npm view package',
+        execute,
+        sleep,
+      }),
+    ).resolves.toEqual({ version: '0.1.0-next.9' });
+    expect(execute).toHaveBeenCalledTimes(61);
+    expect(
+      sleep.mock.calls.reduce((sum, [milliseconds]) => sum + milliseconds, 0),
+    ).toBe(300_000);
+  });
   it('retries a transient registry 404 and returns the propagated document', async () => {
     const execute = vi
       .fn()
