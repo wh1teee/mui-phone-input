@@ -1,7 +1,6 @@
 'use client';
 
 import ButtonBase from '@mui/material/ButtonBase';
-import ClickAwayListener from '@mui/material/ClickAwayListener';
 import Dialog from '@mui/material/Dialog';
 import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
@@ -663,6 +662,7 @@ export function PhoneInputCountrySelector({
     [open, phone.state, presentation, query, triggerDisabled],
   );
   const triggerRef = useRef<HTMLButtonElement | null>(null);
+  const desktopSurfaceRef = useRef<HTMLDivElement | null>(null);
   const returnFocus = useCallback(() => {
     window.requestAnimationFrame(() => triggerRef.current?.focus());
   }, []);
@@ -687,6 +687,31 @@ export function PhoneInputCountrySelector({
     },
     [returnFocus],
   );
+  useEffect(() => {
+    if (!open || mobile) {
+      return;
+    }
+
+    const surface = desktopSurfaceRef.current;
+    if (!surface) {
+      return;
+    }
+    const ownerDocument = surface.ownerDocument;
+    const handleDocumentClick = (event: globalThis.MouseEvent) => {
+      const path = event.composedPath();
+      const trigger = triggerRef.current;
+      if (!path.includes(surface) && (!trigger || !path.includes(trigger))) {
+        closeSelector(false);
+      }
+    };
+
+    // MUI ClickAwayListener intentionally arms on a timer. A native listener on
+    // the owned wrapper avoids that activation race while keeping ref-less popup
+    // slots and portaled DOM inside the same containment authority.
+    ownerDocument.addEventListener('click', handleDocumentClick, true);
+    return () => ownerDocument.removeEventListener('click', handleDocumentClick, true);
+  }, [closeSelector, mobile, open]);
+
   const highlightedOptionRef = useRef<PhoneCountryOption | null>(null);
   const highlightedReasonRef = useRef<AutocompleteHighlightChangeReason | null>(null);
   const restoringPresentationHighlightRef = useRef(false);
@@ -1570,14 +1595,12 @@ export function PhoneInputCountrySelector({
           placement="bottom-start"
           sx={{ zIndex: (currentTheme) => currentTheme.zIndex.modal + 1 }}
         >
-          <ClickAwayListener onClickAway={() => closeSelector(false)}>
-            <div data-phone-input-country-selector-surface="true">
-              <PopupSlot {...popupSlotProps}>
-                {search}
-                {listbox}
-              </PopupSlot>
-            </div>
-          </ClickAwayListener>
+          <div data-phone-input-country-selector-surface="true" ref={desktopSurfaceRef}>
+            <PopupSlot {...popupSlotProps}>
+              {search}
+              {listbox}
+            </PopupSlot>
+          </div>
         </Popper>
       )}
     </>

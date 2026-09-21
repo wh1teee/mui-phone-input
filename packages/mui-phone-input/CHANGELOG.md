@@ -1,5 +1,11 @@
 # @wh1teee/mui-phone-input
 
+## 1.0.3
+
+### Patch Changes
+
+- Replace the timer-armed Material UI click-away wrapper with an owned document listener bound to the selector surface and trigger. Desktop popup dismissal now works immediately and remains independent of whether a custom popup slot forwards its ref, including WebKit, portals and inline rendering.
+
 ## 1.0.2
 
 ### Patch Changes
