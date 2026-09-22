@@ -26,6 +26,10 @@ const tsdownConfig = await readFile(
   'utf8',
 );
 const ciWorkflow = await readFile('.github/workflows/ci.yml', 'utf8');
+const compatibilityWorkflow = await readFile(
+  '.github/workflows/compatibility.yml',
+  'utf8',
+);
 const releaseWorkflow = await readFile('.github/workflows/release.yml', 'utf8');
 const pnpmWorkflowSources = await Promise.all(
   [
@@ -520,6 +524,15 @@ assert.match(ciWorkflow, /published-runtime-artifact\.outputs\.tarball/u);
 assert.match(
   ciWorkflow,
   /PACKAGE_ARTIFACT:\s*\$\{\{ steps\.published-runtime-artifact\.outputs\.tarball \}\}/u,
+);
+assert.match(
+  compatibilityWorkflow,
+  /pnpm exec playwright install --with-deps chromium/u,
+);
+assert(
+  compatibilityWorkflow.indexOf('pnpm exec playwright install --with-deps chromium') <
+    compatibilityWorkflow.indexOf('pnpm verify:consumers'),
+  'Compatibility consumers must install Chromium before running browser probes.',
 );
 assert.equal(
   rootPackage.scripts['verify:package-artifact-suite'],
