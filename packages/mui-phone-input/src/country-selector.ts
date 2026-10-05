@@ -43,6 +43,7 @@ export interface PhoneCountrySelectionOptions {
 }
 
 export interface FilterPhoneCountryOptionsParameters {
+  /** Maximum rendered options. Omit to keep every match. */
   limit?: number;
   selectedCountry?: CountryCode | null;
 }
@@ -50,6 +51,8 @@ export interface FilterPhoneCountryOptionsParameters {
 interface PhoneCountrySearchMetadata {
   callingCodeKey: string;
   countryKey: string;
+  // The metadata's main country for a shared calling code, e.g. US for +1.
+  mainCountryForCallingCode: boolean;
   englishNameKey: string;
   locale: string;
   localizedNameKey: string;
@@ -192,10 +195,12 @@ function compareCountryCodes(left: CountryCode, right: CountryCode): number {
 function createCountrySearchMetadata(
   option: Readonly<PhoneCountryOption>,
   locale: string,
+  mainCountryForCallingCode = false,
 ): Readonly<PhoneCountrySearchMetadata> {
   return Object.freeze({
     callingCodeKey: normalizeCallingCodeSearchQuery(option.callingCode) ?? '',
     countryKey: option.country.toLowerCase(),
+    mainCountryForCallingCode,
     englishNameKey: normalizeNameSearchText(option.englishName, DEFAULT_INTL_LOCALE),
     locale,
     localizedNameKey: normalizeNameSearchText(option.localizedName, locale),
@@ -274,7 +279,11 @@ export function createPhoneCountryOptions(
       });
       COUNTRY_SEARCH_METADATA.set(
         option,
-        createCountrySearchMetadata(option, caseLocale),
+        createCountrySearchMetadata(
+          option,
+          caseLocale,
+          metadata.country_calling_codes[option.callingCode]?.[0] === country,
+        ),
       );
       return option;
     });
@@ -304,6 +313,87 @@ export function createPhoneCountryOptions(
   return Object.freeze(options);
 }
 
+// Ordered by population (official national estimates compiled by Wikipedia's
+// "List of countries and dependencies by population", retrieved 2026-10-04).
+// Population is a neutral, verifiable proxy for how often a country is needed;
+// applications with a known audience should pass their own preferred countries.
+const POPULAR_COUNTRIES = Object.freeze([
+  'IN',
+  'CN',
+  'US',
+  'ID',
+  'PK',
+  'NG',
+  'BR',
+  'BD',
+  'RU',
+  'MX',
+  'JP',
+  'CD',
+  'PH',
+  'ET',
+  'EG',
+  'VN',
+  'IR',
+  'TR',
+  'DE',
+  'TH',
+  'TZ',
+  'GB',
+  'FR',
+  'ZA',
+  'IT',
+  'KE',
+  'CO',
+  'SD',
+  'MM',
+  'KR',
+  'ES',
+  'DZ',
+  'AR',
+  'IQ',
+  'UG',
+  'AF',
+  'CA',
+  'UZ',
+  'AO',
+  'MA',
+  'PL',
+  'SA',
+  'MZ',
+  'MY',
+  'GH',
+  'PE',
+  'CI',
+  'YE',
+  'MG',
+  'NP',
+] as const satisfies readonly CountryCode[]);
+
+export interface PopularPhoneCountriesParameters {
+  metadata?: PhoneMetadata;
+}
+
+/**
+ * Returns up to `count` of the most populous countries supported by the
+ * metadata, most populous first. Pass the result to `preferredCountries`.
+ */
+export function getPopularPhoneCountries(
+  count: number = POPULAR_COUNTRIES.length,
+  parameters: PopularPhoneCountriesParameters = {},
+): readonly CountryCode[] {
+  if (!Number.isInteger(count) || count < 0) {
+    throw new RangeError('Popular country count must be a non-negative integer.');
+  }
+  const metadata = parameters.metadata ?? DEFAULT_PHONE_METADATA;
+  return Object.freeze(
+    POPULAR_COUNTRIES.filter((country) => isSupportedCountry(country, metadata)).slice(
+      0,
+      count,
+    ),
+  );
+}
+
 function optionSearchRank(
   option: Readonly<PhoneCountryOption>,
   englishQuery: string,
@@ -311,12 +401,17 @@ function optionSearchRank(
   callingCodeQuery: string | null,
 ): number {
   const metadata = getCountrySearchMetadata(option);
+  const exactCallingCode =
+    callingCodeQuery !== null && metadata.callingCodeKey === callingCodeQuery;
 
   if (
     metadata.countryKey === englishQuery ||
-    (callingCodeQuery !== null && metadata.callingCodeKey === callingCodeQuery)
+    (exactCallingCode && metadata.mainCountryForCallingCode)
   ) {
     return 0;
+  }
+  if (exactCallingCode) {
+    return 1;
   }
   if (
     metadata.localizedNameKey.startsWith(localizedQuery) ||
@@ -324,13 +419,13 @@ function optionSearchRank(
     metadata.countryKey.startsWith(englishQuery) ||
     (callingCodeQuery !== null && metadata.callingCodeKey.startsWith(callingCodeQuery))
   ) {
-    return 1;
+    return 2;
   }
   if (
     metadata.localizedNameKey.includes(localizedQuery) ||
     metadata.englishNameKey.includes(englishQuery)
   ) {
-    return 2;
+    return 3;
   }
   return Number.POSITIVE_INFINITY;
 }
@@ -340,8 +435,8 @@ export function filterPhoneCountryOptions(
   query: string,
   parameters: FilterPhoneCountryOptionsParameters = {},
 ): readonly PhoneCountryOption[] {
-  const limit = parameters.limit ?? 50;
-  if (!Number.isInteger(limit) || limit <= 0) {
+  const limit = parameters.limit;
+  if (limit !== undefined && (!Number.isInteger(limit) || limit <= 0)) {
     throw new RangeError('Country selector result limit must be a positive integer.');
   }
 
@@ -373,7 +468,7 @@ export function filterPhoneCountryOptions(
         .sort((left, right) => left.rank - right.rank || left.index - right.index)
         .map(({ option }) => option)
     : [...options];
-  const bounded = matches.slice(0, limit);
+  const bounded = limit === undefined ? matches : matches.slice(0, limit);
 
   if (
     parameters.selectedCountry &&

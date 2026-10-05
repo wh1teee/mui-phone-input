@@ -35,19 +35,19 @@ export function DocsShell({ children }: { children: ReactNode }) {
 export function ReleaseStatus() {
   return (
     <aside className="docs-status" id="release-status" aria-labelledby="release-title">
-      <p className="docs-kicker">Release candidate</p>
-      <h2 id="release-title">The release-candidate channel is live on npm</h2>
+      <p className="docs-kicker">Stable release</p>
+      <h2 id="release-title">Stable 1.x is live on npm</h2>
       <p>
-        Install <code>@wh1teee/mui-phone-input@next</code> to use the latest published
-        release candidate. These docs follow current source and can include fixes queued
-        for the next immutable RC, so use the release notes when you need exact registry
-        parity. Stable <code>1.0</code> remains intentionally separate from the RC
-        channel until final consumer validation is complete.
+        Install <code>@wh1teee/mui-phone-input</code> from the default{' '}
+        <code>latest</code> tag or pin an exact 1.x version. Docs follow current source,
+        so check the changelog when you need exact registry parity. The historical{' '}
+        <code>0.1.0-next.x</code> prereleases remain on the <code>next</code> tag only
+        for reproducibility; do not use them for new work.
       </p>
       <p>
-        Physical iOS/Android and desktop screen-reader rows that were unavailable in the
-        current device lab were accepted as explicit RC residual gaps. They are not
-        represented as passing evidence.
+        Physical iOS/Android and desktop screen-reader runs were unavailable in the
+        current device lab. They remain documented residual gaps and are not represented
+        as passing evidence.
       </p>
     </aside>
   );

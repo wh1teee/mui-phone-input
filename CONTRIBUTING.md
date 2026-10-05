@@ -63,3 +63,24 @@ dependencies, acceptance evidence, and closure state in Beads/Dolt. The
 Discussion remains a communication record only and must not become a parallel
 backlog.
 
+
+## Maintainers
+
+- Repository installation, development and release tooling require Node 24 LTS.
+  This is deliberately not a published package `engines` constraint: exact
+  tarballs are installed with `engine-strict=true` and loaded under Node 22 and
+  Node 24, and Node 22 is the demonstrated consumer floor.
+- Strict pnpm global-virtual-store installs can expose missing upstream type
+  edges. Repairs live in `packageExtensions` in `pnpm-workspace.yaml` (for
+  example `@floating-ui/react-dom` → `@types/react`); exact-tarball consumer
+  tests use them with `skipLibCheck=false` instead of disabling the store or
+  hoisting. See [the shared GVS note](./docs/release/work-pc-shared-gvs.md).
+- Delivery history lives under the `mpi-oan` epic (`bd show mpi-oan`). Key
+  records: workspace `mpi-oan.1`, donors `mpi-oan.2`, input engine `mpi-oan.22`
+  (ADR 0006), tracer `mpi-oan.3`, numbering plans `mpi-oan.4`, country selector
+  `mpi-oan.5`, MUI/composable contract `mpi-oan.6`, validation/server parity
+  `mpi-oan.10`, SSR and packed consumers `mpi-oan.13`, semantic selector slots
+  `mpi-oan.35`. The npm identity gate `mpi-g7a` is closed.
+- Design inputs: [specification](./docs/specs/0001-mui-phone-input-1.0.md),
+  [implementation-readiness review](./docs/research/2026-08-02-implementation-readiness-review.md)
+  and [donor manifest](./DONORS.md).

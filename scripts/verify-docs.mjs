@@ -59,6 +59,8 @@ for (const requiredImport of [
   '@wh1teee/mui-phone-input/zod',
   '@wh1teee/mui-phone-input/locales/ru',
   '@wh1teee/mui-phone-input/flags.css',
+  '@wh1teee/mui-phone-input/shadcn',
+  '@wh1teee/mui-phone-input/shadcn.css',
 ]) {
   assert.ok(packageImports.has(requiredImport), `Docs must consume ${requiredImport}.`);
 }
@@ -86,8 +88,9 @@ for (const requiredPhrase of [
   'Metadata presets and freshness',
   'Performance budgets and selector calibration',
   'Accessibility contract',
-  'The release-candidate channel is live on npm',
-  '@wh1teee/mui-phone-input@next',
+  'Stable 1.x is live on npm',
+  'Base UI and shadcn',
+  'getPopularPhoneCountries',
   '32,768 bytes',
   '10,240 bytes',
   'react-phone-number-input',
@@ -107,13 +110,14 @@ assert.doesNotMatch(
   /\b(?:iOS|Android|VoiceOver|NVDA|JAWS)\s+(?:has\s+)?passed\b/iu,
   'Physical-device/AT evidence must not be documented as passed.',
 );
-assert.match(
+assert.doesNotMatch(
   allSource,
-  /Stable\s+<code>1\.0<\/code>\s+remains intentionally separate/isu,
+  /release-candidate channel is live|@wh1teee\/mui-phone-input@next/iu,
+  'Stable docs must not direct new users to the historical prerelease channel.',
 );
 assert.match(allSource, /docs follow current source/iu);
 assert.match(allSource, /registry remains authoritative/iu);
-assert.match(allSource, /explicit RC residual gaps/iu);
+assert.match(allSource, /documented residual gaps/iu);
 assert.match(allSource, /provenance/iu);
 
 console.log(

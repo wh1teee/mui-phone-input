@@ -132,24 +132,24 @@ repeatability evidence is recorded in
 from the exact artifact. The main measurement bundles runtime dependencies but
 externalizes declared peers.
 
-- Main executable closure budget: 32,636 bytes gzip. Paired Rolldown region
+- Main executable closure budget: 33,103 bytes gzip. Paired Rolldown region
   comments are removed before measurement because they contain only pnpm store
   paths and vary between local and Global Virtual Store installations. The
   numerical budget was reduced from 32,768 bytes so the normalized baseline
   keeps the same 96-byte headroom; the gate is deterministic, not looser. The
   earlier 28 KB budget covered the formatting/mask surface; the extension UI,
   independent ownership state and standards-based import/export advance the
-  production-shaped public surface.
+  production-shaped public surface. In 2026-10 the budget moved from 32,636 to
+  33,103 bytes for shared ranked country search, the flat search/grouped list
+  presentation and `getPopularPhoneCountries` (+410 bytes gzip), again keeping
+  96 bytes of headroom.
 - Server entry budget: 10 KB gzip.
 
 Current exact-artifact measurements are:
 
-- main closure: 32,597 bytes gzip;
+- main closure: 33,007 bytes gzip;
 - server entry: 6,247 bytes gzip;
-- packed tarball: 435,762 bytes. The 232-byte increase is package-manifest
-  metadata that makes the native TypeScript 7 compiler and official TypeScript 6
-  compiler-API compatibility boundary explicit; the measured main/server
-  executable bytes and hashes are unchanged. The stable artifact adds independently built
+- packed tarball: 443,835 bytes, including the rewritten package README. The stable artifact adds independently built
   max/min headless, MUI, Base UI/shadcn and form entrypoints plus the opt-in
   stylesheet. Min entrypoint source maps and duplicate declarations are omitted;
   all min variants reuse the canonical type surface. The executable MUI main and

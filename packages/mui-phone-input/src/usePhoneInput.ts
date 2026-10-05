@@ -186,6 +186,7 @@ export type PhoneExtensionInputExternalProps = Omit<
 export type PhoneInputResolvedExtensionInputProps = PhoneExtensionInputExternalProps & {
   'aria-invalid': boolean;
   'data-phone-extension-controlled': 'false' | 'true';
+  dir: 'ltr';
   disabled: boolean;
   id: string;
   inputMode: 'numeric' | (string & {});
@@ -475,6 +476,8 @@ function usePhoneInputInternal(
           ? 'true'
           : 'false',
         autoComplete: externalProps.autoComplete ?? 'tel-extension',
+        // Extension digits read left-to-right even inside RTL field chrome.
+        dir: 'ltr',
         disabled,
         id: extensionInputId,
         inputMode: externalProps.inputMode ?? 'numeric',

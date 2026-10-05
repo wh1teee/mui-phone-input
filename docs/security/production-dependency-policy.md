@@ -5,9 +5,11 @@ part of the production-shaped Next.js consumer used to prove that the exact
 package tarball builds, renders on the server, hydrates, and behaves in a real
 browser.
 
-The verification apps use Next.js 16.3.5. Its declared PostCSS and sharp ranges
+The verification apps use Next.js 16.3.8. Its declared PostCSS and sharp ranges
 resolve above the current policy floors without parent-scoped overrides:
 
+- Next.js must remain at or above 16.3.6, the patched floor for the critical
+  `next/og` remote code execution advisory `GHSA-vcvr-r3jv-pc5j`;
 - PostCSS must remain at or above 8.5.18, the patched floor for
   `GHSA-r28c-9q8g-f849`;
 - sharp must remain at or above 0.35.4, the patched floor for

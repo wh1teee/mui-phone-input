@@ -143,3 +143,16 @@ keyboard navigation, localization, flags, zoom, and screen-reader automation.
 Reconsider virtualization only if a future product requirement makes the full
 country list the normal rendered state or target-device evidence shows the
 bounded path exceeding the interaction budget.
+
+## Addendum 2026-10-04: complete list by default
+
+A release UX review found that the bounded default made the unfiltered selector
+end after roughly fifty alphabetical countries with no indication that more
+existed, while the Base UI renderer already listed every country. Users who
+scroll rather than search could not reach most countries.
+
+The default is now the complete list in both renderers; `resultLimit` stays an
+explicit option for constrained surfaces. The measurements above still apply:
+the complete-list open costs a longest commit of 117–132 ms across the three
+engines, paid once per open, and filtering stays at 1–6 ms. Virtualization is
+still not justified by that one-time cost.

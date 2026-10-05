@@ -138,12 +138,12 @@ test('documentation navigation and release disclosure are complete', async ({
   await page.goto('/');
 
   await expect(page.getByRole('heading', { level: 1 })).toContainText(
-    'A complete phone input for Material UI',
+    'A complete phone input for React',
   );
-  await expect(
-    page.getByText(/release-candidate channel is live on npm/i),
-  ).toBeVisible();
-  await expect(page.getByText(/@wh1teee\/mui-phone-input@next/i)).toBeVisible();
+  await expect(page.getByText(/Stable 1\.x is live on npm/i)).toBeVisible();
+  await expect(page.getByText(/@wh1teee\/mui-phone-input@next/i)).toHaveCount(0);
+  await page.getByTestId('base-ui-phone-input').fill('2025550123');
+  await expect(page.getByTestId('base-ui-phone-value')).toHaveText('+12025550123');
   await expect(page.getByText(/mpi-oan\.24/i)).toHaveCount(0);
   await expect(page.getByText(/32,768 bytes gzip/i)).toBeVisible();
   await expect(page.getByText(/virtualization/i).first()).toBeVisible();

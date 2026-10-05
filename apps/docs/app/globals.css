@@ -550,3 +550,19 @@ a {
     padding: 20px 14px;
   }
 }
+
+.base-ui-demo {
+  display: grid;
+  gap: 12px;
+  max-width: 420px;
+  margin-block: 16px 24px;
+  padding: 20px;
+  border: 1px solid var(--docs-border);
+  border-radius: 16px;
+  background: var(--docs-surface);
+}
+
+.base-ui-demo output {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.875rem;
+}

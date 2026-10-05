@@ -308,3 +308,74 @@ describe('Base UI country selector and field', () => {
     ).toEqual([]);
   });
 });
+
+function RankedSearch({ adapter }: { adapter: 'base' | 'mui' }) {
+  const [value, setValue] = useState<PhoneValue>();
+  const preferredCountries = ['BY', 'PL'] as const;
+  return (
+    <>
+      {adapter === 'base' ? (
+        <PhoneInput
+          countrySelector={{ preferredCountries }}
+          defaultCountry="BY"
+          label="Phone"
+          onChange={setValue}
+        />
+      ) : (
+        <MuiPhoneInput
+          defaultCountry="BY"
+          label="Phone"
+          onChange={setValue}
+          slotProps={{ countrySelector: { preferredCountries } }}
+        />
+      )}
+      <output data-testid="ranked-value">{value ?? ''}</output>
+    </>
+  );
+}
+
+for (const adapter of ['base', 'mui'] as const) {
+  describe(`${adapter} ranked country search`, () => {
+    const openSelector = () =>
+      page.getByRole(adapter === 'base' ? 'combobox' : 'button', {
+        name: /^Select country/u,
+      });
+
+    test('groups the unfiltered list and selects the best match, not the current country', async () => {
+      await render(<RankedSearch adapter={adapter} />);
+      await openSelector().click();
+      await expect.element(page.getByText('Preferred countries')).toBeVisible();
+      await expect.element(page.getByText('All countries')).toBeVisible();
+      // Belarus is selected and also matches "us"; the exact ISO match must win.
+      await userEvent.keyboard('us');
+      await expect
+        .element(page.getByText('Preferred countries'))
+        .not.toBeInTheDocument();
+      await expect
+        .element(page.getByRole('option').first())
+        .toHaveTextContent(/United States/u);
+      await userEvent.keyboard('{Enter}');
+      await expect.element(page.getByTestId('ranked-value')).toHaveTextContent('+1');
+      await expect.element(page.getByLabelText('Phone', { exact: true })).toHaveFocus();
+    });
+
+    test('lists every country and prefers the main country of a shared code', async () => {
+      await render(<RankedSearch adapter={adapter} />);
+      await openSelector().click();
+      await expect
+        .poll(() => document.querySelectorAll('[role="option"]').length)
+        .toBeGreaterThan(200);
+      await userEvent.keyboard('+7');
+      await expect
+        .element(page.getByRole('option').first())
+        .toHaveTextContent(/Russia/u);
+    });
+  });
+}
+
+test('extension digits stay left-to-right inside an RTL field', async () => {
+  await render(<PhoneInput dir="rtl" extensionLabel="Extension" label="Phone" />);
+  await expect
+    .element(page.getByLabelText('Extension', { exact: true }))
+    .toHaveAttribute('dir', 'ltr');
+});

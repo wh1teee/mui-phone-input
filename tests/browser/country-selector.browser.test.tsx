@@ -1397,7 +1397,7 @@ describe('responsive country selector', () => {
       );
       await expect.element(consumerKeyDownCount).toHaveTextContent('2');
       await expect.element(phoneInput).toHaveValue('+81');
-      await expect.element(trigger).toHaveFocus();
+      await expect.element(phoneInput).toHaveFocus();
       await expect.element(trigger).toHaveAttribute('aria-expanded', 'false');
       await expect.element(search).not.toBeInTheDocument();
       expect(JSON.parse(state.element().textContent ?? '')).toMatchObject({
@@ -1466,7 +1466,7 @@ describe('responsive country selector', () => {
     await userEvent.keyboard('{Enter}');
 
     await expect.element(phoneInput).toHaveValue('+375');
-    await expect.element(trigger).toHaveFocus();
+    await expect.element(phoneInput).toHaveFocus();
     expect(
       JSON.parse(page.getByTestId('desktop-details').element().textContent ?? ''),
     ).toMatchObject({
@@ -1591,7 +1591,9 @@ describe('responsive country selector', () => {
     await expect.element(mobileSearch).toHaveValue('бел');
     await userEvent.keyboard('{Enter}');
     await expect.element(dialog).not.toBeInTheDocument();
-    await expect.element(trigger).toHaveFocus();
+    await expect
+      .element(page.getByLabelText('Responsive phone', { exact: true }))
+      .toHaveFocus();
   });
 
   test('supports a custom country-selector slot on the shared controller', async () => {
