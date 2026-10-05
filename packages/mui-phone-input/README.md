@@ -134,6 +134,11 @@ inside the themed scope:
 Pass `portalContainer: null` to defer the popup until the scope element has
 mounted (for example during hydration).
 
+Popup corners follow `--radius` but are capped at `0.75rem`, so an app whose
+root `--radius` is pill-sized does not clip the list into a rounded shape. Set
+`--phone-input-popup-radius` to choose the popup radius explicitly (the same cap
+applies).
+
 ## Headless and application-owned fields
 
 For an application-owned field, import `usePhoneInput` from `/headless`, spread
