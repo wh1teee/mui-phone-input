@@ -1184,12 +1184,9 @@ export function UniversalConfigurator() {
         <div className="configurator-result">
           <Paper className="configurator-preview" variant="outlined">
             <div className="configurator-preview-topline">
-              <div>
-                <p className="docs-kicker">Live result</p>
-                <Typography component="h3" variant="h5">
-                  Real MuiPhoneInput
-                </Typography>
-              </div>
+              <Typography component="h3" variant="h6">
+                Live result
+              </Typography>
               <span className="configurator-preset-label">
                 {activePreset === 'custom'
                   ? 'Custom configuration'
@@ -1281,12 +1278,9 @@ export function UniversalConfigurator() {
 
           <Paper className="configurator-code-panel" variant="outlined">
             <div className="configurator-code-toolbar">
-              <div>
-                <p className="docs-kicker">Generated TSX</p>
-                <Typography component="h3" variant="h6">
-                  Minimal usage for this state
-                </Typography>
-              </div>
+              <Typography component="h3" variant="h6">
+                Generated code
+              </Typography>
               <Button
                 data-testid="copy-generated-code"
                 type="button"

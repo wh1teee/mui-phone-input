@@ -300,6 +300,8 @@ describe('Base UI country selector and field', () => {
     await expect
       .element(page.getByRole('combobox', { name: 'Search countries' }))
       .toBeVisible();
+    // Audit the settled popup, not a frame of its opening transition.
+    await Promise.all(document.getAnimations().map((animation) => animation.finished));
     const result = await axe.run(document.body, {
       runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21aa'] },
     });

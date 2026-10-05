@@ -16,6 +16,20 @@
   --docs-code-muted: #94a3b8;
   --docs-shadow: rgb(15 23 42 / 8%);
   --docs-radius: 12px;
+  /* Strong ease-out for UI feedback (Emil Kowalski's curve). */
+  --docs-ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --docs-success: #15803d;
+
+  /* Syntax tokens for sugar-high; code blocks are always dark. */
+  --sh-class: #93c5fd;
+  --sh-identifier: #e2e8f0;
+  --sh-sign: #94a3b8;
+  --sh-property: #fcd34d;
+  --sh-entity: #7dd3fc;
+  --sh-jsxliterals: #cbd5e1;
+  --sh-string: #86efac;
+  --sh-keyword: #f9a8d4;
+  --sh-comment: #64748b;
   --docs-header-height: 60px;
   --docs-content-width: 760px;
 
@@ -75,7 +89,24 @@ a {
     --ring: #94a3b8;
     --accent: #1e293b;
     --destructive: #f87171;
+    --docs-success: #4ade80;
   }
+}
+
+/* Browser surfaces carry the palette too. */
+html {
+  accent-color: var(--docs-accent);
+  scrollbar-color: color-mix(in srgb, var(--docs-muted) 45%, transparent) transparent;
+  scrollbar-width: thin;
+}
+
+::selection {
+  background: color-mix(in srgb, var(--docs-accent) 22%, transparent);
+}
+
+input,
+textarea {
+  caret-color: var(--docs-accent);
 }
 
 code,
@@ -164,6 +195,9 @@ pre {
 }
 
 .docs-nav a {
+  transition:
+    background-color 150ms ease,
+    color 150ms ease;
   border-radius: 8px;
   color: var(--docs-muted);
   font-size: 0.92rem;
@@ -278,10 +312,26 @@ pre {
   height: 42px;
   padding-inline: 18px;
   text-decoration: none;
+  transition:
+    background-color 150ms ease,
+    transform 160ms var(--docs-ease-out);
 }
 
-.docs-button:hover {
-  background: var(--docs-surface);
+/* Pressables answer the press; hover only where a real pointer hovers. */
+.docs-button:active,
+.docs-copy:active,
+.landing-demo-switch button:active {
+  transform: scale(0.97);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .docs-button:hover {
+    background: var(--docs-surface);
+  }
+
+  .docs-button-primary:hover {
+    background: var(--docs-primary-hover);
+  }
 }
 
 .docs-button-primary {
@@ -290,13 +340,21 @@ pre {
   color: var(--docs-bg);
 }
 
-.docs-button-primary:hover {
-  background: var(--docs-primary-hover);
+.docs-install {
+  align-items: center;
+  border: 1px solid var(--docs-border);
+  border-radius: 10px;
+  display: inline-flex;
+  gap: 12px;
+  padding: 6px 6px 6px 14px;
 }
 
-.docs-hero-install {
-  color: var(--docs-subtle);
-  font-size: 0.9rem;
+.docs-main .docs-install code {
+  background: none;
+  border: 0;
+  color: var(--docs-muted);
+  font-size: 0.88rem;
+  padding: 0;
 }
 
 .docs-page-hero {
@@ -332,12 +390,10 @@ pre {
 /* Landing demo */
 
 .landing-demo {
+  /* One elevation signal: a border. Border plus soft shadow reads as a ghost card. */
   background: var(--docs-bg);
   border: 1px solid var(--docs-border);
   border-radius: 16px;
-  box-shadow:
-    0 1px 2px var(--docs-shadow),
-    0 12px 40px var(--docs-shadow);
   display: grid;
   gap: 20px;
   padding: 24px;
@@ -353,9 +409,28 @@ pre {
   margin: 0;
   min-inline-size: 0;
   padding: 4px;
+  position: relative;
+}
+
+.landing-demo-thumb {
+  background: var(--docs-bg);
+  border-radius: 7px;
+  box-shadow: 0 1px 3px var(--docs-shadow);
+  inset: 4px auto 4px 4px;
+  position: absolute;
+  transition: transform 220ms var(--docs-ease-out);
+  width: calc(50% - 6px);
+}
+
+.landing-demo-switch[data-active="shadcn"] .landing-demo-thumb {
+  transform: translateX(calc(100% + 4px));
 }
 
 .landing-demo-switch button {
+  position: relative;
+  transition:
+    color 150ms ease,
+    transform 160ms var(--docs-ease-out);
   background: transparent;
   border: 0;
   border-radius: 7px;
@@ -368,8 +443,6 @@ pre {
 }
 
 .landing-demo-switch button[aria-pressed="true"] {
-  background: var(--docs-bg);
-  box-shadow: 0 1px 3px var(--docs-shadow);
   color: var(--docs-fg);
 }
 
@@ -446,6 +519,9 @@ pre {
 }
 
 .docs-toc a {
+  transition:
+    border-color 150ms ease,
+    color 150ms ease;
   border-left: 1px solid var(--docs-border);
   color: var(--docs-muted);
   font-size: 0.9rem;
@@ -488,6 +564,20 @@ pre {
 
 .docs-section h2 a {
   text-decoration: none;
+}
+
+/* Inline links in running text stay recognisable without shouting. */
+.docs-section p a,
+.docs-section li a {
+  text-decoration-color: color-mix(in srgb, var(--docs-accent) 45%, transparent);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+  transition: text-decoration-color 150ms ease;
+}
+
+.docs-section p a:hover,
+.docs-section li a:hover {
+  text-decoration-color: var(--docs-accent);
 }
 
 .docs-section h2 a:hover::after {
@@ -551,18 +641,33 @@ pre {
 }
 
 .docs-copy {
+  align-items: center;
   background: transparent;
   border: 1px solid rgb(255 255 255 / 14%);
-  border-radius: 6px;
+  border-radius: 7px;
   color: #cbd5e1;
   cursor: pointer;
-  font: inherit;
-  font-size: 0.76rem;
-  padding: 3px 10px;
+  display: inline-flex;
+  height: 28px;
+  justify-content: center;
+  padding: 0;
+  transition:
+    background-color 150ms ease,
+    color 150ms ease,
+    transform 160ms var(--docs-ease-out);
+  width: 28px;
 }
 
-.docs-copy:hover {
-  background: rgb(255 255 255 / 8%);
+/* On the light install pill the copy button uses page tokens. */
+.docs-install .docs-copy {
+  border-color: var(--docs-border);
+  color: var(--docs-muted);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .docs-copy:hover {
+    background: color-mix(in srgb, currentColor 10%, transparent);
+  }
 }
 
 .docs-copy:focus-visible {
@@ -570,9 +675,42 @@ pre {
   outline-offset: 1px;
 }
 
-.configurator-code {
-  background: var(--docs-code-bg);
-  border-radius: var(--docs-radius);
+.docs-copy-icons {
+  display: grid;
+  height: 16px;
+  width: 16px;
+}
+
+.docs-copy-icons > svg {
+  grid-area: 1 / 1;
+  height: 16px;
+  transition:
+    opacity 200ms var(--docs-ease-out),
+    transform 200ms var(--docs-ease-out),
+    filter 200ms var(--docs-ease-out);
+  width: 16px;
+}
+
+/* Crossfade with a touch of blur so the swap reads as one morph. */
+.docs-copy-done,
+.docs-copy[data-state="copied"] .docs-copy-idle {
+  filter: blur(2px);
+  opacity: 0;
+  transform: scale(0.8);
+}
+
+.docs-copy[data-state="copied"] {
+  color: var(--docs-success);
+}
+
+.docs-code-block .docs-copy[data-state="copied"] {
+  color: #4ade80;
+}
+
+.docs-copy[data-state="copied"] .docs-copy-done {
+  filter: none;
+  opacity: 1;
+  transform: none;
 }
 
 .docs-code:focus-visible {
@@ -869,6 +1007,8 @@ pre {
 }
 
 .configurator-code {
+  background: var(--docs-code-bg);
+  border-radius: var(--docs-radius);
   font-size: 0.78rem;
   line-height: 1.6;
   margin-block: 16px 0;
@@ -888,6 +1028,18 @@ pre {
 @media (prefers-reduced-motion: reduce) {
   :root {
     scroll-behavior: auto;
+  }
+
+  /* Keep the state changes, drop the movement. */
+  .landing-demo-thumb,
+  .docs-copy-icons > svg {
+    transition-property: opacity;
+  }
+
+  .docs-button:active,
+  .docs-copy:active,
+  .landing-demo-switch button:active {
+    transform: none;
   }
 }
 

@@ -6,6 +6,7 @@ import {
   Section,
   type TocGroup,
 } from './docs-ui';
+import { CopyButton } from './copy-button';
 import { LandingDemo } from './landing-demo';
 
 const installMui = `pnpm add @wh1teee/mui-phone-input @mui/material @emotion/react @emotion/styled`;
@@ -296,7 +297,6 @@ export default function DocumentationPage() {
     <DocsShell>
       <div className="docs-hero">
         <div className="docs-hero-copy">
-          <p className="docs-kicker">React · Material UI · Base UI · shadcn</p>
           <h1>A complete phone input for React</h1>
           <p>
             Country search, as-you-type formatting, validation, and extensions over one
@@ -312,7 +312,10 @@ export default function DocumentationPage() {
               Open playground
             </a>
           </div>
-          <code className="docs-hero-install">npm i @wh1teee/mui-phone-input</code>
+          <div className="docs-install">
+            <code>npm i @wh1teee/mui-phone-input</code>
+            <CopyButton text="npm i @wh1teee/mui-phone-input" />
+          </div>
         </div>
         <LandingDemo />
       </div>
@@ -616,7 +619,7 @@ export default function DocumentationPage() {
         >
           <div className="docs-grid docs-grid-stats">
             <div className="docs-card">
-              <strong>33,358 bytes</strong>
+              <strong>33,506 bytes</strong>
               <p>gzip budget for the main entry, peers and metadata external.</p>
             </div>
             <div className="docs-card">

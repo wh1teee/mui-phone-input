@@ -108,7 +108,6 @@ export default function MigrationPage() {
   return (
     <DocsShell>
       <div className="docs-page-hero">
-        <p className="docs-kicker">Migration</p>
         <h1>Migrate from another phone input</h1>
         <p>
           Treat migration as a change of state model, not a prop-for-prop rename: store

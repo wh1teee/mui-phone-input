@@ -90,7 +90,7 @@ for (const requiredPhrase of [
   'Accessibility contract',
   'Base UI and shadcn',
   'getPopularPhoneCountries',
-  '33,358 bytes',
+  '33,506 bytes',
   '10,240 bytes',
   'react-phone-number-input',
   'intl-tel-input',

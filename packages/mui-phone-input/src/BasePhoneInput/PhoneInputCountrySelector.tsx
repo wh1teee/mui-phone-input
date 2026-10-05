@@ -236,7 +236,20 @@ export function PhoneInputCountrySelector({
                   onClick={() => setOpen(false)}
                   type="button"
                 >
-                  <span aria-hidden="true">×</span>
+                  <svg
+                    aria-hidden="true"
+                    fill="none"
+                    height="14"
+                    viewBox="0 0 14 14"
+                    width="14"
+                  >
+                    <path
+                      d="m3.5 3.5 7 7m0-7-7 7"
+                      stroke="currentColor"
+                      strokeLinecap="round"
+                      strokeWidth="1.5"
+                    />
+                  </svg>
                 </button>
               </div>
               <Combobox.Empty
@@ -288,7 +301,21 @@ export function PhoneInputCountrySelector({
                             +{option.callingCode}
                           </span>
                           <Combobox.ItemIndicator data-slot="phone-country-indicator">
-                            <span aria-hidden="true">✓</span>
+                            <svg
+                              aria-hidden="true"
+                              fill="none"
+                              height="14"
+                              viewBox="0 0 14 14"
+                              width="14"
+                            >
+                              <path
+                                d="m3 7.5 2.5 2.5L11 4.5"
+                                stroke="currentColor"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth="1.5"
+                              />
+                            </svg>
                           </Combobox.ItemIndicator>
                         </Combobox.Item>
                       )}
