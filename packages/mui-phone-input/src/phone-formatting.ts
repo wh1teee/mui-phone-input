@@ -301,6 +301,17 @@ export function formatPhoneInputPresentation(
   const displayMode = options.displayMode ?? 'international';
   const locale = options.locale ?? 'en';
   const metadata = options.metadata ?? DEFAULT_PHONE_METADATA;
+  if (
+    options.displayMask &&
+    displayMode === 'national' &&
+    options.displayMask.pattern.includes('+')
+  ) {
+    // National digits poured into a "+" mask would be re-read as an international
+    // number and silently change the Phone Value.
+    throw new TypeError(
+      'Invalid Display Mask: national display cannot use a "+" pattern; remove "+" or use an international display mode.',
+    );
+  }
   if (options.displayMask && options.formatStrategy) {
     throw new TypeError(
       'Configure either displayMask or formatStrategy, not both; Format Strategy is the advanced presentation override.',

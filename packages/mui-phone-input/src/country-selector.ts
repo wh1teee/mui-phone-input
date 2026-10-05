@@ -485,6 +485,31 @@ export function filterPhoneCountryOptions(
   return bounded;
 }
 
+/**
+ * The country a selector trigger shows. An explicit selection stays visible
+ * while its calling code matches the number (digits may still need fixing);
+ * a different calling code yields the country the numbering plan resolves,
+ * and a non-geographic plan shows no country.
+ */
+export function resolveDisplayedPhoneCountry(
+  selectedCountry: CountryCode | null,
+  numberingPlan: NumberingPlanResolution,
+  metadata: PhoneMetadata = DEFAULT_PHONE_METADATA,
+): CountryCode | null {
+  if (numberingPlan.kind === 'non-geographic') {
+    return null;
+  }
+  if (
+    selectedCountry &&
+    (numberingPlan.countryCallingCode === null ||
+      getCountryCallingCode(selectedCountry, metadata) ===
+        numberingPlan.countryCallingCode)
+  ) {
+    return selectedCountry;
+  }
+  return numberingPlan.resolvedCountry;
+}
+
 export function resolvePhoneCountrySelection(
   value: PhoneValue,
   country: CountryCode,

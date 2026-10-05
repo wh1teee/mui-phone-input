@@ -79,6 +79,8 @@ describe('RFC 3966', () => {
     'tel:+12025550123;ext=12A',
     'tel:+12025550123;ext=1;ext=2',
     'tel:+12025550123;isub=7;ext=1',
+    // RFC 3966 §5.4: unknown mandatory parameters must not be ignored.
+    'tel:+12025550123;m-route=internal',
     'https://example.com/tel:+12025550123;ext=1',
   ])('rejects malformed or unsupported telephone URI %s', (uri) => {
     expect(parseRfc3966(uri)).toBeNull();

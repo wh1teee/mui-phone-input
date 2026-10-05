@@ -68,9 +68,13 @@ export function PhoneInput({
     () => composeInputRefs(phone.setExtensionInputRef, extensionRef),
     [phone.setExtensionInputRef, extensionRef],
   );
-  const description = phone.state.validationError
-    ? (phone.state.validationMessage ?? helperText)
-    : helperText;
+  // An application-supplied error (e.g. a server or form error) speaks through
+  // helperText; otherwise built-in validation explains what to fix.
+  const description = parameters.error
+    ? (helperText ?? phone.state.validationMessage)
+    : phone.state.validationError
+      ? (phone.state.validationMessage ?? helperText)
+      : helperText;
   const describedBy =
     [
       inputProps?.['aria-describedby'],

@@ -397,6 +397,22 @@ function resolvePlanForCountry(
   );
 }
 
+/** The fixed-calling-code mode never lets an edit or import change the calling code. */
+function violatesFixedCallingCode(
+  value: PhoneValue,
+  context: InputEngineContext,
+  metadata: PhoneMetadata,
+): boolean {
+  const { country } = context;
+  if (context.displayMode !== 'international-fixed-calling-code' || !country) {
+    return false;
+  }
+  return (
+    value !== undefined &&
+    !value.slice(1).startsWith(getCountryCallingCode(country, metadata))
+  );
+}
+
 export function usePhoneInputTransactions(
   parameters: PhoneInputTransactionParameters,
 ): PhoneInputTransactions {
@@ -901,7 +917,12 @@ export function usePhoneInputTransactions(
         hasPhoneExtensionSyntax(clipboardText)
       ) {
         event.preventDefault();
-        if (!parsedImport) {
+        // Reject an import that would replace a fixed calling code; both the
+        // number and the extension keep their previous values.
+        if (
+          !parsedImport ||
+          violatesFixedCallingCode(parsedImport.value, inputContext, metadata)
+        ) {
           return;
         }
 
@@ -944,7 +965,13 @@ export function usePhoneInputTransactions(
         pasteResetFrameRef.current = undefined;
       });
     },
-    [commitImportedValue, extensionMaxLength, numberingPlan.selectedCountry],
+    [
+      commitImportedValue,
+      extensionMaxLength,
+      inputContext,
+      metadata,
+      numberingPlan.selectedCountry,
+    ],
   );
 
   const handleInput = useCallback(
@@ -1077,12 +1104,8 @@ export function usePhoneInputTransactions(
         metadata,
       });
       if (
-        inputContext.displayMode === 'international-fixed-calling-code' &&
         inputContext.country &&
-        nextValue !== undefined &&
-        !nextValue
-          .slice(1)
-          .startsWith(getCountryCallingCode(inputContext.country, metadata))
+        violatesFixedCallingCode(nextValue, inputContext, metadata)
       ) {
         pasteTransactionRef.current = false;
         if (pasteResetFrameRef.current !== undefined) {

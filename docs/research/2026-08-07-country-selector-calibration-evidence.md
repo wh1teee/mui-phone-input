@@ -6,9 +6,11 @@ Base: `898f40f0898964d34aea829532f1a9979add616d`
 
 ## Decision
 
-Keep the standard MUI `useAutocomplete` renderer and the existing default
-`resultLimit=50`. Do not add a virtualization dependency or a second listbox
-renderer.
+Keep the standard MUI `useAutocomplete` renderer. Do not add a virtualization
+dependency or a second listbox renderer. The original default of
+`resultLimit=50` was superseded on 2026-10-04 by the complete list (see the
+addendum at the end); the calibration test now also guards that default for
+both renderers.
 
 The bounded product path stays inside the interaction budget on Chromium,
 Firefox, and WebKit. Rendering all 245 authority-backed countries is measurably

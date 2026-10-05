@@ -161,3 +161,26 @@ the engine, but it blocks release-candidate and 1.0 approval.
 - Runtime-size and transaction-latency budgets must be calibrated again on the
   packed production tracer.
 - Physical Android/iOS evidence remains an explicit external device gate.
+
+## Addendum 2026-10-05: current engine boundary
+
+The selection above remains valid, but the shipped mechanism differs from the
+bake-off wrapper described in "Results". The statement that "the selected
+wrapper does not assign native input value or selection directly" is
+historical and no longer describes the code.
+
+- Maskito is attached with a pass-through mask
+  (`packages/mui-phone-input/src/internal/use-input-transaction-engine.ts`). It
+  owns the native input-event lifecycle only; it does not format, validate or
+  canonicalize phone digits.
+- The package transaction layer (`use-phone-input-transactions.ts`) classifies
+  typing, paste, history, composition and autofill, computes the canonical
+  Phone Value and Display Value, and decides the logical caret.
+- `reconcileExternal` then writes the authoritative Display Value and selection
+  to the native input when they differ — for example after a controlled
+  update, a country change or WebKit selection drift. This direct assignment is
+  intentional: the package, not Maskito, is the single presentation authority.
+
+The bake-off measurements and wrapper policies are kept as historical
+evidence. Re-run the bake-off before replacing the engine; do not treat this
+addendum as a reason to remove Maskito.

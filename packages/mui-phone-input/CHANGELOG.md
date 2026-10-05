@@ -1,5 +1,21 @@
 # @wh1teee/mui-phone-input
 
+## 1.2.0
+
+### Minor Changes
+
+- Fix issues found in an independent review and stop repeating the calling code.
+
+  - The country trigger no longer repeats the calling code that international display modes already show in the input; it shows the code only in national mode and gains a dropdown chevron. `PhoneInputState` exposes `displayMode`.
+  - The trigger follows the number: an explicit selection stays while its calling code matches, a different calling code shows the country the number resolves to, and non-geographic numbers no longer show an invented country.
+  - Pasting a `tel:` URI or a number with an extension can no longer replace a fixed calling code; the previous number and extension are kept.
+  - A `+` Display Mask in national display mode is rejected instead of silently changing the number.
+  - `extensionMaxLength` counts digits, so `12-34` keeps all four digits.
+  - `parseRfc3966` rejects unknown mandatory (`m-`) parameters.
+  - MUI React Hook Form: extension props work without `extensionName`, and custom-rendered extensions receive the field name and blur binding.
+  - Base UI/shadcn: an application `error` shows its `helperText`; flags are sized consistently.
+  - `/headless` (and `/base-ui`, `/shadcn`) export the shared formatting and state types.
+
 ## 1.1.1
 
 ### Patch Changes

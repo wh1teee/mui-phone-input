@@ -227,6 +227,14 @@ function getPreferredCountries(
   return undefined;
 }
 
+// The demo masks start with "+", which only international display modes can
+// honor; the package rejects a "+" mask in national mode.
+function withCompatibleFormatting(config: ConfiguratorState): ConfiguratorState {
+  return config.displayMode === 'national' && config.formatting.endsWith('-mask')
+    ? { ...config, formatting: 'automatic' }
+    : config;
+}
+
 function getDisplayMask(formatting: FormattingPreset) {
   if (formatting === 'belarus-mask') return { pattern: '+### ## ### ## ##' };
   if (formatting === 'north-america-mask') return { pattern: '+# (###) ###-####' };
@@ -428,7 +436,7 @@ function restoreConfig(hash: string): {
 
   return {
     activePreset: preset ? preset.key : 'custom',
-    config,
+    config: withCompatibleFormatting(config),
   };
 }
 
@@ -741,7 +749,7 @@ export function UniversalConfigurator() {
   const updateConfig = (patch: Partial<ConfiguratorState>) => {
     setActivePreset('custom');
     setCopyStatus('');
-    setConfig((current) => ({ ...current, ...patch }));
+    setConfig((current) => withCompatibleFormatting({ ...current, ...patch }));
   };
 
   const applyPreset = (key: PresetKey) => {
@@ -821,7 +829,12 @@ export function UniversalConfigurator() {
         countrySelector: selectorProps,
         htmlInput: { 'data-testid': 'config-phone-input' },
       }}
-      extension={config.extensionPresentation === 'none' ? undefined : config.extension}
+      // The config stores '' for URL/state; the component's empty extension is undefined.
+      extension={
+        config.extensionPresentation === 'none' || config.extension === ''
+          ? undefined
+          : config.extension
+      }
       onExtensionChange={(extension) => updateConfig({ extension: extension ?? '' })}
       extensionPresentation={config.extensionPresentation}
       {...(maxLength === undefined ? {} : { extensionMaxLength: maxLength })}

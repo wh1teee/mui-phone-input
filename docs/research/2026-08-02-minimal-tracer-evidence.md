@@ -132,7 +132,7 @@ repeatability evidence is recorded in
 from the exact artifact. The main measurement bundles runtime dependencies but
 externalizes declared peers.
 
-- Main executable closure budget: 33,103 bytes gzip. Paired Rolldown region
+- Main executable closure budget: 33,358 bytes gzip. Paired Rolldown region
   comments are removed before measurement because they contain only pnpm store
   paths and vary between local and Global Virtual Store installations. The
   numerical budget was reduced from 32,768 bytes so the normalized baseline
@@ -142,14 +142,16 @@ externalizes declared peers.
   production-shaped public surface. In 2026-10 the budget moved from 32,636 to
   33,103 bytes for shared ranked country search, the flat search/grouped list
   presentation and `getPopularPhoneCountries` (+410 bytes gzip), again keeping
-  96 bytes of headroom.
+  96 bytes of headroom. 1.2.0 moved it to 33,358 bytes for the review fixes
+  (displayed-country owner, fixed-calling-code import guard, trigger chevron;
+  +256 bytes gzip) with the same headroom.
 - Server entry budget: 10 KB gzip.
 
 Current exact-artifact measurements are:
 
-- main closure: 33,007 bytes gzip;
-- server entry: 6,247 bytes gzip;
-- packed tarball: 444,145 bytes, including the rewritten package README. The stable artifact adds independently built
+- main closure: 33,263 bytes gzip;
+- server entry: 6,261 bytes gzip;
+- packed tarball: 451,780 bytes, including the rewritten package README. The stable artifact adds independently built
   max/min headless, MUI, Base UI/shadcn and form entrypoints plus the opt-in
   stylesheet. Min entrypoint source maps and duplicate declarations are omitted;
   all min variants reuse the canonical type surface. The executable MUI main and

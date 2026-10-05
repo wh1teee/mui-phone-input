@@ -102,13 +102,19 @@ export function MuiPhoneInputController<
         const renderPhoneInput = (
           extensionBinding?: ExtensionBinding<TFieldValues, TExtensionName>,
         ): ReactElement => {
+          // Bind on the native extension input props, which every presentation
+          // (separate, inline and custom renderExtension) receives.
+          const externalExtensionHtmlInput = slotProps?.extension?.htmlInput;
           const resolvedExtensionSlotProps = extensionBinding
             ? {
                 ...slotProps?.extension,
-                name: extensionBinding.field.name,
-                onBlur: (event: FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-                  slotProps?.extension?.onBlur?.(event);
-                  extensionBinding.field.onBlur();
+                htmlInput: {
+                  ...externalExtensionHtmlInput,
+                  name: extensionBinding.field.name,
+                  onBlur: (event: FocusEvent<HTMLInputElement>) => {
+                    externalExtensionHtmlInput?.onBlur?.(event);
+                    extensionBinding.field.onBlur();
+                  },
                 },
               }
             : slotProps?.extension;
@@ -150,7 +156,14 @@ export function MuiPhoneInputController<
                       onExtensionChange?.(value, details);
                     },
                   }
-                : {})}
+                : {
+                    // Without an RHF extension field the consumer still owns these.
+                    ...(extensionError === undefined ? {} : { extensionError }),
+                    ...(extensionHelperText === undefined
+                      ? {}
+                      : { extensionHelperText }),
+                    ...(onExtensionChange === undefined ? {} : { onExtensionChange }),
+                  })}
             />
           );
         };

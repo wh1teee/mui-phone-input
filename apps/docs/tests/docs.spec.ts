@@ -144,7 +144,7 @@ test('documentation navigation and release disclosure are complete', async ({
   );
   await expect(page.getByText(/@wh1teee\/mui-phone-input@next/i)).toHaveCount(0);
   await expect(page.getByText(/mpi-oan\.24/i)).toHaveCount(0);
-  await expect(page.getByText('33,103 bytes')).toBeVisible();
+  await expect(page.getByText('33,358 bytes')).toBeVisible();
   await expect(page.getByText(/not virtualized/i).first()).toBeVisible();
 
   await page.getByRole('link', { name: 'Migration', exact: true }).click();
@@ -479,4 +479,28 @@ test('narrow documentation tables remain keyboard-scrollable and axe-clean', asy
   });
 
   expect(violations, JSON.stringify(violations, null, 2)).toEqual([]);
+});
+
+test('configurator survives clearing an extension and combining national display with a mask', async ({
+  page,
+}) => {
+  const errors: string[] = [];
+  page.on('pageerror', (error) => errors.push(error.message));
+  await page.goto('/playground');
+
+  await page.getByTestId('preset-inline-extension').click();
+  await page
+    .locator(
+      '[data-phone-extension-presentation="inline"] input[aria-label="Extension"]',
+    )
+    .fill('');
+  await expect(page.getByTestId('config-phone-input')).toBeVisible();
+
+  await page.getByTestId('preset-display-mask').click();
+  await page.getByTestId('config-display-mode').click();
+  await page.getByRole('option', { name: 'National', exact: true }).click();
+  await expect(page.getByTestId('config-phone-input')).toBeVisible();
+  // "+" masks only fit international modes, so the configurator drops the mask.
+  await expect(page.getByTestId('generated-code')).not.toContainText('displayMask');
+  expect(errors).toEqual([]);
 });

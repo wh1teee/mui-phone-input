@@ -485,7 +485,9 @@ function usePhoneInputInternal(
         disabled,
         id: extensionInputId,
         inputMode: externalProps.inputMode ?? 'numeric',
-        ...(extensionMaxLength === undefined ? {} : { maxLength: extensionMaxLength }),
+        // No native maxLength: it counts separators before normalization and
+        // would drop allowed digits ("12-34" → "123"). The transaction enforces
+        // extensionMaxLength on canonical digits.
         onInput: (event) => {
           onInput?.(event);
           if (!event.defaultPrevented) {
@@ -502,7 +504,6 @@ function usePhoneInputInternal(
       disabled,
       extensionError,
       extensionInputId,
-      extensionMaxLength,
       extensionRequired,
       handleExtensionInput,
       ownership.currentExtension,

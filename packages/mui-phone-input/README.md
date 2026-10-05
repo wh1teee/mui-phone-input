@@ -116,7 +116,13 @@ or Preflight is required, and CSS is never imported implicitly from JavaScript.
 - `countrySelector` — selector options (see [Country Selector](#country-selector)),
   or `false` to render without the picker.
 
-The country trigger shows the ISO code and calling code (for example `BY +375`).
+The country trigger shows the ISO code; in `displayMode="national"` it also
+shows the calling code (`BY +375`), because international modes already start
+the input with it. The trigger follows the number: an explicit selection stays
+while its calling code matches the digits, a different calling code shows the
+country the number resolves to, and non-geographic numbers show no country.
+When you pass `error`, your `helperText` is shown; otherwise a built-in
+validation message explains what to fix.
 `dir="rtl"` mirrors the field chrome and popup; phone digits and the extension
 input always stay `dir="ltr"`.
 
@@ -156,6 +162,7 @@ export function OwnedPhoneField() {
   const phone = usePhoneInput({ defaultCountry: 'BY' });
   return (
     <div {...phone.getRootProps()}>
+      <label htmlFor={phone.state.inputId}>Phone</label>
       <PhoneInputCountrySelector phone={phone} />
       <input {...phone.getInputProps({ type: 'tel' })} />
     </div>
@@ -570,7 +577,10 @@ Formatting changes only the displayed text; the canonical value remains
 A declarative Display Mask adds presentation-only punctuation. `#` is a digit
 slot; masks cannot inject literal digits or letters. If a mask cannot fit the
 authority-formatted digits, the component falls back to automatic formatting
-instead of truncating the value.
+instead of truncating the value. A mask containing `+` is only valid in the
+international display modes; `displayMode="national"` rejects it with a
+`TypeError` because national digits would be re-read as a different
+international number.
 
 ```tsx
 <MuiPhoneInput

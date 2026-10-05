@@ -259,7 +259,8 @@ describe('MuiPhoneInput extensions', () => {
     await userEvent.type(extension, '3456');
 
     await expect.element(extension).toHaveValue('1234');
-    await expect.element(extension).toHaveAttribute('maxlength', '4');
+    // The limit counts canonical digits; a native maxlength would count separators.
+    await expect.element(extension).not.toHaveAttribute('maxlength');
   });
 
   test('atomically imports an RFC 3966 telephone URI into phone and extension state', async () => {

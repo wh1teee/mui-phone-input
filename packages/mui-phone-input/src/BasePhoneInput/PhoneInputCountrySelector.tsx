@@ -8,6 +8,7 @@ import {
   type CreatePhoneCountryOptionsParameters,
   createPhoneCountryOptions,
   filterPhoneCountryOptions,
+  resolveDisplayedPhoneCountry,
   type PhoneCountryOption,
 } from '../country-selector';
 import type { PhoneCountrySelectorMessages } from '../country-selector-messages';
@@ -108,8 +109,11 @@ export function PhoneInputCountrySelector({
       resolveCountryName,
     ],
   );
-  const country =
-    phone.state.selectedCountry ?? phone.state.numberingPlan.resolvedCountry;
+  const country = resolveDisplayedPhoneCountry(
+    phone.state.selectedCountry,
+    phone.state.numberingPlan,
+    phone.state.metadata,
+  );
   // A filter limits available choices, not the identity of an existing value.
   const selected = useMemo(
     () =>
@@ -180,6 +184,7 @@ export function PhoneInputCountrySelector({
               {...flags}
               className={classNames.flag}
               country={selected.country}
+              data-slot="phone-country-flag"
               mode={flags?.mode ?? 'none'}
               placement="trigger"
             />
@@ -271,6 +276,7 @@ export function PhoneInputCountrySelector({
                             {...flags}
                             className={classNames.flag}
                             country={option.country}
+                            data-slot="phone-country-flag"
                             mode={flags?.mode ?? 'none'}
                             placement="option"
                           />

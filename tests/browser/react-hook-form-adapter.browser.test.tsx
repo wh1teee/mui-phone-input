@@ -375,3 +375,72 @@ describe('React Hook Form adapter', () => {
       .toBeInTheDocument();
   });
 });
+
+function UnboundExtensionHarness() {
+  const { control } = useForm<PhoneFormValues>({
+    defaultValues: { phone: '+12025550123' },
+  });
+  const [extension, setExtension] = useState<PhoneExtension>();
+  return (
+    <>
+      <MuiPhoneInputController
+        control={control}
+        extensionError
+        extensionHelperText="Extension rejected"
+        extensionLabel="Extension"
+        extensionPresentation="separate"
+        label="Phone"
+        name="phone"
+        onExtensionChange={setExtension}
+      />
+      <output data-testid="unbound-extension">{extension ?? ''}</output>
+    </>
+  );
+}
+
+function CustomExtensionHarness() {
+  const {
+    control,
+    formState: { touchedFields },
+  } = useForm<PhoneFormValues>({
+    defaultValues: { extension: undefined, phone: '+12025550123' },
+    mode: 'onBlur',
+  });
+  return (
+    <>
+      <MuiPhoneInputController
+        control={control}
+        extensionLabel="Extension"
+        extensionName="extension"
+        extensionPresentation="custom"
+        label="Phone"
+        name="phone"
+        renderExtension={({ inputProps }) => <input {...inputProps} />}
+      />
+      <output data-testid="custom-touched">
+        {String(Boolean(touchedFields.extension))}
+      </output>
+    </>
+  );
+}
+
+describe('MuiPhoneInputController extension props', () => {
+  test('keeps consumer extension props without an RHF extension field', async () => {
+    await render(<UnboundExtensionHarness />);
+    await userEvent.type(page.getByLabelText('Extension', { exact: true }), '7');
+    await expect.element(page.getByTestId('unbound-extension')).toHaveTextContent('7');
+    await expect.element(page.getByText('Extension rejected')).toBeVisible();
+    await expect
+      .element(page.getByLabelText('Extension', { exact: true }))
+      .toHaveAttribute('aria-invalid', 'true');
+  });
+
+  test('binds name and blur on a custom-rendered extension input', async () => {
+    await render(<CustomExtensionHarness />);
+    const extension = page.getByLabelText('Extension', { exact: true });
+    await expect.element(extension).toHaveAttribute('name', 'extension');
+    await userEvent.click(extension);
+    await userEvent.tab();
+    await expect.element(page.getByTestId('custom-touched')).toHaveTextContent('true');
+  });
+});

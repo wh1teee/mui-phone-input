@@ -33,6 +33,7 @@ import { tabbable } from 'tabbable';
 import {
   createPhoneCountryOptions,
   filterPhoneCountryOptions,
+  resolveDisplayedPhoneCountry,
   type PhoneCountryNameResolver,
   type PhoneCountryOption,
 } from './country-selector';
@@ -643,8 +644,11 @@ export function PhoneInputCountrySelector({
       resolveCountryName,
     ],
   );
-  const displayCountry =
-    phone.state.selectedCountry ?? phone.state.numberingPlan.resolvedCountry;
+  const displayCountry = resolveDisplayedPhoneCountry(
+    phone.state.selectedCountry,
+    phone.state.numberingPlan,
+    phone.state.metadata,
+  );
   const activeOption = useMemo(
     () =>
       displayCountry
@@ -1585,13 +1589,7 @@ export function PhoneInputCountrySelector({
             +{activeOption.callingCode}
           </CallingCodeSlot>
         ) : null}
-        <svg
-          aria-hidden="true"
-          fill="none"
-          height="12"
-          viewBox="0 0 12 12"
-          width="12"
-        >
+        <svg aria-hidden="true" fill="none" height="12" viewBox="0 0 12 12" width="12">
           <path d="m3 4.5 3 3 3-3" stroke="currentColor" strokeWidth="1.5" />
         </svg>
       </TriggerSlot>
