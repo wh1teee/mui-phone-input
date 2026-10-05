@@ -1,7 +1,12 @@
 import { CodeBlock, DocsShell, ReleaseStatus, Section } from './docs-ui';
+import { BaseUiDemo } from './base-ui-demo';
 import { LandingDemo } from './landing-demo';
 
-const install = `pnpm add @wh1teee/mui-phone-input @mui/material @emotion/react @emotion/styled react react-dom`;
+const install = `# Material UI
+pnpm add @wh1teee/mui-phone-input @mui/material @emotion/react @emotion/styled
+
+# Base UI or shadcn
+pnpm add @wh1teee/mui-phone-input @base-ui/react`;
 
 const coreExample = `'use client';
 
@@ -33,16 +38,61 @@ if (phone === null) throw new Error('Incomplete or impossible national number');
 const validation = validatePhoneValue(phone); // possible-by-default
 const plan = resolveNumberingPlan(phone, { selectedCountry: 'US' });`;
 
-const selectorExample = `<MuiPhoneInput
+const selectorExample = `import { getPopularPhoneCountries } from '@wh1teee/mui-phone-input';
+
+// Your audience: pin the countries you know users need.
+<MuiPhoneInput
   defaultCountry="BY"
   slotProps={{
-    countrySelector: {
-      locale: 'ru',
-      preferredCountries: ['BY', 'PL', 'LT'],
-      resultLimit: 50,
-    },
+    countrySelector: { locale: 'ru', preferredCountries: ['BY', 'PL', 'LT'] },
   }}
-/>`;
+/>
+
+// Global audience: pin the N most populous countries.
+<MuiPhoneInput
+  slotProps={{
+    countrySelector: { preferredCountries: getPopularPhoneCountries(15) },
+  }}
+/>
+
+// Optional: render at most 30 options (with or without a query).
+<MuiPhoneInput slotProps={{ countrySelector: { resultLimit: 30 } }} />`;
+
+const baseUiExample = `'use client';
+
+import { useState } from 'react';
+import {
+  getPopularPhoneCountries,
+  PhoneInput,
+  type PhoneValue,
+} from '@wh1teee/mui-phone-input/shadcn';
+import '@wh1teee/mui-phone-input/shadcn.css';
+
+export function ContactPhone() {
+  const [phone, setPhone] = useState<PhoneValue>();
+  return (
+    <PhoneInput
+      label="Phone"
+      defaultCountry="US"
+      value={phone}
+      onChange={setPhone}
+      countrySelector={{ preferredCountries: getPopularPhoneCountries(5) }}
+    />
+  );
+}`;
+
+const headlessExample = `import { usePhoneInput } from '@wh1teee/mui-phone-input/headless';
+import { PhoneInputCountrySelector } from '@wh1teee/mui-phone-input/base-ui';
+
+function OwnedField() {
+  const phone = usePhoneInput({ defaultCountry: 'US' });
+  return (
+    <div className="my-field">
+      <PhoneInputCountrySelector phone={phone} />
+      <input {...phone.getInputProps()} className="my-input" />
+    </div>
+  );
+}`;
 
 const formattingExample = `<MuiPhoneInput displayMode="international" />
 <MuiPhoneInput defaultCountry="US" displayMode="national" />
@@ -209,13 +259,14 @@ export default function DocumentationPage() {
     <DocsShell>
       <div className="docs-hero docs-hero-grid">
         <div className="docs-hero-copy">
-          <p className="docs-kicker">MUI Phone Input</p>
-          <h1>A complete phone input for Material UI</h1>
+          <p className="docs-kicker">Material UI · Base UI · shadcn</p>
+          <h1>A complete phone input for React</h1>
           <p>
             Country search, formatting, validation, extensions, SSR, React Hook Form,
             and Zod share one canonical phone value backed by{' '}
-            <code>libphonenumber-js</code>. Built for React 19 and Material UI 9 without
-            a second numbering authority.
+            <code>libphonenumber-js</code>. Use the Material UI 9 component, the
+            unstyled Base UI field with an optional shadcn skin, or the headless
+            controller in your own field — one phone engine behind all of them.
           </p>
           <p>
             Try the real component beside this introduction, then open the{' '}
@@ -233,6 +284,7 @@ export default function DocumentationPage() {
       <nav className="docs-toc" aria-label="On this page">
         <span className="docs-toc-label">On this page</span>
         <a href="#quick-start">Quick start</a>
+        <a href="#base-ui-shadcn">Base UI &amp; shadcn</a>
         <a href="#formatting">Formatting</a>
         <a href="#extensions">Extensions</a>
         <a href="#country-selector">Country selector</a>
@@ -248,11 +300,13 @@ export default function DocumentationPage() {
         <h3>Install</h3>
         <CodeBlock>{install}</CodeBlock>
         <p>
-          The package requires React 19, MUI 9, and Emotion peers. React Hook Form and
-          Zod are optional peers; install them only when you import their subpaths.
+          React 19 is required. Each renderer needs only its own peers: MUI 9 and
+          Emotion for the root and <code>/mui</code> paths, Base UI 1.8+ for{' '}
+          <code>/base-ui</code> and <code>/shadcn</code>. React Hook Form and Zod are
+          optional; install them only when you import their subpaths.
         </p>
 
-        <h3>Core React usage</h3>
+        <h3>Material UI usage</h3>
         <CodeBlock>{coreExample}</CodeBlock>
 
         <h3>Server helpers</h3>
@@ -281,9 +335,9 @@ export default function DocumentationPage() {
           <div className="docs-card">
             <h3>Country Selector</h3>
             <p>
-              The default selector uses MUI Autocomplete semantics, Popper on desktop,
-              Dialog on mobile, localized search, preferred countries, and a bounded
-              result set.
+              Ranked search by name, ISO code, or calling code; preferred or popular
+              countries pinned above the full list; Popper on desktop and Dialog on
+              mobile in MUI, Base UI Combobox in the Base UI field.
             </p>
           </div>
           <div className="docs-card">
@@ -294,6 +348,34 @@ export default function DocumentationPage() {
             </p>
           </div>
         </div>
+      </Section>
+
+      <Section id="base-ui-shadcn" title="Base UI and shadcn">
+        <p>
+          <code>/base-ui</code> exports an unstyled field and a searchable country
+          selector built on Base UI Combobox. <code>/shadcn</code> is the same
+          composition; import <code>/shadcn.css</code> to style it with the standard
+          shadcn variables (<code>--background</code>, <code>--input</code>,{' '}
+          <code>--ring</code>, <code>--popover</code>…). Neither path loads MUI or
+          Emotion.
+        </p>
+        <BaseUiDemo />
+        <CodeBlock>{baseUiExample}</CodeBlock>
+        <p>
+          The popup is portaled to <code>document.body</code> by default. When the
+          shadcn variables live on a local wrapper instead of <code>:root</code> or{' '}
+          <code>.dark</code>, pass{' '}
+          <code>countrySelector=&#123;&#123; portalContainer &#125;&#125;</code> inside
+          that scope. Flags are off by default in the Base UI field; opt in with{' '}
+          <code>flags: &#123; mode: 'local' &#125;</code> and <code>/flags.css</code>.
+        </p>
+        <h3>Your own field</h3>
+        <p>
+          Keep a product-owned input and reuse the engine: spread{' '}
+          <code>phone.getInputProps()</code> onto the native input and pass the same
+          controller to the country selector.
+        </p>
+        <CodeBlock>{headlessExample}</CodeBlock>
       </Section>
 
       <Section id="phone-semantics" title="Phone semantics">
@@ -454,9 +536,21 @@ export default function DocumentationPage() {
       <Section id="country-selector" title="Country Selector">
         <CodeBlock>{selectorExample}</CodeBlock>
         <p>
-          Search matches authority-backed countries, localized names, ISO country codes,
-          and calling codes. Preferred countries form a dedicated group without becoming
-          a second country list. <code>resultLimit</code> defaults to 50.
+          Search matches localized and English names, ISO codes, and calling codes,
+          ranked the same way in every renderer: an exact ISO code or the main country
+          of a calling code first (<code>+1</code> → United States, <code>+44</code> →
+          United Kingdom), then other exact codes, prefixes, and substrings. While a
+          query is active, results form one flat ranked list and the best match is
+          highlighted, so Enter selects it. Without a query, preferred countries form a
+          pinned group above all countries. After a selection, focus moves to the phone
+          number.
+        </p>
+        <p>
+          The full country list is shown by default. <code>preferredCountries</code>{' '}
+          accepts your own list or <code>getPopularPhoneCountries(count)</code>, which
+          returns the <em>count</em> most populous countries. <code>resultLimit</code>{' '}
+          optionally caps the rendered options, and <code>countryFilter</code>/
+          <code>countryOrder</code> shape the list itself.
         </p>
         <p>
           <code>mode="auto"</code> renders a MUI Popper on desktop and Dialog on mobile,
@@ -468,13 +562,14 @@ export default function DocumentationPage() {
         </p>
         <h3>Why the selector is not virtualized</h3>
         <p>
-          The approved calibration keeps the standard MUI <code>useAutocomplete</code>
-          renderer and the 50-result default. Across Chromium, Firefox, and WebKit, the
-          bounded desktop open measured 115–150 ms total with a longest individual
-          commit of 73 ms; measured filters were 1–6 ms. Rendering all 245 countries was
-          the non-default stress case and exceeded the bounded aggregate budget.
-          Virtualization would add a second listbox/accessibility path without improving
-          the normal bounded path, so it is currently unnecessary.
+          The selector keeps the standard MUI <code>useAutocomplete</code> renderer.
+          Across Chromium, Firefox, and WebKit, opening the complete 245-country list
+          measured a longest commit of 117–132 ms on desktop; filtering measured 1–6 ms.
+          A complete, scrollable list is the expected selector behavior, so it is the
+          default; applications on constrained devices can set <code>resultLimit</code>{' '}
+          (a 50-option open measured 115–150 ms total). Virtualization would add a
+          second listbox/accessibility path for a one-time open cost, so it is currently
+          unnecessary.
         </p>
       </Section>
 
@@ -636,10 +731,10 @@ export default function DocumentationPage() {
         </p>
         <p>
           Selector calibration uses a separate browser interaction methodology. The
-          normal 50-result path stays inside its 200 ms responsiveness envelope across
-          the three tested browser engines; the all-245-country stress case is
-          intentionally not the default. Recalibrate before changing the result bound or
-          adding virtualization.
+          complete 245-country list is the default and costs a one-time open of 117–132
+          ms longest commit across the three tested engines; filtering stays at 1–6 ms.
+          A bounded <code>resultLimit</code> path stays inside the 200 ms envelope for
+          constrained surfaces. Recalibrate before adding virtualization.
         </p>
       </Section>
 
@@ -662,7 +757,7 @@ export default function DocumentationPage() {
         <p>
           Automated browser coverage does not substitute for physical
           assistive-technology use. Physical iOS/Android and desktop screen-reader rows
-          unavailable in the current device lab were accepted as explicit RC residual
+          unavailable in the current device lab were accepted as documented residual
           gaps and remain documented as unavailable rather than passed.
         </p>
       </Section>
@@ -679,11 +774,10 @@ export default function DocumentationPage() {
           manifest when auditing an artifact.
         </p>
         <p>
-          Published release candidates use the npm <code>next</code> dist-tag with
-          provenance and immutable release evidence. Documentation follows current
-          source, while the registry remains authoritative for the exact published RC.
-          Stable <code>1.0</code> is a separate promotion after final consumer
-          validation; publishing an RC does not move the stable dist-tag.
+          Stable releases use the npm <code>latest</code> dist-tag with provenance and
+          immutable release evidence. Documentation follows current source, while the
+          registry remains authoritative for the exact published version; pin an exact
+          version when you need byte-for-byte reproducibility.
         </p>
       </Section>
     </DocsShell>

@@ -1,214 +1,52 @@
 # @wh1teee/mui-phone-input
 
-Stable React 19 phone input for Material UI 9 and Base UI/shadcn. The package
-provides a canonical international candidate, controlled and uncontrolled
-ownership, authority-backed numbering-plan resolution, possible-by-default
-validation, a shared headless controller, supported composable primitives, MUI
-theme registration, a searchable responsive Country Selector, stable utility
-classes, local/opt-in external flag modes, locale packs, and deterministic
-event-independent change details. Formatting modes, Display Masks, independent
-phone extensions, and RFC 3966 import/export are part of the same public
-contract.
+Accessible international phone input for React 19 with Material UI 9 and Base
+UI/shadcn renderers over one shared phone-editing engine. `libphonenumber-js` is
+the only numbering authority.
 
-Version 1.0 freezes the documented public surface. React Hook Form and Zod are
-optional subpaths, and every renderer is independently consumable.
+- Canonical `PhoneValue` (`+digits`) separate from display formatting.
+- Controlled or uncontrolled ownership, possible-by-default validation, explicit
+  strict/type policies, non-geographic numbering plans.
+- Searchable, responsive Country Selector with localized names, preferred and
+  popular countries, and ranked calling-code search.
+- Formatting modes, Display Masks, independent extensions, RFC 3966.
+- Headless controller, composable primitives, MUI theme integration, server-safe
+  helpers, React Hook Form and Zod adapters, metadata presets, locale packs and
+  flags — each on its own entrypoint, so you install only the peers you use.
 
-## Published subpaths
-
-This version provides these explicit entrypoints:
-
-- `@wh1teee/mui-phone-input` — React/MUI component, controller, primitives and
-  shared phone helpers;
-- `@wh1teee/mui-phone-input/mui` — explicit alias for the legacy root;
-- `@wh1teee/mui-phone-input/mui/react-hook-form` — explicit MUI form alias;
-- `@wh1teee/mui-phone-input/headless` — phone controller and helpers without UI peers;
-- `@wh1teee/mui-phone-input/base-ui` — unstyled `PhoneInput` and country selector;
-- `@wh1teee/mui-phone-input/shadcn` — the same Base UI composition;
-- `@wh1teee/mui-phone-input/shadcn.css` — optional semantic-variable skin;
-- `@wh1teee/mui-phone-input/base-ui/react-hook-form` — Base UI form binding;
-- `@wh1teee/mui-phone-input/shadcn/react-hook-form` — alias for the Base UI form binding;
-- `@wh1teee/mui-phone-input/{mui,headless,base-ui,shadcn}/min` — the same
-  renderer/controller APIs with the official smaller metadata graph;
-- `@wh1teee/mui-phone-input/{mui,base-ui,shadcn}/min/react-hook-form` — form
-  adapters for those smaller-metadata entrypoints;
-- `@wh1teee/mui-phone-input/server` — neutral parsing, numbering-plan,
-  formatting and validation helpers;
-- `@wh1teee/mui-phone-input/react-hook-form` — optional React Hook Form
-  `Controller` adapter;
-- `@wh1teee/mui-phone-input/zod` — optional neutral Zod schema factories;
-- `@wh1teee/mui-phone-input/metadata/max` — max metadata (the default);
-- `@wh1teee/mui-phone-input/metadata/min` — min metadata;
-- `@wh1teee/mui-phone-input/metadata/mobile` — mobile metadata;
-- `@wh1teee/mui-phone-input/metadata/custom` — custom-metadata validation;
-- `@wh1teee/mui-phone-input/flags` — typed flag renderer/provider contracts;
-- `@wh1teee/mui-phone-input/flags.css` — generated local SVG flag stylesheet;
-- `@wh1teee/mui-phone-input/locales/{en,be,ru}` — independent locale packs;
-- `@wh1teee/mui-phone-input/package.json` — package metadata.
-
-MUI, Emotion, Base UI, React Hook Form and Zod are optional peers. Core, `/server`, metadata, flags,
-and locale consumers do not need either package. Using only one adapter does
-not require installing the other adapter's peer.
-
-## Reporting problems
-
-Use the public [Q&A intake](https://github.com/wh1teee/mui-phone-input/discussions/new?category=q-a)
-for bug reports and support questions. Maintainers transfer actionable reports
-to the canonical Beads/Dolt tracker and reply with the Bead ID; GitHub
-Discussions do not carry implementation status.
+Version 1.x freezes the documented public surface.
 
 ## Install
+
+Material UI:
 
 ```sh
 pnpm add @wh1teee/mui-phone-input @mui/material@^9 @emotion/react @emotion/styled
 ```
 
-React 19 and React DOM 19 are required client peers. MUI 9 is required only by the MUI entrypoints. The package is ESM
-only and intentionally has no published Node engine constraint, so browser
-consumers are not blocked by the repository toolchain. Exact tarballs are
-installed and loaded under Node 22 and Node 24; repository development and
-release tooling requires Node 24 LTS.
-
-## Base UI and shadcn
+Base UI or shadcn:
 
 ```sh
 pnpm add @wh1teee/mui-phone-input @base-ui/react@^1.8
 ```
 
+React 19 and React DOM 19 are required client peers. MUI and Emotion are needed
+only by the MUI entrypoints, Base UI only by the Base UI/shadcn entrypoints;
+React Hook Form and Zod only by their adapters. The `/server`, metadata, flags
+and locale entrypoints need none of them.
+
+The package is ESM only and has no published Node `engines` constraint, so
+browser bundlers are never blocked. Exact tarballs are tested under Node 22 and
+Node 24.
+
+## Quick start: MUI
+
 ```tsx
 'use client';
 
 import { useState } from 'react';
-import { PhoneInput, type PhoneValue } from '@wh1teee/mui-phone-input/shadcn';
-import '@wh1teee/mui-phone-input/shadcn.css';
-
-export function ContactPhone() {
-  const [phone, setPhone] = useState<PhoneValue>();
-  return <PhoneInput label="Phone" name="phone" defaultCountry="BY"
-    value={phone} onChange={setPhone} helperText="Include your country code" />;
-}
-```
-
-The default field skin uses shadcn variables such as `--background`, `--input`,
-`--ring` and `--popover`. Import it once in the application's permitted global
-stylesheet location, or omit it and style the documented `data-slot`/`classNames`
-surfaces yourself. No Tailwind scanning or global Preflight is required. CSS is
-never imported implicitly from JavaScript. `/base-ui` exports the identical
-unstyled composition. Neither entrypoint imports MUI or Emotion at runtime or in
-its declarations. The MUI root similarly does not depend on Base UI.
-
-The native input ref, phone value, extensions, metadata, validation and edit
-transactions use the same contracts as MUI. `inputProps` forwards native field
-attributes. `countrySelector` accepts locale/filter/order/preferred countries,
-messages, flags, slot classes and a `portalContainer`. Set `countrySelector={false}`
-to render without the picker. Flag assets are opt-in; country names and ISO codes
-remain available without external image requests. `dir="rtl"` affects the field
-and popup, not the LTR phone digits.
-
-For a product-owned field, import `usePhoneInput` from `/headless`, spread
-`phone.getInputProps()` onto its native input (including its ref), and pass the
-same `phone` to `PhoneInputCountrySelector` from `/base-ui`. This is the supported
-integration path for PayAtTable's scoped customer TextField. Keep the popup in
-the same theme scope with `portalContainer`; `null` defers it during hydration.
-
-`PhoneValue` is a normalized international **candidate**, not proof that the
-number is valid or allocated. It uses `undefined` for empty, while the formatted
-value is owned by the controller. A string-based form can translate `undefined`
-to `''` at its boundary. Existing formatted values can be normalized with the
-neutral `parsePhoneValue` helper. Do not implement another mask or parser.
-
-`PhoneInputController` from `/base-ui/react-hook-form` (or the shadcn alias)
-accepts `name`, `control`, `rules` and optionally `extensionName`,
-`extensionLabel`, `extensionRules`. The fields remain independent, including
-leading-zero extensions, reset, server errors, native focus and unregistration.
-
-Strict pnpm global-virtual-store installations can expose missing type edges in
-upstream packages. The reviewed `packageExtensions` in the repository's
-`pnpm-workspace.yaml` includes a repair for `@floating-ui/react-dom@2.1.9` →
-`@types/react@19.3.0`. Our exact-tarball consumer tests use those explicit repairs
-with `skipLibCheck=false`; they do not disable GVS or hoist hidden dependencies.
-
-## React Hook Form
-
-Install React Hook Form only when using the adapter:
-
-```sh
-pnpm add react-hook-form
-```
-
-`MuiPhoneInputController` binds the canonical `PhoneValue` through RHF's
-`Controller`. An extension can be bound to a second field with `extensionName`
-while both values still render through one `MuiPhoneInput` instance.
-
-```tsx
-import type { PhoneExtension, PhoneValue } from '@wh1teee/mui-phone-input';
-import { MuiPhoneInputController } from '@wh1teee/mui-phone-input/react-hook-form';
-import { useForm } from 'react-hook-form';
-
-type ContactForm = {
-  extension: PhoneExtension;
-  phone: PhoneValue;
-};
-
-const { control } = useForm<ContactForm>({
-  defaultValues: { extension: undefined, phone: undefined },
-});
-
-<MuiPhoneInputController
-  control={control}
-  extensionName="extension"
-  extensionPresentation="separate"
-  name="phone"
-/>;
-```
-
-RHF remains responsible for form state and validation orchestration. Native
-`Controller` behavior therefore covers dirty/touched state, reset and async
-defaults, `shouldUnregister`, field-array paths, focus-on-error, disabled
-fields, and server errors. `rules` and `extensionRules` can attach RHF rules;
-the adapter does not create a second phone parsing or validation authority.
-
-## Zod
-
-Install Zod only when using its adapter:
-
-```sh
-pnpm add zod
-```
-
-The Zod subpath preserves canonical package types and delegates acceptance to
-the existing phone/extension authorities:
-
-```ts
-import {
-  createPhoneExtensionSchema,
-  createPhoneFormSchema,
-  createPhoneNumberTypeSchema,
-  createPhonePossibleSchema,
-  createPhoneSyntaxSchema,
-  createPhoneValidSchema,
-} from '@wh1teee/mui-phone-input/zod';
-
-const candidate = createPhoneSyntaxSchema();
-const possible = createPhonePossibleSchema({ required: true });
-const strict = createPhoneValidSchema();
-const mobile = createPhoneNumberTypeSchema(['MOBILE']);
-const extension = createPhoneExtensionSchema({ maxLength: 6 });
-const contact = createPhoneFormSchema({ phone: { required: true } });
-```
-
-`createPhoneSyntaxSchema` validates canonical `PhoneValue` syntax and does not
-normalize display text. `createPhonePossibleSchema` uses the package's default
-possible-number policy; strict validity and number-type restrictions remain
-explicit. Extension schemas reuse the canonical digits-only extension parser.
-
-## Controlled usage
-
-```tsx
-'use client';
-
 import { MuiPhoneInput, type PhoneValue } from '@wh1teee/mui-phone-input';
 import '@wh1teee/mui-phone-input/flags.css';
-import { useState } from 'react';
 
 export function PhoneField() {
   const [value, setValue] = useState<PhoneValue>();
@@ -216,7 +54,7 @@ export function PhoneField() {
   return (
     <MuiPhoneInput
       label="Phone number"
-      selectedCountry="BY"
+      defaultCountry="BY"
       value={value}
       onChange={(nextValue, details) => {
         setValue(nextValue);
@@ -227,150 +65,223 @@ export function PhoneField() {
 }
 ```
 
-`PhoneValue` is `undefined` for an empty field. Otherwise it is a leading `+`
-followed only by digits. Incomplete candidates such as `+` and `+37529` are
-preserved while the user edits.
+The MUI selector shows local SVG flags by default, so import
+`@wh1teee/mui-phone-input/flags.css` once (or choose another `flagMode`, see
+[Flags](#flags)).
 
-## Uncontrolled usage
-
-```tsx
-<MuiPhoneInput defaultValue="+1202" label="Phone number" />
-```
-
-Do not switch between controlled and uncontrolled ownership after mount.
-
-## Formatting modes and Display Masks
-
-The canonical `PhoneValue` remains international `+digits`; formatting changes
-only the displayed input text. Automatic formatting is derived from
-`libphonenumber-js` metadata.
+## Quick start: Base UI and shadcn
 
 ```tsx
-<MuiPhoneInput
-  displayMode="national"
-  selectedCountry="US"
-  value="+12025550123"
-/>
-// Displays: (202) 555-0123
+'use client';
 
-<MuiPhoneInput
-  displayMode="international-fixed-calling-code"
-  selectedCountry="US"
-/>
-// Displays a protected +1 calling-code prefix while the canonical value is empty.
+import { useState } from 'react';
+import { PhoneInput, type PhoneValue } from '@wh1teee/mui-phone-input/shadcn';
+import '@wh1teee/mui-phone-input/shadcn.css';
+
+export function ContactPhone() {
+  const [phone, setPhone] = useState<PhoneValue>();
+  return (
+    <PhoneInput
+      label="Phone"
+      name="phone"
+      defaultCountry="BY"
+      value={phone}
+      onChange={setPhone}
+      helperText="Include your country code"
+    />
+  );
+}
 ```
 
-Use a declarative Display Mask when a product needs presentation-only
-punctuation. `#` is a digit slot; masks cannot inject literal digits or letters.
-If a mask cannot fit the authority-formatted digits, the component falls back
-to automatic formatting instead of truncating the Phone Value.
+`/base-ui` exports the identical unstyled composition; `/shadcn` is the same
+code intended to be paired with the opt-in `/shadcn.css` skin. Neither imports
+MUI or Emotion at runtime or in its declarations, and the MUI entrypoints do not
+depend on Base UI.
+
+The skin uses shadcn variables such as `--background`, `--input`, `--ring` and
+`--popover`. Import it once in your global stylesheet location, or omit it and
+style the `data-slot` attributes or `classNames` yourself. No Tailwind scanning
+or Preflight is required, and CSS is never imported implicitly from JavaScript.
+
+`PhoneInput` props:
+
+- all controller options (`value`, `defaultValue`, `onChange`, `defaultCountry`,
+  `selectedCountry`, `validationMode`, `metadata`, extension options, …);
+- `label`, `helperText`, `name`, `ref`, `onBlur`, `dir`, `className`;
+- `inputProps` — native attributes for the phone `<input>`;
+- `classNames` — `control`, `description`, `extension`, `extensionInput`,
+  `input`, `label`;
+- `extensionLabel` (enables the separate extension field), `extensionHelperText`,
+  `extensionInputProps`, `extensionRef`;
+- `countrySelector` — selector options (see [Country Selector](#country-selector)),
+  or `false` to render without the picker.
+
+The country trigger shows the ISO code and calling code (for example `BY +375`).
+`dir="rtl"` mirrors the field chrome and popup; phone digits and the extension
+input always stay `dir="ltr"`.
+
+### Dark mode and scoped themes
+
+The popup is portaled to `document.body` by default, so CSS variables defined on
+a local wrapper element are **not** inherited by it. Either define the shadcn
+variables on `:root` and `.dark` (the standard shadcn setup), or render the popup
+inside the themed scope:
 
 ```tsx
-<MuiPhoneInput
-  displayMask={{ pattern: '+ # (###) ###-####' }}
-  value="+12025550123"
-/>
+<PhoneInput countrySelector={{ portalContainer: scopeElement }} />
 ```
 
-Advanced presentation can use a typed `FormatStrategy`. A strategy receives
-the automatic authority result and must return both the displayed text and the
-logical-caret positions. The runtime rejects strategies that add, remove, or
-reorder phone digits, return an invalid caret map, or are combined with a
-Display Mask.
+Pass `portalContainer: null` to defer the popup until the scope element has
+mounted (for example during hydration).
 
-```ts
-import type { FormatStrategy } from '@wh1teee/mui-phone-input';
+## Headless and application-owned fields
 
-const dotted: FormatStrategy = ({ automatic }) => ({
-  displayValue: automatic.displayValue.replaceAll(' ', '.'),
-  logicalCaretPositions: automatic.logicalCaretPositions,
-});
-```
-
-`formatPhoneInputPresentation(value, options)` exposes the same pure client
-presentation contract, including logical-to-display caret positions. It is
-intentionally separate from the server-safe validation helpers.
-
-## Extensions and RFC 3966
-
-Extensions are independent from `PhoneValue`. Their canonical value is
-`undefined` for an empty extension or a digits-only string such as `"42"`.
-There is no library-wide maximum length; products can opt into a limit with
-`extensionMaxLength`.
+For an application-owned field, import `usePhoneInput` from `/headless`, spread
+`phone.getInputProps()` onto your native input (it includes the engine's ref and
+handlers), and pass the same `phone` to `PhoneInputCountrySelector` from
+`/base-ui`:
 
 ```tsx
-import type { PhoneExtension, PhoneValue } from '@wh1teee/mui-phone-input';
+'use client';
 
-const [value, setValue] = useState<PhoneValue>('+12025550123');
-const [extension, setExtension] = useState<PhoneExtension>('42');
+import { usePhoneInput } from '@wh1teee/mui-phone-input/headless';
+import { PhoneInputCountrySelector } from '@wh1teee/mui-phone-input/base-ui';
 
-<MuiPhoneInput
-  extension={extension}
-  extensionLabel="Extension"
-  extensionPresentation="separate"
-  label="Phone number"
-  onChange={setValue}
-  onExtensionChange={setExtension}
-  value={value}
-/>
+export function OwnedPhoneField() {
+  const phone = usePhoneInput({ defaultCountry: 'BY' });
+  return (
+    <div {...phone.getRootProps()}>
+      <PhoneInputCountrySelector phone={phone} />
+      <input {...phone.getInputProps({ type: 'tel' })} />
+    </div>
+  );
+}
 ```
 
-`extensionPresentation` accepts `none`, `separate`, `inline`, or `custom`.
-Changing presentation never creates a second extension value. The custom mode
-uses `renderExtension`, while MUI consumers can replace the built-in extension
-field with `slots.extension` and configure it through `slotProps.extension`.
-`extensionError`, `extensionHelperText`, and `extensionRequired` control the
-extension field independently from the phone-number validation state.
+Do not implement another mask or parser. `PhoneValue` is a normalized
+international **candidate**, not proof that the number is valid or allocated.
+It is `undefined` when empty; a string-based form can translate `undefined` to
+`''` at its boundary. Normalize previously formatted values with
+`parsePhoneValue`. Keep the popup in the same theme scope with
+`portalContainer`.
 
-Pasting an RFC 3966 URI or a libphonenumber-recognized formatted value such as
-`+1 202 555 0123 ext. 42` imports the telephone number and extension in one
-transaction. National extension-bearing values use the current selected
-country as parsing context. The phone part still commits through the normal
-phone transaction/formatting pipeline, and the resulting `PhoneValue` never
-contains the extension.
-
-```ts
-import {
-  parseRfc3966,
-  serializeRfc3966,
-} from '@wh1teee/mui-phone-input/server';
-
-parseRfc3966('tel:+1-202-555-0123;ext=42');
-// { value: '+12025550123', extension: '42' }
-
-serializeRfc3966('+12025550123', '42');
-// 'tel:+12025550123;ext=42'
-```
-
-The same pure helpers are available from the main entrypoint. Use the
-`/server` entry when React or MUI must not enter the server dependency graph.
+MUI consumers can compose the same controller with MUI primitives; see
+[Headless controller and primitives](#headless-controller-and-primitives).
 
 ## Country Selector
 
-The built-in selector searches localized and English country names, ISO codes,
-and calling codes. Country/calling-code authority comes from
-`libphonenumber-js`; names default to `Intl.DisplayNames`. Calling-code search
-accepts the same ASCII, Arabic-Indic, Extended Arabic-Indic, Devanagari, and
-fullwidth decimal digits as phone entry. Localized names use the selector
-locale for case-insensitive matching, while English fallback names keep stable
-English casing semantics.
+Both renderers share one country list and search authority. Configure it through
+`slotProps.countrySelector` on `MuiPhoneInput`, or through the `countrySelector`
+prop on the Base UI/shadcn `PhoneInput`.
 
-Local SVG flags are the default presentation. Import the generated stylesheet
+### Search
+
+The selector searches localized and English country names, ISO codes and
+calling codes. Results are ranked the same way in MUI and Base UI:
+
+1. an exact ISO code, or the main country of an exact calling code
+   (`+1` → United States, `+44` → United Kingdom, `+7` → Russia);
+2. other countries sharing that exact calling code;
+3. prefix matches on names, ISO codes or calling codes;
+4. substring matches on names.
+
+While a query is active the results are a flat ranked list without group
+headers, and the best match is highlighted so Enter selects it.
+
+Calling-code search accepts the same ASCII, Arabic-Indic, Extended Arabic-Indic,
+Devanagari and fullwidth digits as phone entry. Names come from
+`Intl.DisplayNames` (or `resolveCountryName`) and match case-insensitively in
+the selector locale; English fallback names use English casing.
+
+### Preferred and popular countries
+
+Without a query, `preferredCountries` are shown in a "Preferred countries" group
+above "All countries", in the order you pass them.
+
+`getPopularPhoneCountries(count?, { metadata? })` returns up to `count` of the
+most populous countries supported by the metadata, most populous first. The
+default `count` is 50, the full built-in list. Population follows official
+national estimates as compiled by Wikipedia (retrieved 2026-10-04). It is
+exported from the package root, `/mui`, `/headless`, `/base-ui` and `/shadcn`.
+
+```tsx
+import { getPopularPhoneCountries, MuiPhoneInput } from '@wh1teee/mui-phone-input';
+
+<MuiPhoneInput
+  slotProps={{
+    countrySelector: { preferredCountries: getPopularPhoneCountries(15) },
+  }}
+/>;
+```
+
+```tsx
+import { getPopularPhoneCountries, PhoneInput } from '@wh1teee/mui-phone-input/shadcn';
+
+<PhoneInput countrySelector={{ preferredCountries: getPopularPhoneCountries(15) }} />;
+```
+
+Population is only a neutral default. Applications with a known audience should
+pass their own list. The helper composes with `countryFilter`, `countryOrder`
+and `resultLimit`.
+
+### List size
+
+The full country list is shown by default in both renderers. Set `resultLimit`
+to cap the number of rendered options, with or without a query (MUI:
+`slotProps.countrySelector.resultLimit`; Base UI/shadcn:
+`countrySelector.resultLimit`). It must be a positive integer. The currently
+selected country stays in the list when it matches. Earlier 1.0.x MUI releases
+defaulted to 50.
+
+```tsx
+<MuiPhoneInput
+  defaultCountry="BY"
+  label="Phone number"
+  slotProps={{
+    countrySelector: {
+      locale: 'be',
+      preferredCountries: ['BY', 'PL', 'LT'],
+      resultLimit: 50,
+    },
+  }}
+/>
+```
+
+Other shared options: `locale`, `countryFilter`, `countryOrder`,
+`resolveCountryName`, `messages`, `portalContainer`.
+
+### Keyboard and focus
+
+After a country is chosen (click or Enter), focus moves to the phone number
+input in both renderers. Escape or closing the selector returns focus to the
+country trigger.
+
+### Flags
+
+The defaults differ by renderer:
+
+| Renderer | Default | Change it with |
+| --- | --- | --- |
+| MUI | `flagMode: 'local'` (needs `@wh1teee/mui-phone-input/flags.css`) | `slotProps.countrySelector.flagMode` |
+| Base UI / shadcn | no flags | `countrySelector={{ flags: { mode: 'local' } }}` |
+
+Flag modes are `local`, `emoji`, `external` and `none`. MUI configures flags
+with `flagMode`, `externalFlag` and `flagProvider`; Base UI/shadcn with
+`countrySelector.flags.mode`, `.external` and `.provider`. Import the stylesheet
 once when using local flags:
 
 ```ts
 import '@wh1teee/mui-phone-input/flags.css';
 ```
 
-The stylesheet and SVG files are generated from pinned `country-flag-icons`
-`1.6.20`; the package does not maintain a second country artwork table. The
-SVGs stay outside initial JavaScript. Products using `emoji`, `none`, a custom
-provider, or explicit external URLs can omit the stylesheet entirely.
+Local flags are generated from pinned `country-flag-icons` `1.6.20` and stay
+outside initial JavaScript. Products using `emoji`, `none`, a custom provider or
+external URLs can omit the stylesheet.
 
-External flags are opt-in and are the only built-in mode that receives an
-external URL resolver. CORS and referrer policy are explicit, external images
-always load lazily, and `fallback` accepts a React node. When no fallback is
-provided, a failed external image falls back to the country emoji:
+External flags are opt-in and are the only built-in mode that resolves external
+URLs. CORS and referrer policy are explicit, external images always load lazily,
+and `fallback` accepts a React node. Without a fallback, a failed image falls
+back to the country emoji:
 
 ```tsx
 <MuiPhoneInput
@@ -388,13 +299,13 @@ provided, a failed external image falls back to the country emoji:
 />
 ```
 
-Without `flagMode="external"`, the flag layer does not resolve external URLs or
-call fetch/XHR. Non-geographic numbering plans render no fabricated country or
-flag.
+In any other mode the flag layer does not resolve external URLs or call
+fetch/XHR. Non-geographic numbering plans render no fabricated country or flag.
+
+### Locales
 
 Locale packs contain selector messages only. Country names still come from
-`Intl.DisplayNames` (or `resolveCountryName`), so sorting/search keep the same
-locale-aware authority:
+`Intl.DisplayNames` (or `resolveCountryName`):
 
 ```tsx
 import { be } from '@wh1teee/mui-phone-input/locales/be';
@@ -409,73 +320,29 @@ import { be } from '@wh1teee/mui-phone-input/locales/be';
 />
 ```
 
-Each locale is a separate entrypoint and does not import other locale packs.
-RTL themes mirror selector UI while the telephone input itself remains `dir=ltr`.
+Each locale is a separate entrypoint. RTL themes mirror the selector UI while
+the telephone input itself remains `dir="ltr"`.
 
-```tsx
-<MuiPhoneInput
-  defaultCountry="BY"
-  label="Phone number"
-  slotProps={{
-    countrySelector: {
-      locale: 'be',
-      preferredCountries: ['BY', 'PL', 'LT'],
-      resultLimit: 50,
-    },
-  }}
-/>
-```
-
-`onCountryChange` reports every public country transition. Its first argument
-is the resolved country or `null`; details include the complete previous and
-next Numbering Plan and one typed reason: `default`, `user`, `input`, `paste`,
-`external-value`, or `reset`. Selecting a country also commits one phone
-transaction with `onChange` reason `country-selection`.
-
-`input` covers committed keyboard, deletion, composition, replacement, and
-history edits. `external-value` covers controlled value/country reconciliation,
-including a distinct correction when a parent rejects an optimistic user
-selection.
-
-For controlled country ownership, use `onCountrySelection` as the authoritative
-user-selection stream. `onCountryChange` reports numbering-authority transitions;
-those can differ from the explicit selected country while the current digits are
-still incomplete or incompatible with that selection.
-
-Country selection preserves the national digits while applying the requested
-geographic calling code. Validation then reports whether the resulting draft is
-possible or valid for that selected country. Use `onCountrySelection` or the return
-value of `actions.selectCountry` to observe the exact transaction:
-
-```tsx
-<MuiPhoneInput
-  onCountrySelection={(result) => {
-    console.log(result.country, result.previousValue, result.value);
-  }}
-/>
-```
-
-`resolvePhoneCountrySelection(value, country)` exposes the same pure typed
-transaction. `selectPhoneCountryValue` remains a value-only wrapper. Geographic
-selection is an explicit user action: existing national digits are retained under
-the target calling code even when that draft still needs correction. Selecting a
-country from a non-geographic/global-service number follows the same explicit
-transaction: the global calling code is replaced and its national digits are
-retained under the requested country.
-
-An unfinished international prefix is replaced rather than duplicated. For
-example, selecting Belarus from `+3` or `+37` produces `+375` with reason
-`partial-calling-code-replaced`. Complete calling codes and their national
-digits keep the normal preservation rules.
+### Presentation (MUI)
 
 The default `mode="auto"` uses a desktop Popper and a mobile full-screen Dialog
 with one shared search draft. Set `mode="desktop"` or `"mobile"` for an explicit
 presentation. `portalContainer` controls the portal target and `disablePortal`
-supports constrained Dialog, Drawer, BottomSheet, and iOS VoiceOver layouts.
-The standard list is bounded and non-virtualized; optional virtualization is a
-later measured capability, not a runtime dependency.
+supports constrained Dialog, Drawer, BottomSheet and iOS VoiceOver layouts. The
+list is non-virtualized.
 
-### Semantic Country Selector slots
+### Base UI selector styling
+
+`countrySelector.classNames` accepts `trigger`, `popup`, `positioner`, `search`,
+`close`, `list`, `group`, `groupLabel`, `option`, `flag` and `empty`. The
+matching `data-slot` attributes include `phone-country-trigger`,
+`phone-country-popup`, `phone-country-search`, `phone-country-list`,
+`phone-country-group`, `phone-country-group-label`, `phone-country-option`,
+`phone-country-code`, `phone-country-name`, `phone-country-calling-code` and
+`phone-country-empty`. `countrySelector.triggerProps` forwards Base UI trigger
+props.
+
+### Semantic Country Selector slots (MUI)
 
 Customize one semantic part without replacing the selector state machine:
 
@@ -515,19 +382,262 @@ const selectorSlots = {
 
 The stable semantic slots are `trigger`, `popup`, `searchInput`, `listbox`,
 `group`, `groupLabel`, `option`, `optionLabel`, `countryCode`, `callingCode`,
-`empty`, and `closeButton`. Slot-prop callbacks receive typed owner state;
-prepared refs, event handlers, utility classes, state, and required
-accessibility props are composed by the library. The `popup` slot is the
-desktop popup surface. The responsive Popper/Dialog shells, Dialog title and
-content, click-away boundary, autocomplete anchor/hidden input, and nested
-group-options wrapper are implementation details rather than public slots.
-Flag and loading slots will be added only with those capabilities rather than
-published as empty speculative API.
+`empty` and `closeButton`. Slot-prop callbacks receive typed owner state;
+prepared refs, event handlers, utility classes, state and required accessibility
+props are composed by the library. The `popup` slot is the desktop popup
+surface. The responsive Popper/Dialog shells, Dialog title and content,
+click-away boundary, autocomplete anchor/hidden input and nested group-options
+wrapper are implementation details rather than public slots. While a search
+query is active the ranked results are flat, so `group` and `groupLabel` are not
+rendered.
 
-Custom component slots should forward the `ref` prop when they expose a DOM
-node so consumer refs continue to resolve. The desktop click-away boundary is
-owned by the library and does not depend on the custom `popup` forwarding that
-ref, so a plain function popup cannot disable dismissal accidentally.
+Custom component slots should forward the `ref` prop when they expose a DOM node
+so consumer refs continue to resolve. The click-away boundary is owned by the
+library and does not depend on a custom `popup` forwarding that ref.
+
+### Country events and selection transactions
+
+`onCountryChange` reports every public country transition. Its first argument
+is the resolved country or `null`; details include the complete previous and
+next Numbering Plan and one typed reason: `default`, `user`, `input`, `paste`,
+`external-value` or `reset`. Selecting a country also commits one phone
+transaction with `onChange` reason `country-selection`.
+
+`input` covers committed keyboard, deletion, composition, replacement and
+history edits. `external-value` covers controlled value/country reconciliation,
+including a distinct correction when a parent rejects an optimistic user
+selection.
+
+For controlled country ownership, use `onCountrySelection` as the authoritative
+user-selection stream. `onCountryChange` reports numbering-authority
+transitions; those can differ from the explicit selected country while the
+current digits are still incomplete or incompatible with that selection.
+
+Country selection preserves the national digits while applying the requested
+geographic calling code. Validation then reports whether the resulting draft is
+possible or valid for that country. Use `onCountrySelection` or the return value
+of `actions.selectCountry` to observe the exact transaction:
+
+```tsx
+<MuiPhoneInput
+  onCountrySelection={(result) => {
+    console.log(result.country, result.previousValue, result.value);
+  }}
+/>
+```
+
+`resolvePhoneCountrySelection(value, country)` exposes the same pure typed
+transaction; `selectPhoneCountryValue` is a value-only wrapper. Existing
+national digits are retained under the target calling code even when that draft
+still needs correction, including when switching from a non-geographic/global
+service number.
+
+An unfinished international prefix is replaced rather than duplicated: selecting
+Belarus from `+3` or `+37` produces `+375` with reason
+`partial-calling-code-replaced`.
+
+## Entrypoints
+
+| Import | Contents |
+| --- | --- |
+| `@wh1teee/mui-phone-input`, `/mui` | `MuiPhoneInput`, primitives, controller and shared helpers |
+| `/headless` | `usePhoneInput` and helpers without UI peers |
+| `/base-ui`, `/shadcn` | Unstyled Base UI `PhoneInput` and `PhoneInputCountrySelector` |
+| `/shadcn.css` | Optional semantic-variable skin |
+| `/react-hook-form`, `/mui/react-hook-form` | MUI React Hook Form adapter |
+| `/base-ui/react-hook-form`, `/shadcn/react-hook-form` | Base UI React Hook Form adapter |
+| `/{mui,headless,base-ui,shadcn}/min` | Same APIs with the smaller official metadata |
+| `/{mui,base-ui,shadcn}/min/react-hook-form` | Form adapters for the `/min` entrypoints |
+| `/server` | Parsing, numbering-plan, formatting and validation without React |
+| `/zod` | Zod schema factories |
+| `/metadata/max`, `/metadata/min`, `/metadata/mobile` | Metadata presets (max is the default) |
+| `/metadata/custom` | Custom-metadata validation |
+| `/flags`, `/flags.css` | Flag renderer/provider types and local SVG stylesheet |
+| `/locales/{en,be,ru}` | Selector message packs |
+| `/package.json` | Package metadata |
+
+## React Hook Form
+
+```sh
+pnpm add react-hook-form
+```
+
+`MuiPhoneInputController` binds the canonical `PhoneValue` through RHF's
+`Controller`. An extension can be bound to a second field with `extensionName`
+while both values render through one `MuiPhoneInput`.
+
+```tsx
+import type { PhoneExtension, PhoneValue } from '@wh1teee/mui-phone-input';
+import { MuiPhoneInputController } from '@wh1teee/mui-phone-input/react-hook-form';
+import { useForm } from 'react-hook-form';
+
+type ContactForm = {
+  extension: PhoneExtension;
+  phone: PhoneValue;
+};
+
+const { control } = useForm<ContactForm>({
+  defaultValues: { extension: undefined, phone: undefined },
+});
+
+<MuiPhoneInputController
+  control={control}
+  extensionName="extension"
+  extensionPresentation="separate"
+  name="phone"
+/>;
+```
+
+`PhoneInputController` from `/base-ui/react-hook-form` (or the `/shadcn` alias)
+accepts `name`, `control`, `rules` and optionally `extensionName`,
+`extensionLabel` and `extensionRules`.
+
+RHF remains responsible for form state and validation orchestration, so native
+`Controller` behavior covers dirty/touched state, reset and async defaults,
+`shouldUnregister`, field-array paths, focus-on-error, disabled fields, server
+errors and leading-zero extensions. `rules` and `extensionRules` attach RHF
+rules; the adapter does not create a second parsing or validation authority.
+
+## Zod
+
+```sh
+pnpm add zod
+```
+
+```ts
+import {
+  createPhoneExtensionSchema,
+  createPhoneFormSchema,
+  createPhoneNumberTypeSchema,
+  createPhonePossibleSchema,
+  createPhoneSyntaxSchema,
+  createPhoneValidSchema,
+} from '@wh1teee/mui-phone-input/zod';
+
+const candidate = createPhoneSyntaxSchema();
+const possible = createPhonePossibleSchema({ required: true });
+const strict = createPhoneValidSchema();
+const mobile = createPhoneNumberTypeSchema(['MOBILE']);
+const extension = createPhoneExtensionSchema({ maxLength: 6 });
+const contact = createPhoneFormSchema({ phone: { required: true } });
+```
+
+`createPhoneSyntaxSchema` validates canonical `PhoneValue` syntax and does not
+normalize display text. `createPhonePossibleSchema` uses the default
+possible-number policy; strict validity and number-type restrictions stay
+explicit. Extension schemas reuse the canonical digits-only extension parser.
+
+## Values and ownership
+
+`PhoneValue` is `undefined` for an empty field; otherwise a leading `+` followed
+only by digits. Incomplete candidates such as `+` and `+37529` are preserved
+while the user edits.
+
+Use `value`/`onChange` for controlled ownership or `defaultValue` for
+uncontrolled ownership:
+
+```tsx
+<MuiPhoneInput defaultValue="+1202" label="Phone number" />
+```
+
+Do not switch between controlled and uncontrolled ownership after mount.
+
+## Formatting modes and Display Masks
+
+Formatting changes only the displayed text; the canonical value remains
+`+digits`. Automatic formatting is derived from `libphonenumber-js` metadata.
+
+```tsx
+<MuiPhoneInput
+  displayMode="national"
+  selectedCountry="US"
+  value="+12025550123"
+/>
+// Displays: (202) 555-0123
+
+<MuiPhoneInput
+  displayMode="international-fixed-calling-code"
+  selectedCountry="US"
+/>
+// Displays a protected +1 calling-code prefix while the canonical value is empty.
+```
+
+A declarative Display Mask adds presentation-only punctuation. `#` is a digit
+slot; masks cannot inject literal digits or letters. If a mask cannot fit the
+authority-formatted digits, the component falls back to automatic formatting
+instead of truncating the value.
+
+```tsx
+<MuiPhoneInput
+  displayMask={{ pattern: '+ # (###) ###-####' }}
+  value="+12025550123"
+/>
+```
+
+Advanced presentation can use a typed `FormatStrategy`. It receives the
+automatic result and must return the displayed text and logical-caret
+positions. The runtime rejects strategies that add, remove or reorder digits,
+return an invalid caret map, or are combined with a Display Mask.
+
+```ts
+import type { FormatStrategy } from '@wh1teee/mui-phone-input';
+
+const dotted: FormatStrategy = ({ automatic }) => ({
+  displayValue: automatic.displayValue.replaceAll(' ', '.'),
+  logicalCaretPositions: automatic.logicalCaretPositions,
+});
+```
+
+`formatPhoneInputPresentation(value, options)` exposes the same pure client
+presentation contract, including logical-to-display caret positions.
+
+## Extensions and RFC 3966
+
+Extensions are independent from `PhoneValue`: `undefined` when empty, otherwise
+a digits-only string such as `"42"`. There is no library-wide maximum length;
+opt into one with `extensionMaxLength`.
+
+```tsx
+import type { PhoneExtension, PhoneValue } from '@wh1teee/mui-phone-input';
+
+const [value, setValue] = useState<PhoneValue>('+12025550123');
+const [extension, setExtension] = useState<PhoneExtension>('42');
+
+<MuiPhoneInput
+  extension={extension}
+  extensionLabel="Extension"
+  extensionPresentation="separate"
+  label="Phone number"
+  onChange={setValue}
+  onExtensionChange={setExtension}
+  value={value}
+/>
+```
+
+`extensionPresentation` accepts `none`, `separate`, `inline` or `custom`.
+Changing presentation never creates a second extension value. The custom mode
+uses `renderExtension`; MUI consumers can also replace the built-in field with
+`slots.extension` and configure it through `slotProps.extension`.
+`extensionError`, `extensionHelperText` and `extensionRequired` control the
+extension field independently from phone-number validation.
+
+Pasting an RFC 3966 URI or a libphonenumber-recognized value such as
+`+1 202 555 0123 ext. 42` imports the number and extension in one transaction.
+National extension-bearing values use the selected country as parsing context.
+The resulting `PhoneValue` never contains the extension.
+
+```ts
+import { parseRfc3966, serializeRfc3966 } from '@wh1teee/mui-phone-input/server';
+
+parseRfc3966('tel:+1-202-555-0123;ext=42');
+// { value: '+12025550123', extension: '42' }
+
+serializeRfc3966('+12025550123', '42');
+// 'tel:+12025550123;ext=42'
+```
+
+The same helpers are available from the main entrypoint; use `/server` when
+React or MUI must stay out of the server dependency graph.
 
 ## Numbering-plan resolution
 
@@ -553,30 +663,24 @@ explicit selection resolves them. While unresolved, `possibleCountries`
 contains every authority-backed country for the calling code; once digits
 narrow the plan, the list narrows with `PhoneNumber.getPossibleCountries()`.
 An explicit territory remains selected when the complete number is valid for
-that territory even if metadata reports its parent numbering country as the
-detected label. Positively conflicting shared-code digits still clear the
-selection. Non-geographic plans expose no country.
+it even if metadata reports its parent numbering country. Positively conflicting
+shared-code digits clear the selection. Non-geographic plans expose no country.
 
-`phone.state.selectedCountry` is the explicit country ownership state used by the
-Country Selector. It is intentionally separate from
-`phone.state.numberingPlan.selectedCountry`, which is retained only while the current
-digits remain compatible with that country. After an explicit country click, the UI can
-therefore show the requested country while `detectedCountry`/`resolvedCountry` continue
-to report numbering-authority evidence and validation reports a draft that still needs
-correction.
+`phone.state.selectedCountry` is the explicit country ownership state used by
+the selector. It is separate from `phone.state.numberingPlan.selectedCountry`,
+which is retained only while the digits remain compatible with that country.
+After an explicit country click, the UI can show the requested country while
+`detectedCountry`/`resolvedCountry` report numbering-authority evidence and
+validation reports a draft that still needs correction.
 
 ## Validation
 
-Validation is computed continuously but shown after blur by default. The
-default policy accepts structurally possible numbers without requiring strict
-metadata validity.
+Validation is computed continuously but shown after blur by default. The default
+policy accepts structurally possible numbers without requiring strict metadata
+validity.
 
 ```tsx
-<MuiPhoneInput
-  label="Phone number"
-  required
-  validationMode="possible"
-/>
+<MuiPhoneInput label="Phone number" required validationMode="possible" />
 ```
 
 Strict validity and type restrictions are explicit:
@@ -591,11 +695,8 @@ Strict validity and type restrictions are explicit:
 />
 ```
 
-Use `validationDisplay="always"` or `"never"` to replace blur-default
-presentation. `onChange` details always include the complete serializable
-validation result regardless of display policy.
-
-For server or non-MUI boundaries:
+`validationDisplay="always"` or `"never"` replaces the blur default. `onChange`
+details always include the complete serializable validation result.
 
 ```ts
 import {
@@ -607,16 +708,16 @@ const result = validatePhoneValue('+441481123456');
 // status: 'possible', isPossible: true, isValid: false, accepted: true
 ```
 
-Structural validation does not prove ownership, reachability, SMS/call
-delivery, or that the number exists. Use an explicit verification flow such as
-OTP when the product requires those guarantees.
+Structural validation does not prove ownership, reachability, SMS/call delivery
+or that the number exists. Use an explicit verification flow such as OTP when
+the product requires those guarantees.
 
 ## Metadata presets
 
-Max metadata remains the default for both client and server APIs while
-`validationMode="possible"` remains the default acceptance policy. Select a
-smaller official `libphonenumber-js` preset explicitly when bundle or runtime
-constraints justify the reduced strict-validity/type information:
+Max metadata is the default for client and server APIs, with
+`validationMode="possible"` as the default policy. Select a smaller official
+`libphonenumber-js` preset explicitly when bundle constraints justify reduced
+strict-validity/type information:
 
 ```tsx
 import { MuiPhoneInput } from '@wh1teee/mui-phone-input';
@@ -625,8 +726,8 @@ import minMetadata from '@wh1teee/mui-phone-input/metadata/min';
 <MuiPhoneInput metadata={minMetadata} />;
 ```
 
-Use the same metadata object with server helpers to preserve client/server
-semantics:
+Use the same metadata object with server helpers to keep client/server semantics
+aligned:
 
 ```ts
 import { validatePhoneValue } from '@wh1teee/mui-phone-input/server';
@@ -635,35 +736,29 @@ import mobileMetadata from '@wh1teee/mui-phone-input/metadata/mobile';
 validatePhoneValue('+375291234567', { metadata: mobileMetadata });
 ```
 
-Custom metadata must come from the official `libphonenumber-js` metadata
-generator and pass `validatePhoneMetadata()` from
-`@wh1teee/mui-phone-input/metadata/custom` before use. Custom country tables,
-calling-code overrides, and locally authored validity/type rules are not a
-supported numbering authority.
+Custom metadata must come from the official `libphonenumber-js` generator and
+pass `validatePhoneMetadata()` from `@wh1teee/mui-phone-input/metadata/custom`.
+Custom country tables, calling-code overrides and locally authored validity
+rules are not supported.
 
-For a bundle-sensitive client that uses possible-number checks and formatting,
-select the renderer's `/min` path directly instead of importing max metadata and
-passing a second preset at runtime:
+For a bundle-sensitive client, select the renderer's `/min` path directly
+instead of importing max metadata and passing another preset at runtime:
 
 ```tsx
 import { PhoneInput } from '@wh1teee/mui-phone-input/shadcn/min';
 import '@wh1teee/mui-phone-input/shadcn.css';
 ```
 
-The current exact-artifact budgets include Maskito, `libphonenumber-js`,
-`tabbable`, and the selected metadata, but exclude React and the renderer peers
-already owned by the application. The measured gzip closures are approximately
-82 KiB for max headless and 61 KiB for min headless, 85 KiB for max Base UI and
-63 KiB for min Base UI, and 95 KiB for max MUI and 73 KiB for min MUI. CI checks
-both gzip and Brotli ceilings and rejects cross-renderer imports. Use the default
-max entries when strict validity or number-type precision is product-critical;
-the smaller official metadata deliberately contains less validation/type detail.
+Measured gzip closures (Maskito, `libphonenumber-js`, `tabbable` and metadata
+included; React and renderer peers excluded) are approximately 82 KiB max / 61
+KiB min headless, 85 / 63 KiB Base UI, and 95 / 73 KiB MUI. Use the default max
+entries when strict validity or number-type precision is product-critical.
 
 ## Headless controller and primitives
 
-`usePhoneInput` is the same controller used by `MuiPhoneInput`. Advanced
-consumers can compose supported primitives without copying input, numbering or
-validation semantics.
+`usePhoneInput` is the same controller used by both renderers. With MUI,
+compose the supported primitives without copying input, numbering or validation
+semantics:
 
 ```tsx
 'use client';
@@ -696,11 +791,10 @@ function ComposablePhoneInput() {
 }
 ```
 
-The controller exposes `state`, `actions`, native input refs, and prop getters
-for custom composition. Prepared input props include the engine handlers,
-validation relationships and `data-phone-input-*` state. Consumers should
-spread the complete getter result rather than reimplementing individual
-handlers.
+The controller exposes `state`, `actions`, native input refs and prop getters.
+Prepared input props include the engine handlers, validation relationships and
+`data-phone-input-*` state; spread the complete getter result rather than
+reimplementing individual handlers.
 
 ## Server-safe helpers
 
@@ -720,14 +814,12 @@ const passengerPhone = parseNationalPhoneValue('8 (029) 123-45-67', 'BY');
 ```
 
 `parseNationalPhoneValue(input, country)` accepts one complete national number
-under the explicit country authority and returns a canonical Phone Value only
-when the result is structurally possible. It shares the same metadata-backed
-implementation used by complete-field national autofill, including territory
-identity and possible-by-default semantics. It returns `null` for partial,
-international, malformed, or structurally impossible input. Use
-`parsePhoneValue` for already international formatted input.
+under the explicit country and returns a canonical value only when it is
+structurally possible. It shares the implementation used by national autofill
+and returns `null` for partial, international, malformed or impossible input.
+Use `parsePhoneValue` for international formatted input.
 
-The server entrypoint imports no React, MUI, Emotion, DOM, or browser globals.
+The server entrypoint imports no React, MUI, Emotion, DOM or browser globals.
 
 ## SSR and hydration
 
@@ -735,25 +827,18 @@ Use explicit initial values, countries, locale and placeholders when the server
 and client must produce the same first render. The package does not read
 `navigator`, GeoIP, storage or browser locale during server render.
 
-The release verifier installs the exact `.tgz` in a Next.js App Router
-application and compares semantic snapshots from JavaScript-disabled server
-output and the post-hydration DOM for empty, geographic, unresolved shared-code
-and non-geographic states. The same tarball is production-built and exercised
-in Vite. Import pure helpers from `@wh1teee/mui-phone-input/server`; that entry
-contains no MUI or React component graph.
-
-No Next.js package exception is required. Do not add `transpilePackages`,
-`serverExternalPackages`, or experimental `optimizePackageImports` for this
-library. Import browser UI from its explicit renderer subpath in a Client
-Component and neutral helpers from `/server` in Server Components or route
-handlers. The exact packed consumer proves this contract on Next.js 16 with the
-default App Router/Turbopack build.
+No Next.js package exception is required: do not add `transpilePackages`,
+`serverExternalPackages` or `optimizePackageImports` for this library. Import
+browser UI from its renderer subpath in a Client Component, and neutral helpers
+from `/server` in Server Components or route handlers. The packed artifact is
+verified in a Next.js 16 App Router build (server vs. hydrated DOM snapshots)
+and a Vite production build.
 
 ## MUI customization
 
 The component registers `MuiPhoneInput` in the MUI theme and exposes stable
-`root`, `input`, `validationMessage`, and `countrySelector*` utility classes.
-The exported `MuiPhoneInputOwnerState` supports owner-state-aware overrides.
+`root`, `input`, `validationMessage` and `countrySelector*` utility classes. The
+exported `MuiPhoneInputOwnerState` supports owner-state-aware overrides.
 
 ```ts
 const theme = createTheme({
@@ -779,18 +864,21 @@ const theme = createTheme({
 
 `MuiPhoneInput` inherits Material UI `TextField` `slots` and `slotProps`. A
 custom `htmlInput` slot receives the native ref, composed events, utility class,
-ARIA relationships, and prepared `data-phone-input-status`,
-`data-phone-input-plan`, and `data-phone-input-accepted` state.
+ARIA relationships and prepared `data-phone-input-status`,
+`data-phone-input-plan` and `data-phone-input-accepted` state.
 
-Replace `slots.countrySelector` for a custom selector implementation or use
-`slotProps.countrySelector` for locale, preferred countries, ordering, filtering,
-portal policy, messages, classes, and result bounds. The official slot renders
-inside `PhoneInputProvider` and uses the same controller as the phone input.
+Replace `slots.countrySelector` for a custom selector, or use
+`slotProps.countrySelector` for locale, preferred countries, ordering,
+filtering, portal policy, messages, classes and `resultLimit`. The official
+slot renders inside `PhoneInputProvider` and uses the same controller as the
+phone input.
 
-## TypeScript 7
+## TypeScript
 
-The package source, declarations, examples, and exact consumer applications are
-checked with the stable native TypeScript 7 compiler. Repository tools that
-still embed TypeScript's programmatic API use Microsoft's official TypeScript 6
-compatibility package through an npm alias; they do not downgrade `tsc`.
-`pnpm verify:typescript` enforces this boundary.
+Source, declarations, examples and exact consumer applications are checked with
+the stable native TypeScript 7 compiler.
+
+## Reporting problems
+
+Use the public [Q&A Discussions intake](https://github.com/wh1teee/mui-phone-input/discussions/new?category=q-a)
+for bug reports and support questions.

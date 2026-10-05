@@ -7,6 +7,8 @@ export {
   createPhoneCountryOptions,
   type FilterPhoneCountryOptionsParameters,
   filterPhoneCountryOptions,
+  getPopularPhoneCountries,
+  type PopularPhoneCountriesParameters,
   type PhoneCountryNameResolver,
   type PhoneCountryOption,
   type PhoneCountrySelectionAppliedReason,

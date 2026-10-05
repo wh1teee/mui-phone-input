@@ -8,6 +8,7 @@ import Paper from '@mui/material/Paper';
 import Popper, { type PopperProps } from '@mui/material/Popper';
 import { type Breakpoint, styled, useTheme } from '@mui/material/styles';
 import useAutocomplete, {
+  type AutocompleteGroupedOption,
   type AutocompleteHighlightChangeReason,
 } from '@mui/material/useAutocomplete';
 import useMediaQuery from '@mui/material/useMediaQuery';
@@ -329,6 +330,13 @@ const CountrySelectorListbox = styled('ul', {
   padding: 0,
   position: 'relative',
   scrollbarGutter: 'stable',
+  variants: [
+    {
+      // The full-screen dialog gives the list all remaining height.
+      props: ({ ownerState }) => ownerState.presentation === 'mobile',
+      style: { flex: '1 1 auto', maxHeight: 'none', minHeight: 0 },
+    },
+  ],
 });
 
 const CountrySelectorGroup = styled('li', {
@@ -441,6 +449,12 @@ function joinClassNames(...values: Array<string | undefined>): string | undefine
   return joined || undefined;
 }
 
+function isOptionGroup(
+  item: PhoneCountryOption | AutocompleteGroupedOption<PhoneCountryOption>,
+): item is AutocompleteGroupedOption<PhoneCountryOption> {
+  return 'options' in item;
+}
+
 function optionLabel(option: Readonly<PhoneCountryOption>): string {
   return `${option.localizedName}, ${option.country}, +${option.callingCode}`;
 }
@@ -506,7 +520,7 @@ export function PhoneInputCountrySelector({
   preferredCountries,
   ref: triggerExternalRef,
   resolveCountryName,
-  resultLimit = 50,
+  resultLimit,
   slotProps,
   slots,
   ...triggerProps
@@ -643,6 +657,7 @@ export function PhoneInputCountrySelector({
     phone.state.disabled || phone.state.readOnly || triggerProps.disabled === true;
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
+  const searching = query.trim() !== '';
   const ownerState = useMemo<PhoneCountrySelectorOwnerState>(
     () => ({
       controlled: phone.state.controlled,
@@ -722,14 +737,17 @@ export function PhoneInputCountrySelector({
     disabled: phone.state.disabled || phone.state.readOnly,
     filterOptions: (_options, state) => [
       ...filterPhoneCountryOptions(options, state.inputValue, {
-        limit: resultLimit,
+        ...(resultLimit === undefined ? {} : { limit: resultLimit }),
         selectedCountry: displayCountry,
       }),
     ],
     getOptionKey: (option) => option.country,
     getOptionLabel: (option) => optionLabel(option),
-    groupBy: (option) =>
-      option.preferred ? messages.preferredCountries : messages.allCountries,
+    // Ranked search results stay flat; grouping them would split relevance order.
+    groupBy: searching
+      ? undefined
+      : (option) =>
+          option.preferred ? messages.preferredCountries : messages.allCountries,
     id: `${phone.state.inputId}-country-selector`,
     inputValue: query,
     isOptionEqualToValue: (option, selected) => option.country === selected.country,
@@ -744,7 +762,11 @@ export function PhoneInputCountrySelector({
       if (reason === 'selectOption' && option) {
         phone.actions.selectCountry(option.country);
         setQuery('');
-        closeSelector();
+        // After choosing a country the next step is typing the number.
+        closeSelector(false);
+        window.requestAnimationFrame(() =>
+          (phone.inputElementRef.current ?? triggerRef.current)?.focus(),
+        );
       }
     },
     onClose: (_event, reason) => {
@@ -764,7 +786,8 @@ export function PhoneInputCountrySelector({
     open,
     openOnFocus: true,
     options,
-    value: activeOption,
+    // MUI highlights a matching selected value; while searching, the best match wins.
+    value: searching ? null : activeOption,
   });
   const { ref: autocompleteListboxRef, ...listboxProps } =
     autocomplete.getListboxProps() as ComponentPropsWithRef<'ul'>;
@@ -1244,11 +1267,165 @@ export function PhoneInputCountrySelector({
     visibleOptionCount,
   ]);
 
+  const renderOption = (option: PhoneCountryOption, index: number) => {
+    const preparedOptionProps = autocomplete.getOptionProps({
+      index,
+      option,
+    }) as ComponentPropsWithRef<'li'> & {
+      'data-option-index': number;
+      key: Key;
+    };
+    const { key, ...preparedOptionPropsWithoutKey } = preparedOptionProps;
+    const optionOwnerState: PhoneCountrySelectorOptionOwnerState = {
+      ...ownerState,
+      option,
+      selected: option.country === displayCountry,
+    };
+    const externalOptionSlotProps = resolveSlotProps(
+      slotProps?.option,
+      optionOwnerState,
+    );
+    const mergedOptionSlotProps = mergeSlotProps(externalOptionSlotProps, {
+      ...preparedOptionPropsWithoutKey,
+      'aria-label': optionLabel(option),
+      className: joinClassNames(
+        classes.countrySelectorOption,
+        preparedOptionPropsWithoutKey.className,
+      ),
+      'data-country': option.country,
+    });
+    const mergedOptionMouseMove = mergedOptionSlotProps.onMouseMove;
+    const optionSlotProps = appendOwnerState(
+      OptionSlot,
+      {
+        ...mergedOptionSlotProps,
+        'aria-label': optionLabel(option),
+        'aria-disabled': preparedOptionPropsWithoutKey['aria-disabled'],
+        'aria-selected': preparedOptionPropsWithoutKey['aria-selected'],
+        'data-country': option.country,
+        'data-option-index': preparedOptionPropsWithoutKey['data-option-index'],
+        id: preparedOptionPropsWithoutKey.id,
+        onMouseMove: (event: MouseEvent<HTMLLIElement>) => {
+          const nativeEvent =
+            event.nativeEvent as PresentationHighlightRestoreMouseEvent;
+          if (nativeEvent[presentationHighlightRestoreMarker]) {
+            preparedOptionPropsWithoutKey.onMouseMove?.(event);
+            event.stopPropagation();
+            return;
+          }
+          mergedOptionMouseMove?.(event);
+        },
+        ref: externalOptionSlotProps?.ref,
+        role: preparedOptionPropsWithoutKey.role,
+        tabIndex: preparedOptionPropsWithoutKey.tabIndex,
+      },
+      optionOwnerState,
+    );
+    const externalOptionLabelSlotProps = resolveSlotProps(
+      slotProps?.optionLabel,
+      optionOwnerState,
+    );
+    const optionLabelSlotProps = appendOwnerState(
+      OptionLabelSlot,
+      {
+        ...mergeSlotProps(externalOptionLabelSlotProps, {
+          className: classes.countrySelectorOptionLabel,
+        }),
+        ref: externalOptionLabelSlotProps?.ref,
+      },
+      optionOwnerState,
+    );
+    const indicatorOwnerState: PhoneCountrySelectorIndicatorOwnerState = {
+      ...ownerState,
+      option,
+      placement: 'option',
+    };
+    const flagOwnerState: PhoneCountrySelectorFlagOwnerState = {
+      ...indicatorOwnerState,
+      country: option.country,
+      flagMode,
+    };
+    const externalFlagSlotProps = resolveSlotProps(slotProps?.flag, flagOwnerState);
+    const flagSlotProps = appendOwnerState(
+      FlagSlot,
+      {
+        ...mergeSlotProps(externalFlagSlotProps, {
+          'aria-hidden': true,
+          className: classes.countrySelectorFlag,
+          country: option.country,
+          ...(externalFlag === undefined ? {} : { external: externalFlag }),
+          mode: flagMode,
+          placement: 'option' as const,
+          ...(flagProvider === undefined ? {} : { provider: flagProvider }),
+        }),
+        'aria-hidden': true,
+        country: option.country,
+        mode: flagMode,
+        placement: 'option' as const,
+        ref: externalFlagSlotProps?.ref,
+      },
+      flagOwnerState,
+    );
+    const externalCountryCodeSlotProps = resolveSlotProps(
+      slotProps?.countryCode,
+      indicatorOwnerState,
+    );
+    const countryCodeSlotProps = appendOwnerState(
+      CountryCodeSlot,
+      {
+        ...mergeSlotProps(externalCountryCodeSlotProps, {
+          'aria-hidden': true,
+          className: classes.countrySelectorCountryCode,
+        }),
+        'aria-hidden': true,
+        ref: externalCountryCodeSlotProps?.ref,
+      },
+      indicatorOwnerState,
+    );
+    const externalCallingCodeSlotProps = resolveSlotProps(
+      slotProps?.callingCode,
+      indicatorOwnerState,
+    );
+    const callingCodeSlotProps = appendOwnerState(
+      CallingCodeSlot,
+      {
+        ...mergeSlotProps(externalCallingCodeSlotProps, {
+          'aria-hidden': true,
+          className: classes.countrySelectorCallingCode,
+        }),
+        'aria-hidden': true,
+        ref: externalCallingCodeSlotProps?.ref,
+      },
+      indicatorOwnerState,
+    );
+
+    return (
+      <OptionSlot {...optionSlotProps} key={key}>
+        {flagMode === 'none' && !flagProvider ? null : <FlagSlot {...flagSlotProps} />}
+        <OptionLabelSlot {...optionLabelSlotProps}>
+          {option.localizedName}
+        </OptionLabelSlot>
+        <CountryCodeSlot {...countryCodeSlotProps}>{option.country}</CountryCodeSlot>
+        <CallingCodeSlot {...callingCodeSlotProps}>
+          +{option.callingCode}
+        </CallingCodeSlot>
+      </OptionSlot>
+    );
+  };
+
   const listbox = (
     <>
       {autocomplete.groupedOptions.length > 0 ? (
         <ListboxSlot {...listboxSlotProps}>
-          {autocomplete.groupedOptions.map((group) => {
+          {(
+            autocomplete.groupedOptions as ReadonlyArray<
+              PhoneCountryOption | AutocompleteGroupedOption<PhoneCountryOption>
+            >
+          ).map((item, index) => {
+            if (!isOptionGroup(item)) {
+              return renderOption(item, index);
+            }
+            const group = item;
             const groupLabelId = `${autocomplete.id}-group-${group.key}`;
             const groupOwnerState: PhoneCountrySelectorGroupOwnerState = {
               ...ownerState,
@@ -1295,168 +1472,9 @@ export function PhoneInputCountrySelector({
                   aria-labelledby={groupLabelId}
                   role="group"
                 >
-                  {group.options.map((option, optionIndex) => {
-                    const preparedOptionProps = autocomplete.getOptionProps({
-                      index: group.index + optionIndex,
-                      option,
-                    }) as ComponentPropsWithRef<'li'> & {
-                      'data-option-index': number;
-                      key: Key;
-                    };
-                    const { key, ...preparedOptionPropsWithoutKey } =
-                      preparedOptionProps;
-                    const optionOwnerState: PhoneCountrySelectorOptionOwnerState = {
-                      ...ownerState,
-                      option,
-                      selected: option.country === displayCountry,
-                    };
-                    const externalOptionSlotProps = resolveSlotProps(
-                      slotProps?.option,
-                      optionOwnerState,
-                    );
-                    const mergedOptionSlotProps = mergeSlotProps(
-                      externalOptionSlotProps,
-                      {
-                        ...preparedOptionPropsWithoutKey,
-                        'aria-label': optionLabel(option),
-                        className: joinClassNames(
-                          classes.countrySelectorOption,
-                          preparedOptionPropsWithoutKey.className,
-                        ),
-                        'data-country': option.country,
-                      },
-                    );
-                    const mergedOptionMouseMove = mergedOptionSlotProps.onMouseMove;
-                    const optionSlotProps = appendOwnerState(
-                      OptionSlot,
-                      {
-                        ...mergedOptionSlotProps,
-                        'aria-label': optionLabel(option),
-                        'aria-disabled': preparedOptionPropsWithoutKey['aria-disabled'],
-                        'aria-selected': preparedOptionPropsWithoutKey['aria-selected'],
-                        'data-country': option.country,
-                        'data-option-index':
-                          preparedOptionPropsWithoutKey['data-option-index'],
-                        id: preparedOptionPropsWithoutKey.id,
-                        onMouseMove: (event: MouseEvent<HTMLLIElement>) => {
-                          const nativeEvent =
-                            event.nativeEvent as PresentationHighlightRestoreMouseEvent;
-                          if (nativeEvent[presentationHighlightRestoreMarker]) {
-                            preparedOptionPropsWithoutKey.onMouseMove?.(event);
-                            event.stopPropagation();
-                            return;
-                          }
-                          mergedOptionMouseMove?.(event);
-                        },
-                        ref: externalOptionSlotProps?.ref,
-                        role: preparedOptionPropsWithoutKey.role,
-                        tabIndex: preparedOptionPropsWithoutKey.tabIndex,
-                      },
-                      optionOwnerState,
-                    );
-                    const externalOptionLabelSlotProps = resolveSlotProps(
-                      slotProps?.optionLabel,
-                      optionOwnerState,
-                    );
-                    const optionLabelSlotProps = appendOwnerState(
-                      OptionLabelSlot,
-                      {
-                        ...mergeSlotProps(externalOptionLabelSlotProps, {
-                          className: classes.countrySelectorOptionLabel,
-                        }),
-                        ref: externalOptionLabelSlotProps?.ref,
-                      },
-                      optionOwnerState,
-                    );
-                    const indicatorOwnerState: PhoneCountrySelectorIndicatorOwnerState =
-                      {
-                        ...ownerState,
-                        option,
-                        placement: 'option',
-                      };
-                    const flagOwnerState: PhoneCountrySelectorFlagOwnerState = {
-                      ...indicatorOwnerState,
-                      country: option.country,
-                      flagMode,
-                    };
-                    const externalFlagSlotProps = resolveSlotProps(
-                      slotProps?.flag,
-                      flagOwnerState,
-                    );
-                    const flagSlotProps = appendOwnerState(
-                      FlagSlot,
-                      {
-                        ...mergeSlotProps(externalFlagSlotProps, {
-                          'aria-hidden': true,
-                          className: classes.countrySelectorFlag,
-                          country: option.country,
-                          ...(externalFlag === undefined
-                            ? {}
-                            : { external: externalFlag }),
-                          mode: flagMode,
-                          placement: 'option' as const,
-                          ...(flagProvider === undefined
-                            ? {}
-                            : { provider: flagProvider }),
-                        }),
-                        'aria-hidden': true,
-                        country: option.country,
-                        mode: flagMode,
-                        placement: 'option' as const,
-                        ref: externalFlagSlotProps?.ref,
-                      },
-                      flagOwnerState,
-                    );
-                    const externalCountryCodeSlotProps = resolveSlotProps(
-                      slotProps?.countryCode,
-                      indicatorOwnerState,
-                    );
-                    const countryCodeSlotProps = appendOwnerState(
-                      CountryCodeSlot,
-                      {
-                        ...mergeSlotProps(externalCountryCodeSlotProps, {
-                          'aria-hidden': true,
-                          className: classes.countrySelectorCountryCode,
-                        }),
-                        'aria-hidden': true,
-                        ref: externalCountryCodeSlotProps?.ref,
-                      },
-                      indicatorOwnerState,
-                    );
-                    const externalCallingCodeSlotProps = resolveSlotProps(
-                      slotProps?.callingCode,
-                      indicatorOwnerState,
-                    );
-                    const callingCodeSlotProps = appendOwnerState(
-                      CallingCodeSlot,
-                      {
-                        ...mergeSlotProps(externalCallingCodeSlotProps, {
-                          'aria-hidden': true,
-                          className: classes.countrySelectorCallingCode,
-                        }),
-                        'aria-hidden': true,
-                        ref: externalCallingCodeSlotProps?.ref,
-                      },
-                      indicatorOwnerState,
-                    );
-
-                    return (
-                      <OptionSlot {...optionSlotProps} key={key}>
-                        {flagMode === 'none' && !flagProvider ? null : (
-                          <FlagSlot {...flagSlotProps} />
-                        )}
-                        <OptionLabelSlot {...optionLabelSlotProps}>
-                          {option.localizedName}
-                        </OptionLabelSlot>
-                        <CountryCodeSlot {...countryCodeSlotProps}>
-                          {option.country}
-                        </CountryCodeSlot>
-                        <CallingCodeSlot {...callingCodeSlotProps}>
-                          +{option.callingCode}
-                        </CallingCodeSlot>
-                      </OptionSlot>
-                    );
-                  })}
+                  {group.options.map((option, optionIndex) =>
+                    renderOption(option, group.index + optionIndex),
+                  )}
                 </CountrySelectorGroupOptions>
               </GroupSlot>
             );
@@ -1581,7 +1599,15 @@ export function PhoneInputCountrySelector({
             {messages.dialogTitle}
             <CloseButtonSlot {...closeButtonSlotProps}>×</CloseButtonSlot>
           </DialogTitle>
-          <DialogContent>
+          <DialogContent
+            sx={{
+              display: 'flex',
+              flexDirection: 'column',
+              overflow: 'hidden',
+              // Keep the search focus outline visible below the dialog title.
+              '&&': { paddingTop: 1 },
+            }}
+          >
             {search}
             {listbox}
           </DialogContent>

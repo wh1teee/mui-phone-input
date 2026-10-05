@@ -371,11 +371,14 @@ describe('mobile no-portal accessibility', () => {
     const search = page.getByRole('combobox', { name: 'Search countries' });
     await userEvent.fill(search, 'Canada');
     await userEvent.click(page.getByRole('option', { name: 'Canada, CA, +1' }));
-    await expect.element(trigger).toHaveFocus();
+    // A selection hands focus to the phone number, not back to the trigger.
+    await expect
+      .element(page.getByLabelText('Cardinality phone', { exact: true }))
+      .toHaveFocus();
     expect(onChange).toHaveBeenCalledTimes(1);
     expect(onCountryChange).toHaveBeenCalledTimes(1);
     expect(onCountrySelection).toHaveBeenCalledTimes(1);
-    expect(onTriggerFocus).toHaveBeenCalledTimes(1);
+    expect(onTriggerFocus).not.toHaveBeenCalled();
     await view.unmount();
   });
 

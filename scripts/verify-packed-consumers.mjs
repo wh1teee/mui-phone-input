@@ -1145,10 +1145,9 @@ async function verifyPackedBrowser(destination, consumer) {
         `Packed country-selection result is invalid: ${JSON.stringify(countrySelectionDetails)}`,
       );
     }
+    // A committed selection hands focus to the phone number for typing.
     await page.waitForFunction(
-      () =>
-        document.activeElement?.getAttribute('data-testid') ===
-        'country-selector-trigger',
+      () => document.activeElement?.getAttribute('data-testid') === 'phone-input',
       undefined,
       { timeout: 3_000 },
     );

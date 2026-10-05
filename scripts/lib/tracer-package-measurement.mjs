@@ -12,7 +12,9 @@ import {
 } from './package-artifact.mjs';
 import { normalizeTracerClosure } from './tracer-package-normalization.mjs';
 
-const MAIN_GZIP_BUDGET_BYTES = 32_636;
+// Raised from 32,636 in 2026-10 for shared ranked country search and
+// getPopularPhoneCountries (+410 B gzip), keeping the same 96-byte headroom.
+const MAIN_GZIP_BUDGET_BYTES = 33_103;
 const SERVER_GZIP_BUDGET_BYTES = 10 * 1024;
 
 const MAIN_BUDGET_EXTERNALS = [

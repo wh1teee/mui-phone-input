@@ -10,6 +10,7 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   createPhoneCountryOptions,
   filterPhoneCountryOptions,
+  getPopularPhoneCountries,
   resolvePhoneCountrySelection,
   selectPhoneCountryValue,
 } from '../../packages/mui-phone-input/src/country-selector';
@@ -347,6 +348,36 @@ describe('country selector data', () => {
 
     expect(selected).toHaveLength(3);
     expect(selected.map((option) => option.country)).toEqual(['BY', 'PL', 'LT']);
+  });
+
+  it('lists the metadata main country first for a shared calling code', () => {
+    const allOptions = createPhoneCountryOptions();
+    const firstFor = (query: string) =>
+      filterPhoneCountryOptions(allOptions, query)[0]?.country;
+
+    expect(firstFor('+1')).toBe('US');
+    expect(firstFor('44')).toBe('GB');
+    expect(firstFor('+7')).toBe('RU');
+    expect(firstFor('us')).toBe('US');
+  });
+
+  it('keeps every country unless a result limit is requested', () => {
+    const allOptions = createPhoneCountryOptions();
+
+    expect(filterPhoneCountryOptions(allOptions, '')).toHaveLength(
+      getCountries().length,
+    );
+    expect(filterPhoneCountryOptions(allOptions, '', { limit: 20 })).toHaveLength(20);
+  });
+
+  it('returns a configurable number of popular countries', () => {
+    expect(getPopularPhoneCountries(3)).toEqual(['IN', 'CN', 'US']);
+    expect(getPopularPhoneCountries(0)).toEqual([]);
+    expect(getPopularPhoneCountries().length).toBeGreaterThanOrEqual(40);
+    expect(() => getPopularPhoneCountries(-1)).toThrow(/non-negative integer/u);
+    expect(() =>
+      createPhoneCountryOptions({ preferredCountries: getPopularPhoneCountries(15) }),
+    ).not.toThrow();
   });
 
   it('rejects unsupported countries and invalid result limits', () => {

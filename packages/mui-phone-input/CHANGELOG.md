@@ -1,5 +1,20 @@
 # @wh1teee/mui-phone-input
 
+## 1.1.0
+
+### Minor Changes
+
+- Make country selection predictable in every renderer.
+
+  - Base UI/shadcn search now uses the shared ranking instead of list order, so typing `us` and pressing Enter selects United States rather than the first alphabetical match.
+  - While a query is active, both renderers show one flat ranked list and highlight the best match; previously MUI kept the highlight on the already selected country and split results across group headers.
+  - Exact calling-code searches list the metadata's main country first (`+1` → United States, `+44` → United Kingdom, `+7` → Russia).
+  - The full country list is shown by default (MUI previously stopped at 50). `resultLimit` remains available in MUI and is now available in Base UI.
+  - Add `getPopularPhoneCountries(count)` for a configurable pinned group of the most populous countries; Base UI now renders the "Preferred countries" and "All countries" groups.
+  - Choosing a country moves focus to the phone input in both renderers; Escape and close still return focus to the trigger.
+  - The MUI mobile dialog list fills the available height; the Base UI trigger shows the calling code.
+  - The extension input is always left-to-right, and the shadcn skin styles extension errors independently of phone errors.
+
 ## 1.0.5
 
 ### Patch Changes
