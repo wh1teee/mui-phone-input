@@ -55,9 +55,11 @@ test('landing keeps the live input prominent while giving mobile users context f
     'href',
     '/playground',
   );
-  await expect(
-    page.getByRole('link', { name: 'Read phone semantics' }),
-  ).toHaveAttribute('href', '#phone-semantics');
+
+  // The renderer switch keeps one value across MUI and the shadcn/Base UI field.
+  await page.getByRole('button', { name: 'shadcn / Base UI' }).click();
+  await expect(page.getByTestId('base-ui-phone-input')).toHaveValue('+1 202 555 0123');
+  await page.getByRole('button', { name: 'Material UI' }).click();
 
   await page.setViewportSize({ width: 390, height: 844 });
   await expect(phone).toBeVisible();
@@ -140,18 +142,15 @@ test('documentation navigation and release disclosure are complete', async ({
   await expect(page.getByRole('heading', { level: 1 })).toContainText(
     'A complete phone input for React',
   );
-  await expect(page.getByText(/Stable 1\.x is live on npm/i)).toBeVisible();
   await expect(page.getByText(/@wh1teee\/mui-phone-input@next/i)).toHaveCount(0);
-  await page.getByTestId('base-ui-phone-input').fill('2025550123');
-  await expect(page.getByTestId('base-ui-phone-value')).toHaveText('+12025550123');
   await expect(page.getByText(/mpi-oan\.24/i)).toHaveCount(0);
-  await expect(page.getByText(/32,768 bytes gzip/i)).toBeVisible();
-  await expect(page.getByText(/virtualization/i).first()).toBeVisible();
+  await expect(page.getByText('33,103 bytes')).toBeVisible();
+  await expect(page.getByText(/not virtualized/i).first()).toBeVisible();
 
   await page.getByRole('link', { name: 'Migration', exact: true }).click();
   await expect(page).toHaveURL(/\/migration$/u);
   await expect(page.getByRole('heading', { level: 1 })).toHaveText(
-    'Replace legacy APIs without preserving legacy authority',
+    'Migrate from another phone input',
   );
 
   await page.getByRole('link', { name: 'Playground', exact: true }).click();
@@ -394,6 +393,8 @@ test('all rendered internal links resolve and fragment targets exist', async ({
 }) => {
   for (const route of ['/', '/playground', '/migration']) {
     await page.goto(route);
+    // Resolve against the audited route; later fragment checks navigate away.
+    const routeUrl = page.url();
     const links = await page
       .locator('a[href]')
       .evaluateAll((elements) =>
@@ -405,7 +406,7 @@ test('all rendered internal links resolve and fragment targets exist', async ({
         continue;
       }
 
-      const target = new URL(href, page.url());
+      const target = new URL(href, routeUrl);
       const response = await page.request.get(target.pathname);
       expect(response.ok(), `${route} -> ${href}`).toBe(true);
 

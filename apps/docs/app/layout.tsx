@@ -1,6 +1,7 @@
 import { AppRouterCacheProvider } from '@mui/material-nextjs/v15-appRouter';
 import '@wh1teee/mui-phone-input/flags.css';
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
+import { Inter, JetBrains_Mono } from 'next/font/google';
 import type { ReactNode } from 'react';
 
 import './globals.css';
@@ -8,8 +9,28 @@ import { Providers } from './providers';
 
 const configuredSiteUrl = process.env.NEXT_PUBLIC_DOCS_URL;
 
+// Self-hosted at build time: no runtime request to a font CDN.
+const sans = Inter({
+  display: 'swap',
+  subsets: ['latin', 'cyrillic'],
+  variable: '--font-sans',
+});
+const mono = JetBrains_Mono({
+  display: 'swap',
+  subsets: ['latin', 'cyrillic'],
+  variable: '--font-mono',
+});
+
+export const viewport: Viewport = {
+  colorScheme: 'light dark',
+  themeColor: [
+    { color: '#ffffff', media: '(prefers-color-scheme: light)' },
+    { color: '#0b1120', media: '(prefers-color-scheme: dark)' },
+  ],
+};
+
 export const metadata: Metadata = {
-  title: 'MUI Phone Input documentation',
+  title: 'Phone Input — React, Material UI, Base UI and shadcn',
   description:
     'Authoritative documentation, interactive playground, and migration guides for @wh1teee/mui-phone-input.',
   ...(configuredSiteUrl
@@ -29,7 +50,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" className={`${sans.variable} ${mono.variable}`}>
       <body>
         <AppRouterCacheProvider>
           <Providers>{children}</Providers>

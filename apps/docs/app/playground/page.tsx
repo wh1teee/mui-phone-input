@@ -5,7 +5,7 @@ import {
 } from '@wh1teee/mui-phone-input/server';
 import { createPhoneFormSchema } from '@wh1teee/mui-phone-input/zod';
 
-import { DocsShell, ReleaseStatus } from '../docs-ui';
+import { DocsShell } from '../docs-ui';
 import { Playground } from './playground';
 
 export default function PlaygroundPage() {
@@ -26,13 +26,12 @@ export default function PlaygroundPage() {
 
   return (
     <DocsShell>
-      <div className="docs-hero">
-        <p className="docs-kicker">Interactive consumer</p>
+      <div className="docs-page-hero">
+        <p className="docs-kicker">Interactive</p>
         <h1>Playground</h1>
         <p>
-          Every field below imports the real package surface. The playground contains no
-          phone parser, calling-code table, validity table, or formatting authority of
-          its own.
+          Change any option, try the real component, and copy the matching code.
+          Everything here runs the published package.
         </p>
       </div>
 
@@ -50,8 +49,6 @@ export default function PlaygroundPage() {
         </p>
         <output data-testid="server-evidence">{JSON.stringify(serverEvidence)}</output>
       </section>
-
-      <ReleaseStatus />
     </DocsShell>
   );
 }
