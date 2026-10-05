@@ -163,6 +163,19 @@
   color: var(--accent-foreground, #171717);
 }
 
+/* Flags are decorative and sized like text, whatever the source asset size. */
+[data-slot="phone-country-flag"] {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  line-height: 1;
+}
+[data-slot="phone-country-flag"] > img {
+  display: block;
+  block-size: 1em;
+  inline-size: 1.5em;
+  object-fit: cover;
+}
 [data-slot="phone-country-name"] {
   flex: 1;
 }

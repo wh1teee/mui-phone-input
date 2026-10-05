@@ -1013,6 +1013,6 @@ pre {
 }
 
 /* Package and identifier names in the hero read as one token. */
-.docs-hero-copy code {
+.docs-main .docs-hero-copy code {
   white-space: nowrap;
 }

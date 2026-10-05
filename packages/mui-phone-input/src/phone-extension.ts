@@ -100,6 +100,9 @@ function inspectRfc3966Parameters(uri: string): Readonly<{
       extension = value;
     } else if (name === 'isub') {
       hasIsdnSubaddress = true;
+    } else if (name.startsWith('m-')) {
+      // RFC 3966 §5.4: "m-" parameters are mandatory; an unknown one must not be ignored.
+      return { extension: undefined, valid: false };
     }
   }
 

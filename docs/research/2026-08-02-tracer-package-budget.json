@@ -5,21 +5,21 @@
     "server": "Direct tsdown neutral-platform server entry, excluding metadata presets."
   },
   "budgets": {
-    "mainGzipBytes": 33103,
+    "mainGzipBytes": 33358,
     "serverGzipBytes": 10240
   },
   "main": {
-    "brotliBytes": 28283,
-    "gzipBytes": 33007,
-    "rawBytes": 119017,
-    "sha256": "ba7c05ada5643d9e42ff4c5b418d1f3ccdc1373086f000dc91f99e6d3887c92d"
+    "brotliBytes": 28515,
+    "gzipBytes": 33263,
+    "rawBytes": 119937,
+    "sha256": "e73add4dc06e73e9c775b7044b1e9748f55814760b25f8f3090ea6c80f13fbfc"
   },
   "server": {
-    "brotliBytes": 5502,
-    "gzipBytes": 6247,
-    "rawBytes": 25913,
-    "sha256": "de751b28fd520d12ebeefdae9d8b974f36da6d73c6c2e8330c3efce6bb3dc013"
+    "brotliBytes": 5510,
+    "gzipBytes": 6261,
+    "rawBytes": 25999,
+    "sha256": "1e0137671d99b163f279f44b24a2d8af63ac80218d4f480d177c9a06ef9ea173"
   },
-  "tarballBytes": 444145,
+  "tarballBytes": 451780,
   "status": "pass"
 }

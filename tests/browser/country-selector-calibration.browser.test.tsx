@@ -8,6 +8,7 @@ import {
   MuiPhoneInput,
   type PhoneCountrySelectorMode,
 } from '../../packages/mui-phone-input/src';
+import { PhoneInput } from '../../packages/mui-phone-input/src/base-ui';
 
 type ProfilerCallback = NonNullable<ComponentProps<typeof Profiler>['onRender']>;
 
@@ -306,4 +307,43 @@ describe('country selector calibration', () => {
     };
     console.info(`COUNTRY_SELECTOR_CALIBRATION ${JSON.stringify(measurements)}`);
   });
+
+  // Guards the shipped default (every country, no resultLimit) in both renderers.
+  // The ceiling is deliberately generous: it catches pathological regressions
+  // (e.g. accidental quadratic work) without flaking on slow CI runners.
+  test.each(['mui', 'base'] as const)(
+    'opens the default %s selector with every country within the budget',
+    async (adapter) => {
+      const recorder = createRenderRecorder();
+      await render(
+        <Profiler id={`default-${adapter}`} onRender={recorder.onRender}>
+          {adapter === 'mui' ? (
+            <MuiPhoneInput
+              defaultCountry="BY"
+              label="Default phone"
+              slotProps={{ countrySelector: { mode: 'desktop' } }}
+            />
+          ) : (
+            <PhoneInput defaultCountry="BY" label="Default phone" />
+          )}
+        </Profiler>,
+      );
+      await nextPaint();
+      recorder.reset();
+      await page
+        .getByRole(adapter === 'mui' ? 'button' : 'combobox', {
+          name: /^Select country/u,
+        })
+        .click();
+      await expect
+        .poll(() => document.querySelectorAll('[role="option"]').length)
+        .toBe(createPhoneCountryOptions().length);
+      await nextPaint();
+      const open = recorder.take();
+      console.info(
+        `COUNTRY_SELECTOR_DEFAULT ${JSON.stringify({ adapter, browser: browserName(), open })}`,
+      );
+      expect(open.maxMs).toBeLessThan(1000);
+    },
+  );
 });

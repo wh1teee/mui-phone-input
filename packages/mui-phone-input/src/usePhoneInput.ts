@@ -126,6 +126,8 @@ export interface PhoneInputState {
   controlled: boolean;
   countryControlled: boolean;
   disabled: boolean;
+  /** How the Display Value is presented; renderers use it to avoid repeating the calling code. */
+  displayMode: PhoneInputDisplayMode;
   displayValue: string;
   empty: boolean;
   error: boolean;
@@ -393,6 +395,7 @@ function usePhoneInputInternal(
       controlled: ownership.controlledRef.current,
       countryControlled: ownership.countryControlledRef.current,
       disabled,
+      displayMode,
       displayValue: derivedState.presentation.displayValue,
       empty: ownership.currentValue === undefined,
       error: derivedState.resolvedError,
@@ -424,6 +427,7 @@ function usePhoneInputInternal(
       derivedState.validation,
       derivedState.validationError,
       disabled,
+      displayMode,
       extensionError,
       extensionInputId,
       extensionMaxLength,
@@ -481,7 +485,9 @@ function usePhoneInputInternal(
         disabled,
         id: extensionInputId,
         inputMode: externalProps.inputMode ?? 'numeric',
-        ...(extensionMaxLength === undefined ? {} : { maxLength: extensionMaxLength }),
+        // No native maxLength: it counts separators before normalization and
+        // would drop allowed digits ("12-34" → "123"). The transaction enforces
+        // extensionMaxLength on canonical digits.
         onInput: (event) => {
           onInput?.(event);
           if (!event.defaultPrevented) {
@@ -498,7 +504,6 @@ function usePhoneInputInternal(
       disabled,
       extensionError,
       extensionInputId,
-      extensionMaxLength,
       extensionRequired,
       handleExtensionInput,
       ownership.currentExtension,

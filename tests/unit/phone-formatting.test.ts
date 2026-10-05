@@ -6,6 +6,7 @@ import {
   formatPhoneInputPresentation,
   validatePhoneMetadata,
 } from '../../packages/mui-phone-input/src';
+import { parsePhoneInputPresentation } from '../../packages/mui-phone-input/src/phone-formatting';
 
 describe('phone formatting', () => {
   test('presents one canonical value in international, national, and fixed-calling-code modes', () => {
@@ -59,6 +60,29 @@ describe('phone formatting', () => {
         }),
       }),
     ).toThrow(/Format Strategy.*digits/u);
+  });
+
+  test('rejects a "+" mask in national mode instead of rewriting the number', () => {
+    expect(() =>
+      formatPhoneInputPresentation('+12025550123', {
+        country: 'US',
+        displayMask: { pattern: '+# (###) ###-####' },
+        displayMode: 'national',
+      }),
+    ).toThrow(/national display cannot use a "\+" pattern/u);
+
+    const national = formatPhoneInputPresentation('+12025550123', {
+      country: 'US',
+      displayMask: { pattern: '(###) ###-####' },
+      displayMode: 'national',
+    });
+    expect(national.displayValue).toBe('(202) 555-0123');
+    expect(
+      parsePhoneInputPresentation(national.displayValue, {
+        country: 'US',
+        displayMode: 'national',
+      }),
+    ).toBe('+12025550123');
   });
 
   test('fails fast for invalid mask and strategy configuration', () => {

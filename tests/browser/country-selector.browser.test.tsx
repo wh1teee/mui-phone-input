@@ -886,7 +886,7 @@ describe('responsive country selector', () => {
     await expect
       .element(trigger)
       .toHaveAccessibleName('Select country. Belarus, BY, +375');
-    await expect.element(trigger).toHaveTextContent('BY+375');
+    await expect.element(trigger).toHaveTextContent('BY');
     await view.unmount();
   });
 
@@ -900,7 +900,7 @@ describe('responsive country selector', () => {
       await expect
         .element(trigger)
         .toHaveAccessibleName('Select country. Беларусь, BY, +375');
-      await expect.element(trigger).toHaveTextContent('BY+375');
+      await expect.element(trigger).toHaveTextContent('BY');
       if (source === 'controlled') {
         await expect.element(input).toHaveAttribute('data-phone-input-country', 'BY');
       } else {

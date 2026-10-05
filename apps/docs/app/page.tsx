@@ -91,9 +91,10 @@ import { PhoneInputCountrySelector } from '@wh1teee/mui-phone-input/base-ui';
 function OwnedField() {
   const phone = usePhoneInput({ defaultCountry: 'US' });
   return (
-    <div className="my-field">
+    <div {...phone.getRootProps()} className="my-field">
+      <label htmlFor={phone.state.inputId}>Phone</label>
       <PhoneInputCountrySelector phone={phone} />
-      <input {...phone.getInputProps()} className="my-input" />
+      <input {...phone.getInputProps({ type: 'tel' })} className="my-input" />
     </div>
   );
 }`;
@@ -615,7 +616,7 @@ export default function DocumentationPage() {
         >
           <div className="docs-grid docs-grid-stats">
             <div className="docs-card">
-              <strong>33,103 bytes</strong>
+              <strong>33,358 bytes</strong>
               <p>gzip budget for the main entry, peers and metadata external.</p>
             </div>
             <div className="docs-card">

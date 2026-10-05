@@ -544,7 +544,8 @@ async function collectSsrStateSnapshot(page) {
   );
   assert.equal(
     snapshot.geographic.triggerText,
-    'BY+375',
+    // The international input already shows +375; the trigger shows the country.
+    'BY',
     'A filtered resolved country must remain visible on the packed trigger.',
   );
 
