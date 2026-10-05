@@ -184,9 +184,12 @@ export function PhoneInputCountrySelector({
               placement="trigger"
             />
             <span>{selected.country}</span>
-            <span data-slot="phone-country-trigger-calling-code" dir="ltr">
-              +{selected.callingCode}
-            </span>
+            {/* International modes already start the input with the calling code. */}
+            {phone.state.displayMode === 'national' ? (
+              <span data-slot="phone-country-trigger-calling-code" dir="ltr">
+                +{selected.callingCode}
+              </span>
+            ) : null}
           </>
         ) : (
           <span aria-hidden="true">+</span>

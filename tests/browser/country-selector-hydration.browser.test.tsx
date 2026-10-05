@@ -267,7 +267,7 @@ describe('country selector hydration', () => {
       await expect
         .element(trigger)
         .toHaveAccessibleName('Select country. Belarus, BY, +375');
-      await expect.element(trigger).toHaveTextContent('BY+375');
+      await expect.element(trigger).toHaveTextContent('BY');
       await userEvent.click(trigger);
       expect(
         document.querySelectorAll('[role="option"][data-country="BY"]'),

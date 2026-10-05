@@ -271,6 +271,11 @@ const CountrySelectorTrigger = styled(ButtonBase, {
   '&:focus-visible': {
     outline: '2px solid currentColor',
   },
+  // Dropdown affordance: the trigger opens a list of countries.
+  '& > svg': {
+    flex: 'none',
+    opacity: 0.6,
+  },
 }));
 
 const CountrySelectorPaper = styled(Paper, {
@@ -1574,9 +1579,21 @@ export function PhoneInputCountrySelector({
         <CountryCodeSlot {...triggerCountryCodeSlotProps}>
           {activeOption?.country ?? '—'}
         </CountryCodeSlot>
-        <CallingCodeSlot {...triggerCallingCodeSlotProps}>
-          {activeOption ? `+${activeOption.callingCode}` : '▾'}
-        </CallingCodeSlot>
+        {/* International modes already start the input with the calling code. */}
+        {activeOption && phone.state.displayMode === 'national' ? (
+          <CallingCodeSlot {...triggerCallingCodeSlotProps}>
+            +{activeOption.callingCode}
+          </CallingCodeSlot>
+        ) : null}
+        <svg
+          aria-hidden="true"
+          fill="none"
+          height="12"
+          viewBox="0 0 12 12"
+          width="12"
+        >
+          <path d="m3 4.5 3 3 3-3" stroke="currentColor" strokeWidth="1.5" />
+        </svg>
       </TriggerSlot>
 
       <input aria-hidden="true" hidden ref={setHiddenInputRef} tabIndex={-1} />
