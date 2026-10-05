@@ -1,5 +1,6 @@
 :root {
   --docs-fg: #0f172a;
+  --docs-text: #1e293b;
   --docs-muted: #475569;
   --docs-subtle: #64748b;
   --docs-bg: #ffffff;
@@ -7,15 +8,35 @@
   --docs-border: #e2e8f0;
   --docs-accent: #1d4ed8;
   --docs-accent-soft: #eff6ff;
+  --docs-accent-border: #bfdbfe;
+  --docs-accent-text: #1e3a8a;
+  --docs-primary-hover: #1e293b;
   --docs-code-bg: #0b1220;
   --docs-code-fg: #e2e8f0;
+  --docs-code-muted: #94a3b8;
+  --docs-shadow: rgb(15 23 42 / 8%);
   --docs-radius: 12px;
   --docs-header-height: 60px;
   --docs-content-width: 760px;
-  color-scheme: light;
+
+  /* shadcn tokens for the live Base UI demo. Defined on :root (not a wrapper)
+     so the portaled country popup inherits them — the setup we recommend. */
+  --background: var(--docs-bg);
+  --foreground: var(--docs-fg);
+  --popover: var(--docs-bg);
+  --popover-foreground: var(--docs-fg);
+  --input: #cbd5e1;
+  --ring: #64748b;
+  --border: var(--docs-border);
+  --accent: #f1f5f9;
+  --accent-foreground: var(--docs-fg);
+  --muted-foreground: var(--docs-muted);
+  --destructive: #b91c1c;
+  --radius: 0.5rem;
+
+  color-scheme: light dark;
   font-family:
-    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
-    sans-serif;
+    var(--font-sans), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
   scroll-behavior: smooth;
   scroll-padding-top: calc(var(--docs-header-height) + 16px);
 }
@@ -34,8 +55,33 @@ a {
   color: inherit;
 }
 
-code {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+@media (prefers-color-scheme: dark) {
+  :root {
+    --docs-fg: #f1f5f9;
+    --docs-text: #e2e8f0;
+    --docs-muted: #a3b0c2;
+    --docs-subtle: #8a97aa;
+    --docs-bg: #0b1120;
+    --docs-surface: #131c2e;
+    --docs-border: #24304a;
+    --docs-accent: #8ab4ff;
+    --docs-accent-soft: #14213d;
+    --docs-accent-border: #26407a;
+    --docs-accent-text: #c7dbff;
+    --docs-primary-hover: #cbd5e1;
+    --docs-code-bg: #060a14;
+    --docs-shadow: rgb(0 0 0 / 40%);
+    --input: #334155;
+    --ring: #94a3b8;
+    --accent: #1e293b;
+    --destructive: #f87171;
+  }
+}
+
+code,
+pre {
+  font-family:
+    var(--font-mono), ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
 
 .docs-skip-link {
@@ -157,7 +203,8 @@ code {
   border: 1px solid var(--docs-border);
   border-radius: 6px;
   font-size: 0.86em;
-  overflow-wrap: anywhere;
+  /* Break long identifiers only when they cannot fit on their own line. */
+  overflow-wrap: break-word;
   padding: 0.08em 0.36em;
 }
 
@@ -244,7 +291,7 @@ code {
 }
 
 .docs-button-primary:hover {
-  background: #1e293b;
+  background: var(--docs-primary-hover);
 }
 
 .docs-hero-install {
@@ -289,8 +336,8 @@ code {
   border: 1px solid var(--docs-border);
   border-radius: 16px;
   box-shadow:
-    0 1px 2px rgb(15 23 42 / 4%),
-    0 12px 40px rgb(15 23 42 / 8%);
+    0 1px 2px var(--docs-shadow),
+    0 12px 40px var(--docs-shadow);
   display: grid;
   gap: 20px;
   padding: 24px;
@@ -322,7 +369,7 @@ code {
 
 .landing-demo-switch button[aria-pressed="true"] {
   background: var(--docs-bg);
-  box-shadow: 0 1px 3px rgb(15 23 42 / 12%);
+  box-shadow: 0 1px 3px var(--docs-shadow);
   color: var(--docs-fg);
 }
 
@@ -456,7 +503,7 @@ code {
 
 .docs-section p,
 .docs-section li {
-  color: #1e293b;
+  color: var(--docs-text);
 }
 
 .docs-section .docs-lead {
@@ -473,9 +520,9 @@ code {
 
 .docs-callout {
   background: var(--docs-accent-soft);
-  border: 1px solid #bfdbfe;
+  border: 1px solid var(--docs-accent-border);
   border-radius: var(--docs-radius);
-  color: #1e3a8a;
+  color: var(--docs-accent-text);
   font-size: 0.95rem;
   line-height: 1.65;
   margin-block: 20px;
@@ -485,6 +532,8 @@ code {
 /* Code */
 
 .docs-code-block {
+  /* Code stays dark in both themes; native scrollbars follow. */
+  color-scheme: dark;
   background: var(--docs-code-bg);
   border-radius: var(--docs-radius);
   margin: 16px 0;
@@ -494,7 +543,7 @@ code {
 .docs-code-block figcaption {
   align-items: center;
   border-bottom: 1px solid rgb(255 255 255 / 8%);
-  color: #94a3b8;
+  color: var(--docs-code-muted);
   display: flex;
   font-size: 0.8rem;
   justify-content: space-between;
@@ -961,4 +1010,9 @@ code {
   .configurator-phone-stage {
     padding: 20px 14px;
   }
+}
+
+/* Package and identifier names in the hero read as one token. */
+.docs-hero-copy code {
+  white-space: nowrap;
 }
