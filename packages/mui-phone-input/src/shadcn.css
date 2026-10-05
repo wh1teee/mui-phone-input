@@ -192,12 +192,14 @@
   font-size: 0.875rem;
 }
 [data-slot="phone-input"][data-invalid] [data-slot="phone-input-control"],
-[data-slot="phone-input-extension"][data-invalid] [data-slot="phone-input-extension-native"] {
+[data-slot="phone-input-extension"][data-invalid]
+  [data-slot="phone-input-extension-native"] {
   border-color: var(--destructive, #b91c1c);
 }
 /* Phone and extension errors are independent: scope each to its own description. */
 [data-slot="phone-input"][data-invalid] > [data-slot="phone-input-description"],
-[data-slot="phone-input-extension"][data-invalid] [data-slot="phone-input-description"] {
+[data-slot="phone-input-extension"][data-invalid]
+  [data-slot="phone-input-description"] {
   color: var(--destructive, #b91c1c);
 }
 [data-slot="phone-input"][data-disabled] {
