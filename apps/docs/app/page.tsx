@@ -1,12 +1,16 @@
-import { CodeBlock, DocsShell, ReleaseStatus, Section } from './docs-ui';
-import { BaseUiDemo } from './base-ui-demo';
+import {
+  Callout,
+  CodeBlock,
+  DocsLayout,
+  DocsShell,
+  Section,
+  type TocGroup,
+} from './docs-ui';
 import { LandingDemo } from './landing-demo';
 
-const install = `# Material UI
-pnpm add @wh1teee/mui-phone-input @mui/material @emotion/react @emotion/styled
+const installMui = `pnpm add @wh1teee/mui-phone-input @mui/material @emotion/react @emotion/styled`;
 
-# Base UI or shadcn
-pnpm add @wh1teee/mui-phone-input @base-ui/react`;
+const installBaseUi = `pnpm add @wh1teee/mui-phone-input @base-ui/react`;
 
 const coreExample = `'use client';
 
@@ -254,532 +258,417 @@ import validateCustomMetadata from '@wh1teee/mui-phone-input/metadata/custom';
 const metadata = validateCustomMetadata(generatedMetadata);
 validatePhoneValue(phone, { metadata });`;
 
+const toc: readonly TocGroup[] = [
+  {
+    title: 'Get started',
+    links: [
+      ['Quick start', '#quick-start'],
+      ['Base UI & shadcn', '#base-ui-shadcn'],
+    ],
+  },
+  {
+    title: 'Guides',
+    links: [
+      ['Phone values', '#phone-semantics'],
+      ['Country selector', '#country-selector'],
+      ['Formatting', '#formatting'],
+      ['Extensions', '#extensions'],
+      ['Forms & validation', '#forms'],
+      ['Localization & RTL', '#flags-localization'],
+      ['MUI integration', '#mui-integration'],
+    ],
+  },
+  {
+    title: 'Production',
+    links: [
+      ['SSR & security', '#ssr-security'],
+      ['Metadata', '#metadata'],
+      ['Performance', '#performance'],
+      ['Accessibility', '#accessibility'],
+      ['Provenance', '#provenance'],
+    ],
+  },
+];
+
 export default function DocumentationPage() {
   return (
     <DocsShell>
-      <div className="docs-hero docs-hero-grid">
+      <div className="docs-hero">
         <div className="docs-hero-copy">
-          <p className="docs-kicker">Material UI · Base UI · shadcn</p>
+          <p className="docs-kicker">React · Material UI · Base UI · shadcn</p>
           <h1>A complete phone input for React</h1>
           <p>
-            Country search, formatting, validation, extensions, SSR, React Hook Form,
-            and Zod share one canonical phone value backed by{' '}
-            <code>libphonenumber-js</code>. Use the Material UI 9 component, the
-            unstyled Base UI field with an optional shadcn skin, or the headless
-            controller in your own field — one phone engine behind all of them.
+            Country search, as-you-type formatting, validation, and extensions over one
+            canonical value backed by <code>libphonenumber-js</code>. Use the Material
+            UI component, the shadcn-styled Base UI field, or the headless controller in
+            your own input.
           </p>
-          <p>
-            Try the real component beside this introduction, then open the{' '}
-            <a href="/playground">interactive configurator</a> to change supported
-            options and copy matching TypeScript. Use the{' '}
-            <a href="/migration">migration guide</a> when replacing a legacy phone
-            field.
-          </p>
+          <div className="docs-hero-actions">
+            <a className="docs-button docs-button-primary" href="#quick-start">
+              Get started
+            </a>
+            <a className="docs-button" href="/playground">
+              Open playground
+            </a>
+          </div>
+          <code className="docs-hero-install">npm i @wh1teee/mui-phone-input</code>
         </div>
         <LandingDemo />
       </div>
 
-      <ReleaseStatus />
-
-      <nav className="docs-toc" aria-label="On this page">
-        <span className="docs-toc-label">On this page</span>
-        <a href="#quick-start">Quick start</a>
-        <a href="#base-ui-shadcn">Base UI &amp; shadcn</a>
-        <a href="#formatting">Formatting</a>
-        <a href="#extensions">Extensions</a>
-        <a href="#country-selector">Country selector</a>
-        <a href="#flags-localization">Localization &amp; RTL</a>
-        <a href="#mui-integration">MUI integration</a>
-        <a href="#ssr-security">SSR &amp; security</a>
-        <a href="#performance">Performance</a>
-        <a href="#accessibility">Accessibility</a>
-        <a href="#provenance">Provenance</a>
-      </nav>
-
-      <Section id="quick-start" title="Quick start">
-        <h3>Install</h3>
-        <CodeBlock>{install}</CodeBlock>
-        <p>
-          React 19 is required. Each renderer needs only its own peers: MUI 9 and
-          Emotion for the root and <code>/mui</code> paths, Base UI 1.8+ for{' '}
-          <code>/base-ui</code> and <code>/shadcn</code>. React Hook Form and Zod are
-          optional; install them only when you import their subpaths.
-        </p>
-
-        <h3>Material UI usage</h3>
-        <CodeBlock>{coreExample}</CodeBlock>
-
-        <h3>Server helpers</h3>
-        <CodeBlock>{serverExample}</CodeBlock>
-        <p>
-          Import server code from <code>@wh1teee/mui-phone-input/server</code>. That
-          graph contains no React, Material UI, Emotion, DOM, or browser API.
-        </p>
-
-        <div className="docs-grid">
-          <div className="docs-card">
-            <h3>React Hook Form</h3>
-            <p>
-              <code>MuiPhoneInputController</code> binds canonical number and extension
-              fields to Controller state while preserving field refs and blur/change
-              semantics.
-            </p>
-          </div>
-          <div className="docs-card">
-            <h3>Zod</h3>
-            <p>
-              Schema factories expose syntax, possible, strict-valid, number-type, and
-              extension policies without importing the React entrypoint.
-            </p>
-          </div>
-          <div className="docs-card">
-            <h3>Country Selector</h3>
-            <p>
-              Ranked search by name, ISO code, or calling code; preferred or popular
-              countries pinned above the full list; Popper on desktop and Dialog on
-              mobile in MUI, Base UI Combobox in the Base UI field.
-            </p>
-          </div>
-          <div className="docs-card">
-            <h3>Validation and extensions</h3>
-            <p>
-              Possible is the default acceptance policy. Extensions remain separate from
-              the canonical phone number and round-trip through RFC 3966 when needed.
-            </p>
-          </div>
-        </div>
-      </Section>
-
-      <Section id="base-ui-shadcn" title="Base UI and shadcn">
-        <p>
-          <code>/base-ui</code> exports an unstyled field and a searchable country
-          selector built on Base UI Combobox. <code>/shadcn</code> is the same
-          composition; import <code>/shadcn.css</code> to style it with the standard
-          shadcn variables (<code>--background</code>, <code>--input</code>,{' '}
-          <code>--ring</code>, <code>--popover</code>…). Neither path loads MUI or
-          Emotion.
-        </p>
-        <BaseUiDemo />
-        <CodeBlock>{baseUiExample}</CodeBlock>
-        <p>
-          The popup is portaled to <code>document.body</code> by default. When the
-          shadcn variables live on a local wrapper instead of <code>:root</code> or{' '}
-          <code>.dark</code>, pass{' '}
-          <code>countrySelector=&#123;&#123; portalContainer &#125;&#125;</code> inside
-          that scope. Flags are off by default in the Base UI field; opt in with{' '}
-          <code>flags: &#123; mode: 'local' &#125;</code> and <code>/flags.css</code>.
-        </p>
-        <h3>Your own field</h3>
-        <p>
-          Keep a product-owned input and reuse the engine: spread{' '}
-          <code>phone.getInputProps()</code> onto the native input and pass the same
-          controller to the country selector.
-        </p>
-        <CodeBlock>{headlessExample}</CodeBlock>
-      </Section>
-
-      <Section id="phone-semantics" title="Phone semantics">
-        <h3>Phone Value and Display Value</h3>
-        <p>
-          <strong>Phone Value</strong> is application state: <code>undefined</code> or a
-          leading <code>+</code> followed only by ASCII digits. It can represent an
-          incomplete canonical candidate such as <code>+37529</code>; a complete
-          accepted value is an E.164-style international number.{' '}
-          <strong>Display Value</strong> is a presentation derived from that state.
-          Spaces, parentheses, dashes, national layout, masks, and fixed calling-code
-          presentation never become numbering authority.
-        </p>
-        <p>
-          Persist the Phone Value. Do not persist a formatted display string and later
-          attempt to reconstruct telephone semantics from it.
-        </p>
-
-        <h3>Selected, detected, and resolved country</h3>
-        <section
-          aria-label="Phone country state semantics"
-          className="docs-table-wrap"
-          // biome-ignore lint/a11y/noNoninteractiveTabindex: Horizontal table overflow must be keyboard-scrollable.
-          tabIndex={0}
+      <DocsLayout toc={toc}>
+        <Section
+          id="quick-start"
+          title="Quick start"
+          lead="React 19 is required. Install the package with the peers of the renderer you use — each renderer needs only its own."
         >
-          <table className="docs-table">
-            <thead>
-              <tr>
-                <th>State</th>
-                <th>Meaning</th>
-                <th>Authority</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td>
-                  <code>state.selectedCountry</code>
-                </td>
-                <td>The explicit user/application country choice.</td>
-                <td>
-                  Ownership state. It can remain selected while the current digits still
-                  need correction for that country.
-                </td>
-              </tr>
-              <tr>
-                <td>
-                  <code>numberingPlan.selectedCountry</code>
-                </td>
-                <td>
-                  An explicit selection still compatible with numbering authority.
-                </td>
-                <td>
-                  Semantic evidence, not raw UI state. It can be <code>null</code> while
-                  <code>state.selectedCountry</code> keeps the user's explicit choice.
-                </td>
-              </tr>
-              <tr>
-                <td>
-                  <code>detectedCountry</code>
-                </td>
-                <td>
-                  The country detected by the numbering metadata when the digits are
-                  specific enough.
-                </td>
-                <td>Metadata-derived signal.</td>
-              </tr>
-              <tr>
-                <td>
-                  <code>resolvedCountry</code>
-                </td>
-                <td>
-                  The final single geographic country when selection, detection, or one
-                  remaining candidate resolves it.
-                </td>
-                <td>Use for country-specific presentation after resolution.</td>
-              </tr>
-              <tr>
-                <td>
-                  <code>possibleCountries</code>
-                </td>
-                <td>
-                  All countries still compatible with a shared or incomplete
-                  calling-code plan.
-                </td>
-                <td>Keep ambiguity visible instead of guessing.</td>
-              </tr>
-            </tbody>
-          </table>
-        </section>
+          <h3>Material UI</h3>
+          <CodeBlock title="Terminal">{installMui}</CodeBlock>
+          <CodeBlock title="ContactPhone.tsx">{coreExample}</CodeBlock>
+          <p>
+            The value is <code>undefined</code> or <code>+</code> followed by digits —
+            store it as-is. React Hook Form and Zod are optional; install them only when
+            you import their entrypoints.
+          </p>
+          <h3>Server helpers</h3>
+          <CodeBlock title="server.ts">{serverExample}</CodeBlock>
+          <p>
+            <code>/server</code> contains no React, MUI, DOM, or browser APIs, so it
+            runs in API routes, server actions, and jobs.
+          </p>
+        </Section>
 
-        <h3>Unresolved and non-geographic plans</h3>
-        <p>
-          Shared calling codes can remain <code>kind: 'unresolved'</code> while several
-          countries are still possible. A non-geographic number such as a global service
-          code resolves as <code>kind: 'non-geographic'</code> with no fabricated
-          country, country selector state, or flag.
-        </p>
+        <Section
+          id="base-ui-shadcn"
+          title="Base UI and shadcn"
+          lead="An unstyled field and a searchable country selector built on Base UI Combobox. Neither path loads MUI or Emotion."
+        >
+          <CodeBlock title="Terminal">{installBaseUi}</CodeBlock>
+          <CodeBlock title="ContactPhone.tsx">{baseUiExample}</CodeBlock>
+          <p>
+            <code>/shadcn</code> is the same composition as <code>/base-ui</code>.
+            Import <code>/shadcn.css</code> for a skin built on the standard shadcn
+            variables (<code>--background</code>, <code>--input</code>,{' '}
+            <code>--ring</code>, <code>--popover</code>), or style the{' '}
+            <code>data-slot</code> attributes yourself.
+          </p>
+          <Callout>
+            The popup is portaled to <code>document.body</code>. If your shadcn
+            variables live on a local wrapper rather than <code>:root</code> or{' '}
+            <code>.dark</code>, pass{' '}
+            <code>countrySelector=&#123;&#123; portalContainer &#125;&#125;</code> from
+            inside that scope. Flags are off by default; opt in with{' '}
+            <code>flags: &#123; mode: 'local' &#125;</code> and <code>/flags.css</code>.
+          </Callout>
+          <h3>Your own field</h3>
+          <p>
+            Keep a product-owned input and reuse the engine: spread{' '}
+            <code>phone.getInputProps()</code> onto it and pass the same controller to
+            the country selector.
+          </p>
+          <CodeBlock title="OwnedField.tsx">{headlessExample}</CodeBlock>
+        </Section>
 
-        <h3>Acceptance and validity</h3>
-        <p>
-          The default <code>validationMode="possible"</code> accepts structurally
-          possible numbers. <code>validationMode="valid"</code> additionally requires
-          the current metadata pattern to classify the number as strictly valid. Use
-          <code>possible-and-type</code> with <code>allowedNumberTypes</code> when
-          product policy requires a known type such as <code>MOBILE</code>.
-        </p>
-        <p>
-          These are structural metadata checks. They do not prove reachability, SMS or
-          voice delivery, OTP possession, subscriber ownership, carrier status, fraud
-          risk, or consent. Verify those properties with a separate product flow.
-        </p>
-      </Section>
+        <Section
+          id="phone-semantics"
+          title="Phone values"
+          lead="Store the Phone Value; render the Display Value. Formatting never becomes data."
+        >
+          <h3>Phone Value and Display Value</h3>
+          <p>
+            <strong>Phone Value</strong> is <code>undefined</code> or <code>+</code>{' '}
+            followed by ASCII digits. While editing it can be an incomplete candidate
+            such as <code>+37529</code>; a complete accepted value is an E.164-style
+            number. <strong>Display Value</strong> is presentation — spaces, masks, and
+            national layout never feed back into the value.
+          </p>
+          <h3>Selected, detected, and resolved country</h3>
+          <section
+            aria-label="Phone country state semantics"
+            className="docs-table-wrap"
+            // biome-ignore lint/a11y/noNoninteractiveTabindex: Horizontal table overflow must be keyboard-scrollable.
+            tabIndex={0}
+          >
+            <table className="docs-table">
+              <thead>
+                <tr>
+                  <th>State</th>
+                  <th>Meaning</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>
+                    <code>selectedCountry</code>
+                  </td>
+                  <td>
+                    The explicit user or application choice. It persists while the
+                    digits still need correcting.
+                  </td>
+                </tr>
+                <tr>
+                  <td>
+                    <code>detectedCountry</code>
+                  </td>
+                  <td>Inferred from the digits once they are specific enough.</td>
+                </tr>
+                <tr>
+                  <td>
+                    <code>resolvedCountry</code>
+                  </td>
+                  <td>
+                    The single country used for display after reconciling selection and
+                    detection.
+                  </td>
+                </tr>
+                <tr>
+                  <td>
+                    <code>possibleCountries</code>
+                  </td>
+                  <td>
+                    Countries still compatible with a shared calling code such as{' '}
+                    <code>+1</code> — ambiguity stays visible instead of being guessed.
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </section>
+          <p>
+            Non-geographic plans (for example global service numbers) resolve without a
+            country and show no invented flag.
+          </p>
+          <h3>Validation</h3>
+          <p>
+            The default <code>validationMode="possible"</code> checks numbering-plan
+            length, so newly assigned ranges are not rejected because metadata lags.
+            Choose <code>"valid"</code> for strict patterns, or{' '}
+            <code>"possible-and-type"</code> with <code>allowedNumberTypes</code> such
+            as <code>MOBILE</code>. Validation is structural: it does not prove a user
+            owns or can receive messages at the number — use OTP for that.
+          </p>
+        </Section>
 
-      <Section id="formatting" title="Formatting and caret behavior">
-        <CodeBlock>{formattingExample}</CodeBlock>
-        <p>
-          International is the default. National presentation requires a country
-          context. Fixed-calling-code presentation keeps the selected country calling
-          code visible while the canonical value remains separate.
-        </p>
-        <h3>Automatic formatting and Display Masks</h3>
-        <p>
-          Automatic formatting comes from the numbering authority. A declarative Display
-          Mask uses <code>#</code> as digit slots and presentation separators only. It
-          does not validate, add, remove, or reorder phone digits. If a value no longer
-          fits the mask, the formatter falls back to automatic presentation instead of
-          corrupting canonical state.
-        </p>
-        <h3>Custom Format Strategy</h3>
-        <CodeBlock>{strategyExample}</CodeBlock>
-        <p>
-          A Format Strategy receives the automatic presentation as its safe baseline. It
-          must preserve the exact presentation digits and return an ordered
-          logical-caret mapping with the required length. Incorrect mappings make middle
-          edits and caret restoration unreliable, so prefer automatic formatting or a
-          Display Mask unless the custom layout genuinely needs a strategy.
-        </p>
-      </Section>
+        <Section
+          id="country-selector"
+          title="Country Selector"
+          lead="Searchable by name, ISO code, or calling code, with the same ranking in every renderer."
+        >
+          <CodeBlock title="CountrySelector.tsx">{selectorExample}</CodeBlock>
+          <ul className="docs-list">
+            <li>
+              An exact ISO code or the main country of a calling code comes first (
+              <code>+1</code> → United States, <code>+44</code> → United Kingdom), then
+              other exact codes, prefixes, and substrings.
+            </li>
+            <li>
+              While searching, results are one ranked list and the best match is
+              highlighted, so Enter selects it. After a selection, focus moves to the
+              phone number.
+            </li>
+            <li>
+              Every country is listed by default. <code>preferredCountries</code> pins
+              your list — or <code>getPopularPhoneCountries(count)</code> — above it;{' '}
+              <code>resultLimit</code>, <code>countryFilter</code>, and{' '}
+              <code>countryOrder</code> shape the rest.
+            </li>
+            <li>
+              In MUI, <code>mode="auto"</code> uses a popper on desktop and a
+              full-screen dialog on mobile; <code>portalContainer</code> and{' '}
+              <code>disablePortal</code> handle nested modals and Shadow DOM.
+            </li>
+          </ul>
+        </Section>
 
-      <Section id="extensions" title="Extensions and RFC 3966">
-        <CodeBlock>{extensionExample}</CodeBlock>
-        <p>
-          Extension presentation can be <code>none</code>, <code>separate</code>,
-          <code>inline</code>, or <code>custom</code>. The extension is independently
-          owned canonical digit state and can have an explicit{' '}
-          <code>extensionMaxLength</code> or required policy. There is no universal
-          extension-length rule.
-        </p>
-        <p>
-          The canonical Phone Value always remains extension-free. Use
-          <code>serializeRfc3966</code> to export a <code>tel:</code> URI and
-          <code>parseRfc3966</code> to recover number plus extension. Extension-bearing
-          paste is split into the same independent states before the phone transaction
-          commits.
-        </p>
-      </Section>
+        <Section
+          id="formatting"
+          title="Formatting and caret behavior"
+          lead="International by default, national or fixed-calling-code on request. The caret stays where the user expects during mid-string edits and paste."
+        >
+          <CodeBlock title="Formatting.tsx">{formattingExample}</CodeBlock>
+          <p>
+            A Display Mask uses <code>#</code> as a digit slot; it only places
+            separators and never validates or reorders digits. When a value no longer
+            fits, presentation falls back to automatic formatting. For fully custom
+            layouts, a Format Strategy returns the display string and a caret mapping:
+          </p>
+          <CodeBlock title="strategy.ts">{strategyExample}</CodeBlock>
+        </Section>
 
-      <Section id="country-selector" title="Country Selector">
-        <CodeBlock>{selectorExample}</CodeBlock>
-        <p>
-          Search matches localized and English names, ISO codes, and calling codes,
-          ranked the same way in every renderer: an exact ISO code or the main country
-          of a calling code first (<code>+1</code> → United States, <code>+44</code> →
-          United Kingdom), then other exact codes, prefixes, and substrings. While a
-          query is active, results form one flat ranked list and the best match is
-          highlighted, so Enter selects it. Without a query, preferred countries form a
-          pinned group above all countries. After a selection, focus moves to the phone
-          number.
-        </p>
-        <p>
-          The full country list is shown by default. <code>preferredCountries</code>{' '}
-          accepts your own list or <code>getPopularPhoneCountries(count)</code>, which
-          returns the <em>count</em> most populous countries. <code>resultLimit</code>{' '}
-          optionally caps the rendered options, and <code>countryFilter</code>/
-          <code>countryOrder</code> shape the list itself.
-        </p>
-        <p>
-          <code>mode="auto"</code> renders a MUI Popper on desktop and Dialog on mobile,
-          based on the theme breakpoint. <code>mode="desktop"</code> and
-          <code>mode="mobile"</code> are available when the surrounding surface needs an
-          explicit presentation. <code>disablePortal</code> and{' '}
-          <code>portalContainer</code>
-          support nested modal, Shadow DOM, and constrained portal topologies.
-        </p>
-        <h3>Why the selector is not virtualized</h3>
-        <p>
-          The selector keeps the standard MUI <code>useAutocomplete</code> renderer.
-          Across Chromium, Firefox, and WebKit, opening the complete 245-country list
-          measured a longest commit of 117–132 ms on desktop; filtering measured 1–6 ms.
-          A complete, scrollable list is the expected selector behavior, so it is the
-          default; applications on constrained devices can set <code>resultLimit</code>{' '}
-          (a 50-option open measured 115–150 ms total). Virtualization would add a
-          second listbox/accessibility path for a one-time open cost, so it is currently
-          unnecessary.
-        </p>
-      </Section>
+        <Section
+          id="extensions"
+          title="Extensions and RFC 3966"
+          lead="Extensions are a separate digits-only value, never part of the Phone Value."
+        >
+          <CodeBlock title="Extension.tsx">{extensionExample}</CodeBlock>
+          <p>
+            Presentation can be <code>none</code>, <code>separate</code>,{' '}
+            <code>inline</code>, or <code>custom</code>, with optional{' '}
+            <code>extensionMaxLength</code> and required policy. Pasting a number with
+            an extension splits it into both values.
+          </p>
+        </Section>
 
-      <Section id="flags-localization" title="Flags, localization, and RTL">
-        <CodeBlock>{flagsExample}</CodeBlock>
-        <p>
-          Local SVG assets are the default and require the package CSS import. They make
-          no network request and work in offline applications. External flags are opt-in
-          and must satisfy the application's CSP <code>img-src</code>, referrer, and
-          CORS policy. Emoji uses the platform glyph; <code>none</code> removes visual
-          flags;
-          <code>flagProvider</code> supplies a custom decorative renderer. Flags never
-          replace the localized country name exposed to assistive technology.
-        </p>
-        <p>
-          Locale entrypoints currently publish English, Russian, and Belarusian message
-          bundles at <code>/locales/en</code>, <code>/locales/ru</code>, and
-          <code>/locales/be</code>. Country names use <code>Intl.DisplayNames</code> or
-          an explicit <code>resolveCountryName</code> function. For RTL, set the
-          document direction, use an MUI theme with <code>direction: 'rtl'</code>,
-          configure the MUI RTL styling-engine plugin/cache, and give portalled selector
-          surfaces the same direction. Do not flip only the text field.
-        </p>
-      </Section>
+        <Section
+          id="forms"
+          title="Forms: React Hook Form and Zod"
+          lead="Optional adapters that keep dirty/touched state, reset, async defaults, and focus-on-error working."
+        >
+          <CodeBlock title="ContactForm.tsx">{rhfExample}</CodeBlock>
+          <p>
+            Bind <code>extensionName</code> when number and extension are separate form
+            fields. For Base UI, import <code>PhoneInputController</code> from{' '}
+            <code>/base-ui/react-hook-form</code>.
+          </p>
+          <CodeBlock title="schema.ts">{zodExample}</CodeBlock>
+          <p>
+            Pick the schema that matches your policy — possible and strictly valid are
+            deliberately different. On the server, the same helpers apply the same
+            rules:
+          </p>
+          <CodeBlock title="action.ts">{serverCompositionExample}</CodeBlock>
+        </Section>
 
-      <Section id="mui-integration" title="Material UI integration">
-        <h3>Theme registration, defaults, overrides, and variants</h3>
-        <CodeBlock>{muiThemeExample}</CodeBlock>
-        <p>
-          Importing the main package entrypoint registers <code>MuiPhoneInput</code> in
-          the MUI theme type system. Use <code>defaultProps</code> for shared behavior,
-          <code>styleOverrides</code> for stable component slots, and MUI 9 slot-level
-          <code>variants</code> for prop-based styling. Do not target generated hash
-          class names.
-        </p>
-        <h3>Utility classes, slots, and primitives</h3>
-        <p>
-          <code>muiPhoneInputClasses</code> and
-          <code>getMuiPhoneInputUtilityClass()</code> expose stable utility classes for
-          the root, input, validation, extension, and semantic selector slots. The
-          component also accepts MUI <code>slots</code>/<code>slotProps</code> for the
-          native input, selector, extension, and inherited TextField surfaces.
-        </p>
-        <CodeBlock>{slotsExample}</CodeBlock>
-        <p>
-          For a deeper custom surface, compose <code>usePhoneInput</code>,
-          <code>PhoneInputProvider</code>, <code>PhoneInputRoot</code>,
-          <code>PhoneInputCountrySelector</code>, <code>PhoneInputInput</code>,
-          <code>PhoneInputExtensionInput</code>, and
-          <code>PhoneInputValidationMessage</code>. These primitives share the same
-          phone controller; custom UI must not introduce a second parser, formatter, or
-          country table.
-        </p>
-      </Section>
+        <Section
+          id="flags-localization"
+          title="Flags, localization, and RTL"
+          lead="Local SVG flags, emoji, external URLs, a custom provider, or none — flags never replace the accessible country name."
+        >
+          <CodeBlock title="Localized.tsx">{flagsExample}</CodeBlock>
+          <p>
+            Message packs ship for English, Russian, and Belarusian; country names come
+            from <code>Intl.DisplayNames</code> or your <code>resolveCountryName</code>.
+            External flags make network requests and must fit your CSP. For RTL, set the
+            document direction and an MUI RTL theme; phone digits always stay
+            left-to-right.
+          </p>
+        </Section>
 
-      <Section id="forms" title="Forms: React Hook Form and Zod">
-        <h3>React Hook Form</h3>
-        <CodeBlock>{rhfExample}</CodeBlock>
-        <p>
-          The adapter delegates ownership to React Hook Form Controller. Dirty and
-          touched state follow Controller semantics; <code>reset()</code> reconciles
-          controlled values without callback loops; async <code>defaultValues</code> are
-          supported by React Hook Form; and the forwarded field ref lets normal
-          focus-on-error behavior focus the phone input. Bind <code>extensionName</code>{' '}
-          when number and extension must remain independently addressable form fields.
-        </p>
+        <Section
+          id="mui-integration"
+          title="Material UI integration"
+          lead="Registered in the MUI theme like a built-in component."
+        >
+          <CodeBlock title="theme.ts">{muiThemeExample}</CodeBlock>
+          <p>
+            Use <code>defaultProps</code>, <code>styleOverrides</code>, and{' '}
+            <code>variants</code> as with any MUI component, and the stable{' '}
+            <code>muiPhoneInputClasses</code> instead of generated class names. Replace
+            individual selector parts through slots — spread the provided props to keep
+            keyboard and ARIA behavior:
+          </p>
+          <CodeBlock title="CountryOption.tsx">{slotsExample}</CodeBlock>
+          <p>
+            For a fully custom surface, compose <code>usePhoneInput</code> with{' '}
+            <code>PhoneInputProvider</code>, <code>PhoneInputCountrySelector</code>,{' '}
+            <code>PhoneInputInput</code>, and <code>PhoneInputValidationMessage</code>.
+          </p>
+        </Section>
 
-        <h3>Zod</h3>
-        <CodeBlock>{zodExample}</CodeBlock>
-        <p>
-          Choose the schema whose policy matches the product. Possible and strict-valid
-          are deliberately distinct. Number-type schemas require explicit allowed types.
-          Extension schemas can impose a product max length and required policy without
-          embedding the extension in Phone Value.
-        </p>
+        <Section
+          id="ssr-security"
+          title="SSR, privacy, and security"
+          lead="Works in the Next.js App Router through normal package exports — no transpilePackages or special config."
+        >
+          <CodeBlock title="Next.js App Router">{nextExample}</CodeBlock>
+          <p>
+            Keep locale, metadata, and initial values identical on the server and the
+            first client render; don't derive them from geolocation or storage during
+            hydration. Phone numbers are personal data — don't log raw values or change
+            details by default.
+          </p>
+        </Section>
 
-        <h3>Server composition</h3>
-        <CodeBlock>{serverCompositionExample}</CodeBlock>
-        <p>
-          Zod validates the transport/form shape; the server helper exposes the same
-          phone validation semantics for policy checks, APIs, jobs, and server actions.
-          Keep both layers on the same metadata preset when a consumer selects a
-          non-default preset.
-        </p>
-      </Section>
-
-      <Section id="ssr-security" title="SSR, privacy, and security">
-        <CodeBlock>{nextExample}</CodeBlock>
-        <p>
-          The main and React Hook Form entrypoints are client boundaries. The
-          <code>/server</code> entrypoint is deterministic and contains no React, MUI,
-          Emotion, DOM, browser globals, or Node-only runtime dependency. The package's
-          packed Next.js evidence compares server HTML with hydrated state for empty,
-          geographic, unresolved, and non-geographic cases.
-        </p>
-        <p>
-          Keep locale, metadata, selected country, and controlled initial values
-          deterministic across server render and first client render. Do not derive them
-          from browser-only geolocation, timezone, or mutable storage during hydration.
-        </p>
-        <p>
-          Phone numbers are personal data. Do not log raw Phone Values, extensions,
-          clipboard contents, or change-detail payloads by default. Redact or hash only
-          under a documented product policy. Structural validation is input validation,
-          not proof that a user owns or can receive messages at the number.
-        </p>
-      </Section>
-
-      <Section id="metadata" title="Metadata presets and freshness">
-        <CodeBlock>{metadataExample}</CodeBlock>
-        <div className="docs-grid">
-          <div className="docs-card">
-            <h3>max — default</h3>
-            <p>
-              Information-complete metadata with strict-pattern and number-type data.
-            </p>
+        <Section
+          id="metadata"
+          title="Metadata presets and freshness"
+          lead="Numbering rules come only from libphonenumber-js. The default is max metadata; /min entrypoints trade strict-validity detail for size."
+        >
+          <CodeBlock title="metadata.ts">{metadataExample}</CodeBlock>
+          <div className="docs-grid">
+            <div className="docs-card">
+              <h3>max</h3>
+              <p>Default. Complete patterns and number types.</p>
+            </div>
+            <div className="docs-card">
+              <h3>min</h3>
+              <p>About 21 KiB smaller; reduced strict-validity and type detail.</p>
+            </div>
+            <div className="docs-card">
+              <h3>mobile</h3>
+              <p>Complete mobile patterns, reduced other types.</p>
+            </div>
+            <div className="docs-card">
+              <h3>custom</h3>
+              <p>Validated metadata from official libphonenumber tooling.</p>
+            </div>
           </div>
-          <div className="docs-card">
-            <h3>min</h3>
-            <p>Smaller metadata with reduced strict-pattern/type information.</p>
-          </div>
-          <div className="docs-card">
-            <h3>mobile</h3>
-            <p>
-              Complete mobile patterns with intentionally reduced non-mobile type
-              coverage.
-            </p>
-          </div>
-          <div className="docs-card">
-            <h3>custom</h3>
-            <p>Validated metadata generated by official libphonenumber tooling.</p>
-          </div>
-        </div>
-        <p>
-          Stale metadata can misclassify a new real range as strictly invalid, change
-          shared-code country resolution, omit a type, or expose an outdated example.
-          Possibility can also change when national length rules change. The weekly
-          freshness workflow generates a golden-corpus semantic diff for possibility,
-          validity, resolved/possible countries, type, and examples. Semantic changes
-          require human review and a changeset; they never auto-merge.
-        </p>
-        <p>
-          Roll back unsafe metadata by restoring the previously reviewed exact
-          <code>libphonenumber-js</code> version and regenerating the semantic snapshot.
-          Never patch a stale release with a local country or calling-code table.
-        </p>
-      </Section>
+          <p>
+            A weekly workflow diffs metadata updates against a golden corpus; semantic
+            changes ship only after review.
+          </p>
+        </Section>
 
-      <Section id="performance" title="Performance budgets and selector calibration">
-        <p>
-          The approved package budget measures the packed main entry as a Vite 8
-          Oxc-minified ESM closure with runtime dependencies bundled and declared peers
-          plus libphonenumber metadata external. Its current limit is{' '}
-          <strong>32,768 bytes gzip</strong>; the recorded measurement is{' '}
-          <strong>32,719 bytes gzip</strong>. The neutral server entry budget is{' '}
-          <strong>10,240 bytes gzip</strong>; the recorded measurement is{' '}
-          <strong>6,126 bytes gzip</strong>. These are engineering budgets, not claims
-          about an application's final bundle.
-        </p>
-        <p>
-          Selector calibration uses a separate browser interaction methodology. The
-          complete 245-country list is the default and costs a one-time open of 117–132
-          ms longest commit across the three tested engines; filtering stays at 1–6 ms.
-          A bounded <code>resultLimit</code> path stays inside the 200 ms envelope for
-          constrained surfaces. Recalibrate before adding virtualization.
-        </p>
-      </Section>
+        <Section
+          id="performance"
+          title="Performance budgets and selector calibration"
+          lead="Size and interaction budgets are enforced on the exact published tarball."
+        >
+          <div className="docs-grid docs-grid-stats">
+            <div className="docs-card">
+              <strong>33,103 bytes</strong>
+              <p>gzip budget for the main entry, peers and metadata external.</p>
+            </div>
+            <div className="docs-card">
+              <strong>10,240 bytes</strong>
+              <p>
+                gzip budget for the neutral <code>/server</code> entry.
+              </p>
+            </div>
+            <div className="docs-card">
+              <strong>1–6 ms</strong>
+              <p>
+                to filter the full 245-country list; opening it costs a one-time 117–132
+                ms commit.
+              </p>
+            </div>
+          </div>
+          <p>
+            The selector is not virtualized: the one-time open cost does not justify a
+            second listbox and accessibility path. Constrained surfaces can set{' '}
+            <code>resultLimit</code>.
+          </p>
+        </Section>
 
-      <Section id="accessibility" title="Accessibility contract">
-        <p>
-          The automated contract targets WCAG 2.2 AA. Repository browser suites exercise
-          accessible field naming and error association, selector search/listbox/dialog
-          semantics, active options, keyboard navigation, Escape/Tab behavior, focus
-          containment and return, responsive presentation, RTL cases, 200% zoom/reflow,
-          forced colors, reduced motion, and axe checks in Chromium, Firefox, and
-          WebKit.
-        </p>
-        <p>
-          Custom slots must preserve every package-provided accessibility prop and
-          handler. Spread prepared slot props onto the correct semantic element, forward
-          the ref, and add presentation without replacing <code>role</code>,{' '}
-          <code>id</code>,<code>aria-*</code>, keyboard handlers, or focus behavior. A
-          visually correct slot that drops those props is unsupported.
-        </p>
-        <p>
-          Automated browser coverage does not substitute for physical
-          assistive-technology use. Physical iOS/Android and desktop screen-reader rows
-          unavailable in the current device lab were accepted as documented residual
-          gaps and remain documented as unavailable rather than passed.
-        </p>
-      </Section>
+        <Section
+          id="accessibility"
+          title="Accessibility contract"
+          lead="Targets WCAG 2.2 AA, checked with axe and keyboard tests in Chromium, Firefox, and WebKit."
+        >
+          <p>
+            Coverage includes labels and error association, combobox and dialog
+            semantics, keyboard navigation, focus return, RTL, 200% zoom, forced colors,
+            and reduced motion. Custom slots must spread the provided props and forward
+            refs. Physical iOS/Android devices and desktop screen readers are documented
+            residual gaps, not passing evidence.
+          </p>
+        </Section>
 
-      <Section id="provenance" title="Package provenance and release boundary">
-        <p>
-          The package manifest declares the canonical GitHub repository, MIT license,
-          public npm access, and npm provenance. Runtime numbering semantics come only
-          from
-          <code>libphonenumber-js</code>; donor implementations remain provenance-backed
-          references rather than hidden production authorities. Inspect
-          <a href="https://github.com/wh1teee/mui-phone-input"> the repository</a>,
-          <code>DONORS.md</code>, <code>THIRD_PARTY_NOTICES.md</code>, and the package
-          manifest when auditing an artifact.
-        </p>
-        <p>
-          Stable releases use the npm <code>latest</code> dist-tag with provenance and
-          immutable release evidence. Documentation follows current source, while the
-          registry remains authoritative for the exact published version; pin an exact
-          version when you need byte-for-byte reproducibility.
-        </p>
-      </Section>
+        <Section
+          id="provenance"
+          title="Package provenance and release boundary"
+          lead="Published from GitHub Actions with npm provenance, MIT licensed."
+        >
+          <p>
+            Install from the default <code>latest</code> tag or pin an exact version.
+            Docs follow current source, while the registry remains authoritative for a
+            published version. Third-party design sources are listed in{' '}
+            <a href="https://github.com/wh1teee/mui-phone-input/blob/main/DONORS.md">
+              DONORS.md
+            </a>
+            .
+          </p>
+        </Section>
+      </DocsLayout>
     </DocsShell>
   );
 }

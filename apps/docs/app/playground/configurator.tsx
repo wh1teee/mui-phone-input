@@ -845,14 +845,10 @@ export function UniversalConfigurator() {
     <section className="configurator" aria-labelledby="configurator-title">
       <div className="configurator-heading">
         <div>
-          <p className="docs-kicker">Universal configurator</p>
-          <h2 id="configurator-title">
-            Explore the public API, then copy the exact setup
-          </h2>
+          <h2 id="configurator-title">Configurator</h2>
           <p className="docs-muted">
-            Every control below maps to a supported package prop or a named code preset.
-            Country search is always built in, so the configurator does not invent a
-            switch for it.
+            Start from a preset or change individual props. Every control maps to a
+            supported prop.
           </p>
         </div>
         <div className="configurator-deep-link" aria-live="polite">

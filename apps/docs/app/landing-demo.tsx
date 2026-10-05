@@ -1,54 +1,72 @@
 'use client';
 
-import Button from '@mui/material/Button';
-import Stack from '@mui/material/Stack';
-import Typography from '@mui/material/Typography';
 import { MuiPhoneInput, type PhoneValue } from '@wh1teee/mui-phone-input';
+import {
+  getPopularPhoneCountries,
+  PhoneInput as ShadcnPhoneInput,
+} from '@wh1teee/mui-phone-input/shadcn';
+import '@wh1teee/mui-phone-input/shadcn.css';
 import { useState } from 'react';
 
+type Renderer = 'mui' | 'shadcn';
+
+const preferredCountries = getPopularPhoneCountries(5);
+
 export function LandingDemo() {
-  const [value, setValue] = useState<PhoneValue>('+375291234567');
+  const [renderer, setRenderer] = useState<Renderer>('mui');
+  const [value, setValue] = useState<PhoneValue>('+12025550123');
 
   return (
-    <section className="landing-demo" aria-label="Live MUI Phone Input demo">
-      <div className="landing-demo-header">
-        <span className="landing-demo-dot" aria-hidden="true" />
-        <span>Try it live</span>
+    <section className="landing-demo" aria-label="Live phone input demo">
+      <fieldset className="landing-demo-switch">
+        <legend className="docs-visually-hidden">Renderer</legend>
+        {(
+          [
+            ['mui', 'Material UI'],
+            ['shadcn', 'shadcn / Base UI'],
+          ] as const
+        ).map(([key, label]) => (
+          <button
+            aria-pressed={renderer === key}
+            key={key}
+            onClick={() => setRenderer(key)}
+            type="button"
+          >
+            {label}
+          </button>
+        ))}
+      </fieldset>
+      <div className="landing-demo-field">
+        {renderer === 'mui' ? (
+          <MuiPhoneInput
+            fullWidth
+            label="Phone number"
+            onChange={setValue}
+            slotProps={{
+              countrySelector: { preferredCountries },
+              htmlInput: { 'data-testid': 'landing-phone-input' },
+            }}
+            value={value}
+          />
+        ) : (
+          <ShadcnPhoneInput
+            countrySelector={{ preferredCountries }}
+            inputProps={{ 'data-testid': 'base-ui-phone-input' }}
+            label="Phone number"
+            onChange={setValue}
+            value={value}
+          />
+        )}
       </div>
-      <Stack spacing={2}>
-        <MuiPhoneInput
-          defaultCountry="BY"
-          label="Phone"
-          value={value}
-          onChange={setValue}
-          validationDisplay="always"
-          slotProps={{
-            countrySelector: {
-              'data-testid': 'landing-country-selector',
-              mode: 'auto',
-              preferredCountries: ['BY', 'PL', 'LT'],
-            },
-            htmlInput: { 'data-testid': 'landing-phone-input' },
-          }}
-        />
-        <div className="landing-demo-value">
-          <Typography component="span" variant="caption">
-            Canonical value
-          </Typography>
+      <dl className="landing-demo-value">
+        <dt>Stored value</dt>
+        <dd>
           <output data-testid="landing-phone-value">{value ?? 'undefined'}</output>
-        </div>
-        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
-          <Button href="#quick-start" variant="contained">
-            Get started
-          </Button>
-          <Button href="/playground" variant="outlined">
-            Open playground
-          </Button>
-          <Button href="#phone-semantics" variant="text">
-            Read phone semantics
-          </Button>
-        </Stack>
-      </Stack>
+        </dd>
+      </dl>
+      <p className="landing-demo-hint">
+        Same engine, same value — switch renderers and keep typing.
+      </p>
     </section>
   );
 }

@@ -442,13 +442,11 @@ export function Playground() {
     <Stack className="playground-root" spacing={3}>
       <UniversalConfigurator />
       <div className="playground-reference-divider">
-        <p className="docs-kicker">Authoritative examples</p>
-        <Typography component="h2" variant="h4">
-          Go deeper without losing the complete integration examples
+        <Typography component="h2" variant="h5">
+          Integration examples
         </Typography>
         <Typography className="docs-muted">
-          The configurator is the fast exploration surface. These examples remain the
-          learning surface for controller ownership, custom formatting, slots, RTL,
+          Complete, working setups for controlled state, custom formatting, slots, RTL,
           composable primitives, and React Hook Form.
         </Typography>
       </div>

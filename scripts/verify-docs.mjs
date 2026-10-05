@@ -88,21 +88,26 @@ for (const requiredPhrase of [
   'Metadata presets and freshness',
   'Performance budgets and selector calibration',
   'Accessibility contract',
-  'Stable 1.x is live on npm',
   'Base UI and shadcn',
   'getPopularPhoneCountries',
-  '32,768 bytes',
+  '33,103 bytes',
   '10,240 bytes',
   'react-phone-number-input',
   'intl-tel-input',
   'react-international-phone',
   'mui-tel-input',
   'react-phone-input-2',
-  'Christofle-style',
+  'From hand-rolled account and checkout fields',
   'CompiledCoreExample',
   'compiledServerExample',
 ]) {
-  assert.match(allSource, new RegExp(requiredPhrase.replaceAll('.', '\\.'), 'u'));
+  // Source formatting may wrap a phrase across lines.
+  const pattern = requiredPhrase.replaceAll('.', '\\.').replaceAll(' ', '\\s+');
+  assert.match(
+    allSource,
+    new RegExp(pattern, 'u'),
+    `Docs must mention: ${requiredPhrase}`,
+  );
 }
 
 assert.doesNotMatch(
@@ -115,9 +120,9 @@ assert.doesNotMatch(
   /release-candidate channel is live|@wh1teee\/mui-phone-input@next/iu,
   'Stable docs must not direct new users to the historical prerelease channel.',
 );
-assert.match(allSource, /docs follow current source/iu);
-assert.match(allSource, /registry remains authoritative/iu);
-assert.match(allSource, /documented residual gaps/iu);
+assert.match(allSource, /docs\s+follow\s+current\s+source/iu);
+assert.match(allSource, /registry\s+remains\s+authoritative/iu);
+assert.match(allSource, /documented\s+residual\s+gaps/iu);
 assert.match(allSource, /provenance/iu);
 
 console.log(
