@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { highlight } from 'sugar-high';
 
 import { CopyButton } from './copy-button';
 import { DocsToc, type TocGroup } from './docs-toc';
@@ -73,15 +74,25 @@ export function DocsLayout({
 }
 
 export function CodeBlock({ children, title }: { children: string; title?: string }) {
+  const label = title ?? 'tsx';
+  // Shell snippets stay plain; everything else is TypeScript/JSX.
+  const isShell = label === 'Terminal';
   return (
     <figure className="docs-code-block">
       <figcaption>
-        <span>{title ?? 'tsx'}</span>
+        <span>{label}</span>
         <CopyButton text={children} />
       </figcaption>
       {/* biome-ignore lint/a11y/noNoninteractiveTabindex: Horizontally scrollable code must be keyboard-reachable. */}
-      <pre className="docs-code" tabIndex={0}>
-        <code>{children}</code>
+      <pre className="docs-code" data-language={isShell ? 'shell' : 'tsx'} tabIndex={0}>
+        {isShell ? (
+          <code>{children}</code>
+        ) : (
+          <code
+            // biome-ignore lint/security/noDangerouslySetInnerHtml: sugar-high escapes the static snippet source and only adds token spans.
+            dangerouslySetInnerHTML={{ __html: highlight(children) }}
+          />
+        )}
       </pre>
     </figure>
   );

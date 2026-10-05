@@ -27,7 +27,6 @@ export default function PlaygroundPage() {
   return (
     <DocsShell>
       <div className="docs-page-hero">
-        <p className="docs-kicker">Interactive</p>
         <h1>Playground</h1>
         <p>
           Change any option, try the real component, and copy the matching code.

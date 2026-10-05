@@ -276,6 +276,15 @@ const CountrySelectorTrigger = styled(ButtonBase, {
   '& > svg': {
     flex: 'none',
     opacity: 0.6,
+    transition: theme.transitions.create('transform', {
+      duration: theme.transitions.duration.shortest,
+    }),
+  },
+  '&[aria-expanded="true"] > svg': {
+    transform: 'rotate(180deg)',
+  },
+  '@media (prefers-reduced-motion: reduce)': {
+    '& > svg': { transition: 'none' },
   },
 }));
 
@@ -1612,7 +1621,22 @@ export function PhoneInputCountrySelector({
         >
           <DialogTitle id={dialogTitleId}>
             {messages.dialogTitle}
-            <CloseButtonSlot {...closeButtonSlotProps}>×</CloseButtonSlot>
+            <CloseButtonSlot {...closeButtonSlotProps}>
+              <svg
+                aria-hidden="true"
+                fill="none"
+                height="16"
+                viewBox="0 0 14 14"
+                width="16"
+              >
+                <path
+                  d="m3.5 3.5 7 7m0-7-7 7"
+                  stroke="currentColor"
+                  strokeLinecap="round"
+                  strokeWidth="1.5"
+                />
+              </svg>
+            </CloseButtonSlot>
           </DialogTitle>
           <DialogContent
             sx={{

@@ -1,5 +1,11 @@
 # @wh1teee/mui-phone-input
 
+## 1.2.1
+
+### Patch Changes
+
+- Polish country selector feel. The shadcn popup now grows from its trigger and fades out quicker than it opens, the trigger chevron turns while the list is open in both renderers, and the close and selected indicators are drawn icons instead of text glyphs. Reduced-motion users keep the fade without movement.
+
 ## 1.2.0
 
 ### Minor Changes

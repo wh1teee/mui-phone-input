@@ -1,5 +1,11 @@
 # Phone Input for MUI, Base UI and shadcn
 
+[![npm version](https://img.shields.io/npm/v/@wh1teee/mui-phone-input?logo=npm&label=npm&color=cb3837)](https://www.npmjs.com/package/@wh1teee/mui-phone-input)
+[![npm downloads](https://img.shields.io/npm/dm/@wh1teee/mui-phone-input?logo=npm&label=downloads)](https://www.npmjs.com/package/@wh1teee/mui-phone-input)
+[![CI](https://github.com/wh1teee/mui-phone-input/actions/workflows/ci.yml/badge.svg)](https://github.com/wh1teee/mui-phone-input/actions/workflows/ci.yml)
+[![license](https://img.shields.io/npm/l/@wh1teee/mui-phone-input)](./LICENSE)
+[![docs](https://img.shields.io/badge/docs-mui--phone--input--docs.vercel.app-111)](https://mui-phone-input-docs.vercel.app)
+
 Accessible international phone input for React 19, with Material UI and Base UI/shadcn renderers over one shared phone-editing engine and `libphonenumber-js` as the only numbering authority.
 
 ```sh

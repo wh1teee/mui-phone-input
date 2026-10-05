@@ -144,7 +144,7 @@ test('documentation navigation and release disclosure are complete', async ({
   );
   await expect(page.getByText(/@wh1teee\/mui-phone-input@next/i)).toHaveCount(0);
   await expect(page.getByText(/mpi-oan\.24/i)).toHaveCount(0);
-  await expect(page.getByText('33,358 bytes')).toBeVisible();
+  await expect(page.getByText('33,506 bytes')).toBeVisible();
   await expect(page.getByText(/not virtualized/i).first()).toBeVisible();
 
   await page.getByRole('link', { name: 'Migration', exact: true }).click();

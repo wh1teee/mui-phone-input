@@ -18,8 +18,10 @@ export function LandingDemo() {
 
   return (
     <section className="landing-demo" aria-label="Live phone input demo">
-      <fieldset className="landing-demo-switch">
+      <fieldset className="landing-demo-switch" data-active={renderer}>
         <legend className="docs-visually-hidden">Renderer</legend>
+        {/* One thumb slides between options instead of two backgrounds swapping. */}
+        <span aria-hidden="true" className="landing-demo-thumb" />
         {(
           [
             ['mui', 'Material UI'],
@@ -65,7 +67,7 @@ export function LandingDemo() {
         </dd>
       </dl>
       <p className="landing-demo-hint">
-        Same engine, same value — switch renderers and keep typing.
+        Same engine, same value. Switch and keep typing.
       </p>
     </section>
   );

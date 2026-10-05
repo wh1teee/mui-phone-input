@@ -94,6 +94,30 @@
   font: inherit;
   box-shadow: 0 4px 16px rgb(0 0 0 / 12%);
   transform-origin: var(--transform-origin);
+  /* Grows from the trigger; exit is quicker than entry. */
+  transition:
+    opacity 150ms cubic-bezier(0.23, 1, 0.32, 1),
+    transform 150ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+[data-slot="phone-country-popup"][data-starting-style],
+[data-slot="phone-country-popup"][data-ending-style] {
+  opacity: 0;
+  transform: scale(0.96);
+}
+
+[data-slot="phone-country-popup"][data-ending-style] {
+  transition-duration: 100ms;
+}
+
+[data-slot="phone-country-trigger"] > svg {
+  flex: none;
+  opacity: 0.6;
+  transition: transform 150ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+[data-slot="phone-country-trigger"][data-popup-open] > svg {
+  transform: rotate(180deg);
 }
 
 [data-slot="phone-country-search-row"] {
@@ -249,6 +273,16 @@
 
 @media (prefers-reduced-motion: reduce) {
   [data-slot="phone-input-control"] {
+    transition: none;
+  }
+  /* Keep the fade, drop the scaling and rotation. */
+  [data-slot="phone-country-popup"],
+  [data-slot="phone-country-popup"][data-starting-style],
+  [data-slot="phone-country-popup"][data-ending-style] {
+    transform: none;
+    transition-property: opacity;
+  }
+  [data-slot="phone-country-trigger"] > svg {
     transition: none;
   }
 }
