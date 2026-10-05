@@ -379,3 +379,23 @@ test('extension digits stay left-to-right inside an RTL field', async () => {
     .element(page.getByLabelText('Extension', { exact: true }))
     .toHaveAttribute('dir', 'ltr');
 });
+
+test('a pill-sized root radius does not round the portaled popup into a clipped shape', async () => {
+  document.documentElement.style.setProperty('--radius', '9999px');
+  try {
+    await render(
+      <div style={{ ['--radius' as string]: '0.875rem' }}>
+        <PhoneInput defaultCountry="BY" label="Phone" />
+      </div>,
+    );
+    await page.getByLabelText('Select country', { exact: true }).click();
+    const popupRadius = () => {
+      const popup = document.querySelector('[data-slot="phone-country-popup"]');
+      return popup ? Number.parseFloat(getComputedStyle(popup).borderRadius) : null;
+    };
+    // 0.75rem cap: rounding never clips the search row or the options.
+    await expect.poll(popupRadius).toBe(12);
+  } finally {
+    document.documentElement.style.removeProperty('--radius');
+  }
+});

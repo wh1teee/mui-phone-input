@@ -69,6 +69,12 @@
 }
 
 [data-slot="phone-country-positioner"] {
+  /* The popup is portaled out of the field's theme scope and may inherit a
+     pill-sized root --radius; cap it so rounding never clips the list. */
+  --phone-input-popup-radius-resolved: min(
+    var(--phone-input-popup-radius, var(--radius, 0.5rem)),
+    0.75rem
+  );
   z-index: var(--phone-input-popup-z-index, 50);
   outline: none;
 }
@@ -82,7 +88,7 @@
   flex-direction: column;
   overflow: hidden;
   border: 1px solid var(--border, #d4d4d4);
-  border-radius: var(--radius, 0.5rem);
+  border-radius: var(--phone-input-popup-radius-resolved, 0.5rem);
   background: var(--popover, white);
   color: var(--popover-foreground, #171717);
   font: inherit;
@@ -118,6 +124,14 @@
   appearance: none;
 }
 
+[data-slot="phone-country-search"],
+[data-slot="phone-country-close"] {
+  border-radius: max(
+    0px,
+    calc(var(--phone-input-popup-radius-resolved, 0.5rem) - 0.25rem)
+  );
+}
+
 [data-slot="phone-country-search"]:focus-visible,
 [data-slot="phone-input-extension-native"]:focus-visible {
   outline: 2px solid var(--ring, #737373);
@@ -137,7 +151,10 @@
   gap: 0.5rem;
   min-height: 2.5rem;
   padding: 0.25rem 0.5rem;
-  border-radius: calc(var(--radius, 0.5rem) - 2px);
+  border-radius: max(
+    0px,
+    calc(var(--phone-input-popup-radius-resolved, 0.5rem) - 0.25rem)
+  );
   cursor: default;
 }
 

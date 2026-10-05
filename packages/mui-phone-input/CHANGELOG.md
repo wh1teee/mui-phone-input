@@ -1,5 +1,11 @@
 # @wh1teee/mui-phone-input
 
+## 1.1.1
+
+### Patch Changes
+
+- Keep the shadcn country popup readable when the application's root `--radius` is pill-sized. The popup is portaled out of the field's theme scope, so it could inherit a huge radius and clip the search field and options into a rounded shape. Popup, search and option corners now follow `--radius` capped at `0.75rem`, and `--phone-input-popup-radius` sets the popup radius explicitly.
+
 ## 1.1.0
 
 ### Minor Changes
