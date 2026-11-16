@@ -2,6 +2,7 @@
 
 import {
   getCountryCallingCode,
+  isSupportedCountry,
   parseIncompletePhoneNumber,
 } from 'libphonenumber-js/core';
 import type { CountryCode, PhoneNumberType } from 'libphonenumber-js/max';
@@ -1313,8 +1314,12 @@ export function usePhoneInputTransactions(
 
   // A late defaultCountry (e.g. loaded after first paint) replaces the selection
   // only while the field is untouched: empty, never edited, nothing picked.
+  // A missing (refetching) or unsupported late value is ignored, as in 1.2.1;
+  // render must never throw on it.
   useEffect(() => {
     if (
+      !currentDefaultCountry ||
+      !isSupportedCountry(currentDefaultCountry, metadata) ||
       countryControlledRef.current ||
       countryInteractedRef.current ||
       currentValueRef.current !== undefined ||
@@ -1332,6 +1337,7 @@ export function usePhoneInputTransactions(
     currentSelectedCountryRef,
     currentValueRef,
     initialDefaultCountryRef,
+    metadata,
     setUncontrolledCountry,
   ]);
 
