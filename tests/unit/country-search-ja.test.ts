@@ -25,6 +25,10 @@ describe('Japanese country search', () => {
     ['ほんこん', 'HK'],
     ['香港', 'HK'],
     ['みなみあふりか', 'ZA'],
+    ['ばーじん', 'VG'],
+    ['べいこく', 'US'],
+    ['だいかんみんこく', 'KR'],
+    ['えいこく', 'GB'],
   ])('finds %s by its reading before IME conversion', (query, country) => {
     expect(first(query)).toBe(country);
   });
@@ -34,6 +38,7 @@ describe('Japanese country search', () => {
     expect(first('ベラルーシ')).toBe('BY');
   });
 
+  // Calling-code search read full-width digits before 1.3.0; kept as a regression.
   it('reads full-width calling codes', () => {
     expect(first('+８１')).toBe('JP');
     expect(first('＋８１')).toBe('JP');

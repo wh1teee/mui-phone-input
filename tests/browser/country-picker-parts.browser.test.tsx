@@ -600,32 +600,42 @@ test('parts take locale and messages from phone unless their props override them
 
 function ResponsivePhone({ wide }: { wide: boolean }) {
   const [open, setOpen] = useState(false);
+  const picked = useRef(false);
   return (
     <PhoneInput
-      countrySelector={{ triggerContent: 'calling-code' }}
+      countrySelector={{
+        triggerContent: 'calling-code',
+        triggerProps: { className: 'host-trigger', 'data-host': 'yes' } as never,
+      }}
       defaultCountry="BY"
       displayMode="national"
       helperText="We text the code"
       label="Phone"
-      renderCountrySelector={({
-        defaultSelector,
-        listProps,
-        onSelect,
-        triggerProps,
-      }) =>
+      renderCountrySelector={({ defaultSelector, listProps, phone, triggerProps }) =>
         wide ? (
           defaultSelector
         ) : (
-          <Dialog.Root onOpenChange={setOpen} open={open}>
+          <Dialog.Root
+            onOpenChange={(next) => {
+              if (next) picked.current = false;
+              setOpen(next);
+            }}
+            open={open}
+          >
             <Dialog.Trigger render={<PhoneCountryTrigger {...triggerProps} />} />
             <Dialog.Portal>
-              <Dialog.Popup finalFocus={false} initialFocus={false}>
+              <Dialog.Popup
+                finalFocus={() =>
+                  picked.current ? phone.inputElementRef.current : true
+                }
+                initialFocus={false}
+              >
                 <PhoneCountryList
                   {...listProps}
                   autoFocusSearch="fine-pointer"
                   onSelect={() => {
+                    picked.current = true;
                     setOpen(false);
-                    onSelect();
                   }}
                 />
               </Dialog.Popup>
@@ -652,6 +662,44 @@ describe('PhoneInput renderCountrySelector', () => {
     await userEvent.keyboard('{ArrowDown}{Enter}');
     await expect.element(page.getByRole('dialog')).not.toBeInTheDocument();
     await expect.element(page.getByLabelText('Phone', { exact: true })).toHaveFocus();
+  });
+
+  test('dismissing the host sheet returns focus to the trigger', async () => {
+    usePointer(false);
+    await render(<ResponsivePhone wide={false} />);
+    const trigger = page.getByRole('button', { name: /^Select country/u });
+    const triggerElement = trigger.element();
+    // The host's countrySelector.triggerProps reach the trigger part.
+    expect(triggerElement.classList.contains('host-trigger')).toBe(true);
+    expect(triggerElement.getAttribute('data-host')).toBe('yes');
+    await trigger.click();
+    await expect.poll(() => document.activeElement === listElement()).toBe(true);
+    await userEvent.keyboard('{Escape}');
+    await expect.element(page.getByRole('dialog')).not.toBeInTheDocument();
+    await expect.poll(() => document.activeElement).toBe(triggerElement);
+  });
+
+  test('the shadcn chevron turns for a plain trigger that reports aria-expanded', async () => {
+    function PlainTrigger() {
+      const phone = usePhoneInput({ defaultCountry: 'BY' });
+      const [open, setOpen] = useState(false);
+      return (
+        <PhoneCountryTrigger
+          aria-expanded={open}
+          data-testid="plain"
+          onClick={() => setOpen(true)}
+          phone={phone}
+        />
+      );
+    }
+    await render(<PlainTrigger />);
+    const chevron = () =>
+      getComputedStyle(
+        page.getByTestId('plain').element().querySelector('svg') as Element,
+      ).transform;
+    expect(chevron()).toBe('none');
+    await page.getByTestId('plain').click();
+    await expect.poll(chevron).not.toBe('none');
   });
 
   test('a wide screen keeps the built-in popover', async () => {

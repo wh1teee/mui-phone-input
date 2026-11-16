@@ -143,8 +143,9 @@ export interface PhoneInputState {
   extensionRequired: boolean;
   extensionValidationMessageId: string;
   inputId: string;
-  locale: string;
-  messages: Partial<PhoneCountrySelectorMessages> | undefined;
+  /** Optional so hand-built states (mocks, stories) stay valid. */
+  locale?: string | undefined;
+  messages?: Partial<PhoneCountrySelectorMessages> | undefined;
   metadata: PhoneMetadata;
   numberingPlan: PhoneInputNumberingPlanState;
   readOnly: boolean;

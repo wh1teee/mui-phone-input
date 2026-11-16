@@ -23,12 +23,23 @@ import {
 export interface PhoneInputCountrySelectorRenderProps {
   /** The built-in anchored popover, e.g. for wide screens. */
   defaultSelector: ReactNode;
-  /** Props for `PhoneCountryList`, from `countrySelector`. Add your own `onSelect`. */
+  /**
+   * Moves focus to the phone input. After a pick: select (the list does it),
+   * close your container, then focus the input, e.g. as the container's final
+   * focus target or by calling this once it has closed.
+   */
+  focusInput: () => void;
+  /**
+   * Props for `PhoneCountryList`, from `countrySelector`. The list applies the
+   * selection itself; add your own `onSelect` to close your container.
+   */
   listProps: PhoneCountryListProps;
-  /** Moves focus to the phone input; call it once your container has closed. */
-  onSelect: () => void;
   phone: UsePhoneInputReturn;
-  /** Props for `PhoneCountryTrigger`; its accessible name carries the selection. */
+  /**
+   * Props for `PhoneCountryTrigger`, including `countrySelector.triggerProps`
+   * (its Base UI `render` and function `className`/`style` stay popover-only);
+   * its accessible name carries the selection.
+   */
   triggerProps: PhoneCountryTriggerProps;
 }
 
@@ -70,16 +81,24 @@ function createCountrySelectorRenderProps(
   selector: Omit<PhoneInputCountrySelectorProps, 'phone'>,
   defaultSelector: ReactNode,
 ): PhoneInputCountrySelectorRenderProps {
-  const { classNames, triggerProps } = selector;
+  const { classNames } = selector;
+  // A Base UI render element and state functions only make sense on the popover.
+  const {
+    className,
+    render: _render,
+    style,
+    ...triggerProps
+  } = selector.triggerProps ?? {};
   return {
     defaultSelector,
+    focusInput: phone.actions.focus,
     // The list ignores the popover-only options (portal, trigger props).
     listProps: { ...selector, phone } as PhoneCountryListProps,
-    onSelect: phone.actions.focus,
     phone,
     triggerProps: {
-      'aria-label': triggerProps?.['aria-label'],
-      className: classNames?.trigger,
+      ...triggerProps,
+      className: typeof className === 'string' ? className : classNames?.trigger,
+      style: typeof style === 'function' ? undefined : style,
       flagClassName: classNames?.flag,
       flags: selector.flags,
       locale: selector.locale,

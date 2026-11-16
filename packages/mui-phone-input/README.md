@@ -319,29 +319,45 @@ own drag, focus trapping and the back gesture; wide screens can keep
 
 With the complete `PhoneInput`, `renderCountrySelector` swaps only the country
 presentation; label, description, errors and extension stay. It receives
-`phone`, `triggerProps` and `listProps` (built from `countrySelector`),
-`defaultSelector` (the built-in popover) and `onSelect` (moves focus to the
-phone input):
+`phone`, `defaultSelector` (the built-in popover), `listProps` (from
+`countrySelector`), `triggerProps` (from `countrySelector`, including
+`countrySelector.triggerProps`; a Base UI `render` element and function
+`className`/`style` stay popover-only) and `focusInput`. The order after a pick
+is: the list selects the country, your `onSelect` closes your container, then
+focus moves to the phone input; dismissing without a pick returns focus to the
+trigger.
 
 ```tsx
+const [open, setOpen] = useState(false);
+const picked = useRef(false);
+
 <PhoneInput
   countrySelector={{ triggerContent: 'calling-code' }}
   displayMode="national"
   label="Phone"
-  renderCountrySelector={({ defaultSelector, listProps, onSelect, triggerProps }) =>
+  renderCountrySelector={({ defaultSelector, listProps, phone, triggerProps }) =>
     wide ? (
       defaultSelector
     ) : (
-      <Dialog.Root open={open} onOpenChange={setOpen}>
+      <Dialog.Root
+        open={open}
+        onOpenChange={(next) => {
+          if (next) picked.current = false;
+          setOpen(next);
+        }}
+      >
         <Dialog.Trigger render={<PhoneCountryTrigger {...triggerProps} />} />
         <Dialog.Portal>
-          <Dialog.Popup initialFocus={false} finalFocus={false}>
+          <Dialog.Popup
+            initialFocus={false}
+            finalFocus={() => (picked.current ? phone.inputElementRef.current : true)}
+          >
             <PhoneCountryList
               {...listProps}
               autoFocusSearch="fine-pointer"
               onSelect={() => {
+                picked.current = true;
                 setOpen(false);
-                onSelect();
               }}
             />
           </Dialog.Popup>
@@ -349,8 +365,11 @@ phone input):
       </Dialog.Root>
     )
   }
-/>
+/>;
 ```
+
+Containers without a final-focus option call `focusInput()` once they have
+closed after a pick.
 
 For an application-owned field, compose the parts with `usePhoneInput`:
 
@@ -414,8 +433,12 @@ export function PhoneWithSheet() {
 `onClick`, `aria-expanded` and `aria-haspopup` yourself or through a dialog
 trigger's `render`.
 
-Both parts use the `locale` and `messages` given to `usePhoneInput` unless their
-own props say otherwise.
+Both parts, and the Base UI `PhoneInputCountrySelector`, use the `locale` and
+`messages` given to `usePhoneInput` (top-level `locale` and `messages` on
+`PhoneInput`) unless their own props say otherwise; messages merge by key. A
+host `aria-labelledby` on `PhoneCountryTrigger` takes precedence over its
+`aria-label` by ARIA rules, so prefer `aria-label` to keep the selection in the
+name.
 
 `PhoneCountryList` takes `phone`, `locale`, `messages`, `preferredCountries`,
 `countryFilter`, `countryOrder`, `resolveCountryName`, `searchAliases`,
@@ -499,9 +522,9 @@ import { be } from '@wh1teee/mui-phone-input/locales/be';
 
 `/locales/ja` also ships `searchAliases`: kana readings of every country name
 that Japanese writes with kanji (日本 → にほん, 中国 → ちゅうごく). Pass them with
-`searchAliases: ja.searchAliases`. Search folds hiragana to katakana and
-full-width digits and `+` to ASCII, so `べらるーし`, `にほん` and `+８１` match
-before IME conversion.
+`searchAliases: ja.searchAliases`; without them a kanji name matches only its
+kanji. Search also folds hiragana to katakana, so `べらるーし` finds ベラルーシ
+before IME conversion. Full-width calling codes such as `+８１` match as before.
 
 Each locale is a separate entrypoint. RTL themes mirror the selector UI while
 the telephone input itself remains `dir="ltr"`.

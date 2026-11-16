@@ -161,7 +161,7 @@ export function useCountryComboboxModel({
   searchAliases,
 }: CountryComboboxModelParameters): CountryComboboxModel {
   // The part's own locale wins; otherwise the language given to usePhoneInput.
-  const locale = localeProp ?? phone.state.locale;
+  const locale = localeProp ?? phone.state.locale ?? 'en';
   const [query, setQuery] = useState('');
   const searching = query.trim() !== '';
   const disabled = phone.state.disabled || phone.state.readOnly;
@@ -421,7 +421,7 @@ export function useCountryTriggerView({
 }: CountryTriggerViewParameters): CountryTriggerView {
   const selected = useSelectedCountryOption(
     phone,
-    locale ?? phone.state.locale,
+    locale ?? phone.state.locale ?? 'en',
     resolveCountryName,
   );
   const displayMode = phone.state.displayMode;
