@@ -190,7 +190,7 @@ for (const latestConsumerPin of [
     new RegExp(latestConsumerPin.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&'), 'u'),
   );
 }
-for (const latestSpecializedPin of ["'react-hook-form': '7.88.0'", "zod: '4.6.4'"]) {
+for (const latestSpecializedPin of ["'react-hook-form': '7.88.0'", "zod: '4.6.6'"]) {
   assert.match(
     specializedConsumersVerifier,
     new RegExp(latestSpecializedPin.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&'), 'u'),
