@@ -188,9 +188,11 @@
     0px,
     calc(var(--phone-input-popup-radius-resolved, 0.5rem) - 0.25rem)
   );
+  box-sizing: border-box;
   cursor: default;
-  /* Off-screen rows of the ~240-country list skip layout and paint; the
-     intrinsic size keeps scroll height and scroll-into-view positions exact. */
+  /* Off-screen rows of the ~240-country list skip layout and paint. The
+     intrinsic size is the single-line row height, so scroll positions are
+     close; rows whose names wrap are taller once rendered. */
   content-visibility: auto;
   contain-intrinsic-block-size: auto 2.5rem;
 }

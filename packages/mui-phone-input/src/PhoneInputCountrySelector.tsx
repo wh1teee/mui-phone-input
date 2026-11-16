@@ -993,12 +993,11 @@ export function PhoneInputCountrySelector({
       'aria-controls': open ? (mobile ? dialogId : listboxId) : undefined,
       'aria-expanded': open,
       'aria-haspopup': mobile ? ('dialog' as const) : ('listbox' as const),
-      // A host label prefixes the name; the selection is always appended.
-      'aria-label': formatPhoneCountryTriggerLabel(
-        messages,
-        activeOption,
-        externalTriggerSlotProps?.['aria-label'] ?? triggerProps['aria-label'],
-      ),
+      // A host label is the whole name, as in 1.2.1.
+      'aria-label':
+        externalTriggerSlotProps?.['aria-label'] ??
+        triggerProps['aria-label'] ??
+        formatPhoneCountryTriggerLabel(messages, activeOption),
       disabled: triggerDisabled || externalTriggerSlotProps?.disabled === true,
       ref: triggerSlotRef,
       role: 'button' as const,

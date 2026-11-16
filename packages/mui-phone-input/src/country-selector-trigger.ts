@@ -22,8 +22,9 @@ export interface PhoneCountryTriggerState {
  * which replaces everything before the chevron.
  *
  * - `auto`: ISO code, plus the calling code in national display mode.
- * - `calling-code`: the calling code in national display mode; nothing in
- *   international modes, because the input already starts with it.
+ * - `calling-code`: the calling code in national display mode. International
+ *   modes already start the input with it, so the trigger falls back to `auto`
+ *   there instead of drawing an empty button.
  * - `country-code`: the ISO code only.
  * - `both`: ISO code and calling code in every display mode.
  */
@@ -51,7 +52,7 @@ export function resolvePhoneCountryTriggerParts(
     case 'both':
       return { callingCode: true, countryCode: true };
     case 'calling-code':
-      return { callingCode: national, countryCode: false };
+      return { callingCode: national, countryCode: !national };
     case 'country-code':
       return { callingCode: false, countryCode: true };
     default:
