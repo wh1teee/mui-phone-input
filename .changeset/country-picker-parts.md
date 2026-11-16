@@ -11,4 +11,4 @@ Let products put the country list in their own sheet, choose what the trigger sh
 - Add the Japanese locale, `@wh1teee/mui-phone-input/locales/ja`.
 - `shadcn.css` lets off-screen option rows skip layout and paint (`content-visibility: auto` with the row height as intrinsic size), so the full list opens cheaper.
 
-Entry sizes stay within budget (gzip): `/base-ui` and `/shadcn` +1.5 KB (85.5 → 87.0 KB), `/base-ui/min` +1.5 KB (64.3 → 65.8 KB), `/mui` +0.4 KB, `/headless` +0.1 KB.
+Entry sizes stay within budget (gzip): `/base-ui` and `/shadcn` +1.5 KB (85.5 → 87.0 KB), `/base-ui/min` +1.5 KB (64.3 → 65.8 KB), `/mui` +0.4 KB, `/headless` +0.1 KB. The MUI main closure budget moves from 33,506 to 33,892 bytes gzip (measured +386 B, 96 B headroom kept).
