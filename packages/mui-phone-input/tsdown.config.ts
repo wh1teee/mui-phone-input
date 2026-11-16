@@ -34,6 +34,7 @@ export default defineConfig([
       'locales/be': 'src/locales/be.ts',
       'locales/en': 'src/locales/en.ts',
       'locales/index': 'src/locales/index.ts',
+      'locales/ja': 'src/locales/ja.ts',
       'locales/ru': 'src/locales/ru.ts',
     },
     deps: {

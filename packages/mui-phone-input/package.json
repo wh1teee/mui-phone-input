@@ -80,6 +80,11 @@
       "import": "./dist/locales/en.js",
       "default": "./dist/locales/en.js"
     },
+    "./locales/ja": {
+      "types": "./dist/locales/ja.d.ts",
+      "import": "./dist/locales/ja.js",
+      "default": "./dist/locales/ja.js"
+    },
     "./locales/ru": {
       "types": "./dist/locales/ru.d.ts",
       "import": "./dist/locales/ru.js",

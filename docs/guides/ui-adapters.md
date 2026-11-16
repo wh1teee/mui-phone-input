@@ -29,6 +29,11 @@ value, display, selection, composition, paste and native form reset. Spread
 ref and event handlers. Pass the same `phone` to `PhoneInputCountrySelector`.
 Compose an external input ref rather than replacing the engine's ref.
 
+When the product's own dialog or bottom sheet must own the country list (drag,
+focus trap, back gesture), compose the two parts the popover is built from:
+`PhoneCountryTrigger` as the sheet trigger and `PhoneCountryList` inside the
+sheet, closing it from `onSelect`. See "Host-owned sheet" in the package README.
+
 Use `parsePhoneValue` to adapt a previously formatted international value;
 translate an empty `PhoneValue` (`undefined`) to `''` only at a form boundary that
 requires strings. Keep product validation policies explicit. A normalized

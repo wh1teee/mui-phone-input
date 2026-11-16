@@ -11,6 +11,7 @@
     "./flags",
     "./locales/be",
     "./locales/en",
+    "./locales/ja",
     "./locales/ru",
     "./package.json",
     "./mui",

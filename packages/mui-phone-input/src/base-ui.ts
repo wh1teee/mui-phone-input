@@ -10,4 +10,12 @@ export {
   type PhoneInputCountrySelectorClassNames,
   type PhoneInputCountrySelectorProps,
 } from './BasePhoneInput/PhoneInputCountrySelector';
+export {
+  type PhoneCountryAutoFocusSearch,
+  PhoneCountryList,
+  type PhoneCountryListClassNames,
+  type PhoneCountryListProps,
+  PhoneCountryTrigger,
+  type PhoneCountryTriggerProps,
+} from './BasePhoneInput/PhoneCountryParts';
 export * from './headless';

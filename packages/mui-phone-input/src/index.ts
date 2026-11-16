@@ -18,6 +18,10 @@ export {
   resolvePhoneCountrySelection,
   selectPhoneCountryValue,
 } from './country-selector';
+export type {
+  PhoneCountryTriggerContent,
+  PhoneCountryTriggerState,
+} from './country-selector-trigger';
 export * from './MuiPhoneInput';
 // biome-ignore lint/style/useExportType: preserve the frozen public export order and generated bundle shape.
 export {

@@ -17,6 +17,10 @@ export {
   selectPhoneCountryValue,
 } from './country-selector';
 export type { PhoneCountrySelectorMessages } from './country-selector-messages';
+export type {
+  PhoneCountryTriggerContent,
+  PhoneCountryTriggerState,
+} from './country-selector-trigger';
 // Shared engine types live here so renderer-independent consumers never need
 // the MUI root declaration graph. The legacy index is not re-exported: its MUI
 // runtime and theme augmentation stay outside this entrypoint.

@@ -125,6 +125,23 @@ The selector excludes only its own open popup/dialog surface from the donor
 result, then resolves the next or previous target relative to its trigger. It
 does not maintain a package-owned list of tabbable element categories.
 
+#### Base UI country parts (1.3.0)
+
+`PhoneCountryTrigger`, `PhoneCountryList` and the rebuilt Base UI popover use
+the installed `@base-ui/react` `1.8.0` dependency (npm tarball; no source
+copied), decision `pattern-only`. Inspected symbols: `AriaCombobox` `inline`
+(documented `Combobox.Root inline open` inside a host `Dialog`),
+`ComboboxInput` (Home/End keep the caret, `!mounted` Escape branch),
+`useListNavigation` (Home/End and `aria-activedescendant` gated on a typeable
+reference), `ComboboxPopup` (touch opens focus the popup, list focus is
+redirected to the input on non-touch opens) and `useRenderElement` (`render`
+element props merge). Known gaps carried as behaviour: on a focused list
+Base UI handles arrows and Enter but not Home/End, and it emits
+`aria-activedescendant` only on the search field, which the list part mirrors.
+The keyboard model stays Base UI's; no second navigation model is written.
+WAI-ARIA APG (pinned above) keeps Home/End for the search caret. Regressions:
+`tests/browser/country-picker-parts.browser.test.tsx`.
+
 ### `cap-mui-contract`
 
 Follow MUI theme augmentation, utility classes, `ownerState`, slots, and

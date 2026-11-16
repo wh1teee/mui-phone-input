@@ -27,6 +27,7 @@ export default defineConfig({
   optimizeDeps: {
     include: [
       '@base-ui/react/combobox',
+      '@base-ui/react/dialog',
       '@base-ui/react/direction-provider',
       '@emotion/react',
       '@emotion/styled',

@@ -10,5 +10,6 @@ export const be: PhoneInputLocale = {
     preferredCountries: 'Пераважныя краіны',
     searchLabel: 'Пошук краін',
     selectCountry: 'Выбраць краіну',
+    triggerLabel: '{label}. {countryName}, {country}, {callingCode}',
   },
 };

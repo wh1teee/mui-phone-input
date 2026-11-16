@@ -321,6 +321,7 @@ for (const exportPath of [
   './flags.css',
   './locales/be',
   './locales/en',
+  './locales/ja',
   './locales/ru',
   './package.json',
 ]) {
@@ -345,6 +346,7 @@ assert.deepEqual(consumerExportContract.implemented, [
   './flags',
   './locales/be',
   './locales/en',
+  './locales/ja',
   './locales/ru',
   './package.json',
   './mui',

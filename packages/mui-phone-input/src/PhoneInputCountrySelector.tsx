@@ -38,6 +38,12 @@ import {
   type PhoneCountryOption,
 } from './country-selector';
 import type { PhoneCountrySelectorMessages } from './country-selector-messages';
+import {
+  createPhoneCountryTriggerState,
+  formatPhoneCountryTriggerLabel,
+  type PhoneCountryTriggerContent,
+  resolvePhoneCountryTriggerParts,
+} from './country-selector-trigger';
 
 export type { PhoneCountrySelectorMessages } from './country-selector-messages';
 
@@ -49,6 +55,7 @@ import {
   type PhoneFlagProvider,
 } from './flags';
 import { warnInvalidAccessibilitySlot } from './internal/accessibility-diagnostics';
+import { en } from './locales/en';
 import type { MuiPhoneInputOwnerState } from './MuiPhoneInput/MuiPhoneInput';
 import type { MuiPhoneInputClasses } from './MuiPhoneInput/muiPhoneInputClasses';
 import { muiPhoneInputClasses } from './MuiPhoneInput/muiPhoneInputClasses';
@@ -242,17 +249,11 @@ export type PhoneInputCountrySelectorProps = Omit<
     resultLimit?: number;
     slotProps?: PhoneCountrySelectorSlotProps;
     slots?: PhoneCountrySelectorSlots;
+    /** Default `'auto'`: the ISO code, plus the calling code in national display mode. */
+    triggerContent?: PhoneCountryTriggerContent;
   };
 
-const DEFAULT_MESSAGES: PhoneCountrySelectorMessages = {
-  allCountries: 'All countries',
-  close: 'Close country selector',
-  dialogTitle: 'Select country',
-  noOptions: 'No matching countries',
-  preferredCountries: 'Preferred countries',
-  searchLabel: 'Search countries',
-  selectCountry: 'Select country',
-};
+const DEFAULT_MESSAGES: PhoneCountrySelectorMessages = en.messages;
 
 const CountrySelectorTrigger = styled(ButtonBase, {
   name: 'MuiPhoneInput',
@@ -538,6 +539,7 @@ export function PhoneInputCountrySelector({
   resultLimit,
   slotProps,
   slots,
+  triggerContent = 'auto',
   ...triggerProps
 }: PhoneInputCountrySelectorProps): ReactNode {
   const phone = usePhoneInputContext();
@@ -864,9 +866,6 @@ export function PhoneInputCountrySelector({
     },
     [autocompleteInputRef],
   );
-  const triggerLabel = activeOption
-    ? `${messages.selectCountry}. ${optionLabel(activeOption)}`
-    : messages.selectCountry;
   const previousOpenRef = useRef(open);
   const previousPresentationRef = useRef(presentation);
   const pendingPresentationHighlightRestoreRef = useRef(false);
@@ -994,10 +993,12 @@ export function PhoneInputCountrySelector({
       'aria-controls': open ? (mobile ? dialogId : listboxId) : undefined,
       'aria-expanded': open,
       'aria-haspopup': mobile ? ('dialog' as const) : ('listbox' as const),
-      'aria-label':
-        externalTriggerSlotProps?.['aria-label'] ??
-        triggerProps['aria-label'] ??
-        triggerLabel,
+      // A host label prefixes the name; the selection is always appended.
+      'aria-label': formatPhoneCountryTriggerLabel(
+        messages,
+        activeOption,
+        externalTriggerSlotProps?.['aria-label'] ?? triggerProps['aria-label'],
+      ),
       disabled: triggerDisabled || externalTriggerSlotProps?.disabled === true,
       ref: triggerSlotRef,
       role: 'button' as const,
@@ -1581,23 +1582,38 @@ export function PhoneInputCountrySelector({
     triggerIndicatorOwnerState,
   );
 
+  const triggerParts =
+    typeof triggerContent === 'function'
+      ? null
+      : resolvePhoneCountryTriggerParts(triggerContent, phone.state.displayMode);
+
   return (
     <>
       <TriggerSlot {...triggerSlotProps}>
-        {activeOption &&
-        (flagMode !== 'none' || flagProvider) &&
-        triggerFlagSlotProps ? (
-          <FlagSlot {...triggerFlagSlotProps} />
-        ) : null}
-        <CountryCodeSlot {...triggerCountryCodeSlotProps}>
-          {activeOption?.country ?? '—'}
-        </CountryCodeSlot>
-        {/* International modes already start the input with the calling code. */}
-        {activeOption && phone.state.displayMode === 'national' ? (
-          <CallingCodeSlot {...triggerCallingCodeSlotProps}>
-            +{activeOption.callingCode}
-          </CallingCodeSlot>
-        ) : null}
+        {typeof triggerContent === 'function' ? (
+          triggerContent(
+            createPhoneCountryTriggerState(activeOption, phone.state.displayMode),
+          )
+        ) : (
+          <>
+            {activeOption &&
+            (flagMode !== 'none' || flagProvider) &&
+            triggerFlagSlotProps ? (
+              <FlagSlot {...triggerFlagSlotProps} />
+            ) : null}
+            {!activeOption || triggerParts?.countryCode ? (
+              <CountryCodeSlot {...triggerCountryCodeSlotProps}>
+                {activeOption?.country ?? '—'}
+              </CountryCodeSlot>
+            ) : null}
+            {/* International modes already start the input with the calling code. */}
+            {activeOption && triggerParts?.callingCode ? (
+              <CallingCodeSlot {...triggerCallingCodeSlotProps}>
+                +{activeOption.callingCode}
+              </CallingCodeSlot>
+            ) : null}
+          </>
+        )}
         <svg aria-hidden="true" fill="none" height="12" viewBox="0 0 12 12" width="12">
           <path d="m3 4.5 3 3 3-3" stroke="currentColor" strokeWidth="1.5" />
         </svg>

@@ -10,5 +10,6 @@ export const ru: PhoneInputLocale = {
     preferredCountries: 'Предпочтительные страны',
     searchLabel: 'Поиск стран',
     selectCountry: 'Выбрать страну',
+    triggerLabel: '{label}. {countryName}, {country}, {callingCode}',
   },
 };

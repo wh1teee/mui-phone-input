@@ -262,11 +262,130 @@ defaulted to 50.
 Other shared options: `locale`, `countryFilter`, `countryOrder`,
 `resolveCountryName`, `messages`, `portalContainer`.
 
+### Trigger content and accessible name
+
+`triggerContent` chooses what the trigger draws next to the optional flag and
+the chevron (MUI: `slotProps.countrySelector.triggerContent`; Base UI/shadcn:
+`countrySelector.triggerContent`):
+
+| Value | International modes | National mode |
+| --- | --- | --- |
+| `'auto'` (default) | `BY` | `BY +375` |
+| `'calling-code'` | nothing (the input already starts with `+375`) | `+375` |
+| `'country-code'` | `BY` | `BY` |
+| `'both'` | `BY +375` | `BY +375` |
+| `(state) => ReactNode` | your content | your content |
+
+The function receives `{ country, callingCode, countryName, displayMode }`
+(`callingCode` without `+`; all `null` without a selected country) and replaces
+everything before the chevron. Without a selected country every built-in value
+shows the neutral glyph.
+
+Whatever is drawn, the trigger's accessible name contains the selected
+country's name and calling code. A host `aria-label` becomes its prefix through
+the `triggerLabel` message (`{label}`, `{countryName}`, `{country}`,
+`{callingCode}`); without a selection the name is just the label:
+
+```tsx
+<PhoneInput
+  countrySelector={{
+    messages: { triggerLabel: '{label}: {countryName}, {callingCode}' },
+    triggerContent: 'calling-code',
+    triggerProps: { 'aria-label': 'Страна' },
+  }}
+  displayMode="national"
+/>
+// Trigger draws "+375 ⌄" and is announced as "Страна: Беларусь, +375".
+```
+
 ### Keyboard and focus
 
 After a country is chosen (click or Enter), focus moves to the phone number
 input in both renderers. Escape or closing the selector returns focus to the
-country trigger.
+country trigger. The search field keeps Home/End for its caret; arrow keys move
+through the list and Enter chooses the highlighted country.
+
+Opening the selector by touch focuses the popup instead of the search field, so
+no on-screen keyboard appears until the search is tapped.
+
+### Host-owned sheet (Base UI/shadcn)
+
+`PhoneCountryTrigger` and `PhoneCountryList` are the two parts the built-in
+popover is made of. Put them in your own dialog or bottom sheet when it should
+own drag, focus trapping and the back gesture; wide screens can keep
+`PhoneInputCountrySelector`.
+
+```tsx
+'use client';
+
+import { Dialog } from '@base-ui/react/dialog';
+import {
+  PhoneCountryList,
+  PhoneCountryTrigger,
+  usePhoneInput,
+} from '@wh1teee/mui-phone-input/shadcn';
+import { useRef, useState } from 'react';
+
+export function PhoneWithSheet() {
+  const phone = usePhoneInput({ defaultCountry: 'BY', displayMode: 'national' });
+  const [open, setOpen] = useState(false);
+  const picked = useRef(false);
+  return (
+    <div {...phone.getRootProps()} data-slot="phone-input">
+      <div data-slot="phone-input-control">
+        <Dialog.Root
+          open={open}
+          onOpenChange={(next) => {
+            if (next) picked.current = false;
+            setOpen(next);
+          }}
+        >
+          {/* The dialog trigger supplies onClick, aria-expanded and aria-haspopup. */}
+          <Dialog.Trigger
+            render={<PhoneCountryTrigger phone={phone} triggerContent="calling-code" />}
+          />
+          <Dialog.Portal>
+            {/* Let the list choose focus; a dialog would focus the search first.
+                After a pick, continue in the phone input instead of the trigger. */}
+            <Dialog.Popup
+              initialFocus={false}
+              finalFocus={() => (picked.current ? phone.inputElementRef.current : true)}
+            >
+              <Dialog.Title>Country</Dialog.Title>
+              <PhoneCountryList
+                autoFocusSearch="fine-pointer"
+                onSelect={() => {
+                  picked.current = true;
+                  setOpen(false);
+                }}
+                phone={phone}
+              />
+            </Dialog.Popup>
+          </Dialog.Portal>
+        </Dialog.Root>
+        <input {...phone.getInputProps({ type: 'tel' })} data-slot="phone-input-native" />
+      </div>
+    </div>
+  );
+}
+```
+
+`PhoneCountryTrigger` takes `phone`, `triggerContent`, `flags`, `locale`,
+`messages`, `resolveCountryName`, `flagClassName` and any button prop; wire
+`onClick`, `aria-expanded` and `aria-haspopup` yourself or through a dialog
+trigger's `render`.
+
+`PhoneCountryList` takes `phone`, `locale`, `messages`, `preferredCountries`,
+`countryFilter`, `countryOrder`, `resolveCountryName`, `resultLimit`, `flags`,
+`dir`, `classNames`, `className`, `listProps`, `autoFocusSearch` and
+`onSelect(country)`, which runs after the selection is applied. It never closes
+anything itself; Escape bubbles to your container. It owns the keyboard model:
+arrows and Enter from the search field or from the focused list (which mirrors
+`aria-activedescendant`), and printable keys pressed on the list move to the
+search field. The selected row has `aria-selected="true"` and a check, and is
+scrolled into view on mount. `autoFocusSearch` is `true` (default: the search
+field), `false` (the list itself) or `'fine-pointer'` (the search field only
+when `(pointer: fine)` matches, so touch devices get no keyboard).
 
 ### Flags
 
@@ -352,7 +471,13 @@ matching `data-slot` attributes include `phone-country-trigger`,
 `phone-country-group`, `phone-country-group-label`, `phone-country-option`,
 `phone-country-code`, `phone-country-name`, `phone-country-calling-code` and
 `phone-country-empty`. `countrySelector.triggerProps` forwards Base UI trigger
-props.
+props. `PhoneCountryList` wraps its parts in `phone-country-panel`, a flex
+column that fills the host container.
+
+`shadcn.css` gives option rows `content-visibility: auto` with an intrinsic
+height matching the row, so opening the full list skips layout and paint of
+off-screen rows while keyboard scrolling stays exact. Unstyled consumers with
+their own row height can do the same.
 
 ### Semantic Country Selector slots (MUI)
 
@@ -454,7 +579,7 @@ Belarus from `+3` or `+37` produces `+375` with reason
 | --- | --- |
 | `@wh1teee/mui-phone-input`, `/mui` | `MuiPhoneInput`, primitives, controller and shared helpers |
 | `/headless` | `usePhoneInput` and helpers without UI peers |
-| `/base-ui`, `/shadcn` | Unstyled Base UI `PhoneInput` and `PhoneInputCountrySelector` |
+| `/base-ui`, `/shadcn` | Unstyled Base UI `PhoneInput`, `PhoneInputCountrySelector`, `PhoneCountryTrigger` and `PhoneCountryList` |
 | `/shadcn.css` | Optional semantic-variable skin |
 | `/react-hook-form`, `/mui/react-hook-form` | MUI React Hook Form adapter |
 | `/base-ui/react-hook-form`, `/shadcn/react-hook-form` | Base UI React Hook Form adapter |
@@ -465,7 +590,7 @@ Belarus from `+3` or `+37` produces `+375` with reason
 | `/metadata/max`, `/metadata/min`, `/metadata/mobile` | Metadata presets (max is the default) |
 | `/metadata/custom` | Custom-metadata validation |
 | `/flags`, `/flags.css` | Flag renderer/provider types and local SVG stylesheet |
-| `/locales/{en,be,ru}` | Selector message packs |
+| `/locales/{en,be,ru,ja}` | Selector message packs |
 | `/package.json` | Package metadata |
 
 ## React Hook Form
@@ -553,6 +678,13 @@ uncontrolled ownership:
 ```
 
 Do not switch between controlled and uncontrolled ownership after mount.
+
+`defaultCountry` may arrive after first paint (for example a venue's country
+loaded from an API). While the field is untouched — empty, never edited and no
+country picked — the selected country follows a changed `defaultCountry`, and
+`onCountryChange` reports reason `default`. After any edit or pick it never
+changes under the user, and a form reset restores the last followed default.
+Controlled `selectedCountry` is never moved.
 
 ## Formatting modes and Display Masks
 

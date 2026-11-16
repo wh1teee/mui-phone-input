@@ -10,5 +10,6 @@ export const en: PhoneInputLocale = {
     preferredCountries: 'Preferred countries',
     searchLabel: 'Search countries',
     selectCountry: 'Select country',
+    triggerLabel: '{label}. {countryName}, {country}, {callingCode}',
   },
 };
