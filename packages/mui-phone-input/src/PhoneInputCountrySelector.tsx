@@ -36,6 +36,7 @@ import {
   resolveDisplayedPhoneCountry,
   type PhoneCountryNameResolver,
   type PhoneCountryOption,
+  type PhoneCountrySearchAliases,
 } from './country-selector';
 import type { PhoneCountrySelectorMessages } from './country-selector-messages';
 import {
@@ -247,6 +248,8 @@ export type PhoneInputCountrySelectorProps = Omit<
     preferredCountries?: readonly CountryCode[];
     resolveCountryName?: PhoneCountryNameResolver;
     resultLimit?: number;
+    /** Extra search terms per country, e.g. `ja.searchAliases`. */
+    searchAliases?: PhoneCountrySearchAliases;
     slotProps?: PhoneCountrySelectorSlotProps;
     slots?: PhoneCountrySelectorSlots;
     /** Default `'auto'`: the ISO code, plus the calling code in national display mode. */
@@ -537,6 +540,7 @@ export function PhoneInputCountrySelector({
   ref: triggerExternalRef,
   resolveCountryName,
   resultLimit,
+  searchAliases,
   slotProps,
   slots,
   triggerContent = 'auto',
@@ -645,6 +649,7 @@ export function PhoneInputCountrySelector({
         ...(countryOrder === undefined ? {} : { countryOrder }),
         ...(preferredCountries === undefined ? {} : { preferredCountries }),
         ...(resolveCountryName === undefined ? {} : { resolveCountryName }),
+        ...(searchAliases === undefined ? {} : { searchAliases }),
       }),
     [
       countryFilter,
@@ -653,6 +658,7 @@ export function PhoneInputCountrySelector({
       resolvedMetadata,
       preferredCountries,
       resolveCountryName,
+      searchAliases,
     ],
   );
   const displayCountry = resolveDisplayedPhoneCountry(

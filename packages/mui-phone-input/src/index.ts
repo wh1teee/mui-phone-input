@@ -11,6 +11,7 @@ export {
   type PopularPhoneCountriesParameters,
   type PhoneCountryNameResolver,
   type PhoneCountryOption,
+  type PhoneCountrySearchAliases,
   type PhoneCountrySelectionAppliedReason,
   type PhoneCountrySelectionAppliedResult,
   type PhoneCountrySelectionOptions,
