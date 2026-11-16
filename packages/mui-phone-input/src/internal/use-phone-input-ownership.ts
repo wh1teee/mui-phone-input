@@ -28,6 +28,7 @@ interface PhoneInputOwnershipParameters {
 export interface PhoneInputOwnership {
   controlledRef: RefObject<boolean>;
   countryControlledRef: RefObject<boolean>;
+  currentDefaultCountry: CountryCode | null;
   currentExtension: PhoneExtension;
   currentExtensionRef: RefObject<PhoneExtension>;
   currentSelectedCountry: CountryCode | null;
@@ -218,6 +219,7 @@ export function usePhoneInputOwnership(
   return {
     controlledRef,
     countryControlledRef,
+    currentDefaultCountry: defaultCountry ?? null,
     currentExtension,
     currentExtensionRef,
     currentSelectedCountry,

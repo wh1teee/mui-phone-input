@@ -94,6 +94,7 @@ assert.deepEqual(Object.keys(packedManifest.exports).sort(), [
   './headless/min',
   './locales/be',
   './locales/en',
+  './locales/ja',
   './locales/ru',
   './metadata/custom',
   './metadata/max',

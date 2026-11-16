@@ -619,7 +619,7 @@ export default function DocumentationPage() {
         >
           <div className="docs-grid docs-grid-stats">
             <div className="docs-card">
-              <strong>33,506 bytes</strong>
+              <strong>34,023 bytes</strong>
               <p>gzip budget for the main entry, peers and metadata external.</p>
             </div>
             <div className="docs-card">

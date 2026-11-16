@@ -102,7 +102,7 @@ const profiles = [
   },
   {
     absent: ['@mui/material', 'react', 'react-dom', 'react-hook-form'],
-    dependencies: { zod: '4.6.4' },
+    dependencies: { zod: '4.6.6' },
     expectedExports: [
       'createPhoneExtensionSchema',
       'createPhoneFormSchema',

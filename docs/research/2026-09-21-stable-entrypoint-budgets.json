@@ -67,14 +67,16 @@
     "base-ui/min": {
       "metadata": "min",
       "renderer": "base-ui",
-      "gzipLimit": 66000,
-      "brotliLimit": 55500
+      "gzipLimit": 66141,
+      "brotliLimit": 55500,
+      "note": "Raised from 66,000 to 66,141 gzip in 1.3.0: measured 66,045 bytes with the host-owned country parts, renderCountrySelector and Japanese search folding, plus 96 bytes of headroom."
     },
     "shadcn/min": {
       "metadata": "min",
       "renderer": "base-ui",
-      "gzipLimit": 66000,
-      "brotliLimit": 55500
+      "gzipLimit": 66141,
+      "brotliLimit": 55500,
+      "note": "Raised from 66,000 to 66,141 gzip in 1.3.0: measured 66,045 bytes with the host-owned country parts, renderCountrySelector and Japanese search folding, plus 96 bytes of headroom."
     },
     "mui/min/react-hook-form": {
       "metadata": "min",

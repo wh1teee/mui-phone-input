@@ -2,6 +2,7 @@
 
 import {
   getCountryCallingCode,
+  isSupportedCountry,
   parseIncompletePhoneNumber,
 } from 'libphonenumber-js/core';
 import type { CountryCode, PhoneNumberType } from 'libphonenumber-js/max';
@@ -435,6 +436,7 @@ export function usePhoneInputTransactions(
   const {
     controlledRef,
     countryControlledRef,
+    currentDefaultCountry,
     currentExtension,
     currentExtensionRef,
     currentSelectedCountryRef,
@@ -497,6 +499,10 @@ export function usePhoneInputTransactions(
   const pendingCountryReconciliationRef = useRef<PendingCountryReconciliation | null>(
     null,
   );
+  // Any committed edit or explicit selection ends default-country following.
+  const countryInteractedRef = useRef(false);
+  // The country a late default moved to, until its transition is reported.
+  const followingDefaultCountryRef = useRef<CountryCode | null | undefined>(undefined);
   const initialCountryTransitionReason: PhoneCountryChangeReason =
     controlledRef.current || countryControlledRef.current
       ? 'external-value'
@@ -723,6 +729,7 @@ export function usePhoneInputTransactions(
       previousSelectedCountry: CountryCode | null = currentSelectedCountryRef.current,
       authoritativeNationalInput = false,
     ) => {
+      countryInteractedRef.current = true;
       const nextValue = parsePhoneInputPresentation(displayValue, {
         country: inputContext.country ?? null,
         displayMode: inputContext.displayMode,
@@ -1305,6 +1312,35 @@ export function usePhoneInputTransactions(
     ],
   );
 
+  // A late defaultCountry (e.g. loaded after first paint) replaces the selection
+  // only while the field is untouched: empty, never edited, nothing picked.
+  // A missing (refetching) or unsupported late value is ignored, as in 1.2.1;
+  // render must never throw on it.
+  useEffect(() => {
+    if (
+      !currentDefaultCountry ||
+      !isSupportedCountry(currentDefaultCountry, metadata) ||
+      countryControlledRef.current ||
+      countryInteractedRef.current ||
+      currentValueRef.current !== undefined ||
+      currentSelectedCountryRef.current === currentDefaultCountry
+    ) {
+      return;
+    }
+    initialDefaultCountryRef.current = currentDefaultCountry;
+    currentSelectedCountryRef.current = currentDefaultCountry;
+    followingDefaultCountryRef.current = currentDefaultCountry;
+    setUncontrolledCountry(currentDefaultCountry);
+  }, [
+    countryControlledRef,
+    currentDefaultCountry,
+    currentSelectedCountryRef,
+    currentValueRef,
+    initialDefaultCountryRef,
+    metadata,
+    setUncontrolledCountry,
+  ]);
+
   useEffect(() => {
     const previous = countryTransitionLedgerRef.current;
 
@@ -1319,6 +1355,12 @@ export function usePhoneInputTransactions(
       return;
     }
 
+    const followingDefaultCountry =
+      followingDefaultCountryRef.current !== undefined &&
+      followingDefaultCountryRef.current === numberingPlan.selectedCountry;
+    if (followingDefaultCountry) {
+      followingDefaultCountryRef.current = undefined;
+    }
     const pendingReconciliation = pendingCountryReconciliationRef.current;
     pendingCountryReconciliationRef.current = null;
     const pendingValue = pendingReconciliation?.value;
@@ -1340,7 +1382,7 @@ export function usePhoneInputTransactions(
       numberingPlan,
       previous.value,
       currentValue,
-      'external-value',
+      followingDefaultCountry ? 'default' : 'external-value',
     );
   }, [
     currentValue,

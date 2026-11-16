@@ -97,7 +97,7 @@ describe('Base UI country selector and field', () => {
   test('search by calling code, choose a country, and return focus to phone', async () => {
     const changed = vi.fn();
     await render(<PhoneInput label="Phone" defaultCountry="BY" onChange={changed} />);
-    const trigger = page.getByLabelText('Select country', { exact: true });
+    const trigger = page.getByLabelText(/^Select country/u);
     await trigger.click();
     const search = page.getByRole('combobox', { name: 'Search countries' });
     await search.fill('+44');
@@ -112,7 +112,7 @@ describe('Base UI country selector and field', () => {
 
   test('Escape returns focus to the trigger and opening starts with a fresh search', async () => {
     await render(<PhoneInput label="Phone" defaultCountry="BY" />);
-    const trigger = page.getByLabelText('Select country', { exact: true });
+    const trigger = page.getByLabelText(/^Select country/u);
     await trigger.click();
     await page.getByRole('combobox', { name: 'Search countries' }).fill('zzzzzzzz');
     await expect.element(page.getByText('No matching countries')).toBeVisible();
@@ -133,11 +133,11 @@ describe('Base UI country selector and field', () => {
         <PhoneInput label="Phone" defaultCountry="US" />
       </form>,
     );
-    await page.getByLabelText('Select country', { exact: true }).click();
+    await page.getByLabelText(/^Select country/u).click();
     await page.getByRole('combobox', { name: 'Search countries' }).fill('Canada');
     await userEvent.keyboard('{ArrowDown}{Enter}');
     await expect
-      .element(page.getByLabelText('Select country', { exact: true }))
+      .element(page.getByLabelText(/^Select country/u))
       .toHaveTextContent('CA');
     expect(submitted).not.toHaveBeenCalled();
   });
@@ -152,11 +152,11 @@ describe('Base UI country selector and field', () => {
         onChange={changed}
       />,
     );
-    await page.getByLabelText('Select country', { exact: true }).click();
+    await page.getByLabelText(/^Select country/u).click();
     await page.getByRole('combobox', { name: 'Search countries' }).fill('Canada');
     await page.getByRole('option', { name: /Canada/ }).click();
     await expect
-      .element(page.getByLabelText('Select country', { exact: true }))
+      .element(page.getByLabelText(/^Select country/u))
       .toHaveTextContent('CA');
     expect(changed).toHaveBeenLastCalledWith(
       '+12133734253',
@@ -175,9 +175,7 @@ describe('Base UI country selector and field', () => {
           onChange={changed}
         />,
       );
-      await expect
-        .element(page.getByLabelText('Select country', { exact: true }))
-        .toBeDisabled();
+      await expect.element(page.getByLabelText(/^Select country/u)).toBeDisabled();
       await expect
         .element(page.getByLabelText('Phone', { exact: true }))
         .toHaveAttribute(state === 'disabled' ? 'disabled' : 'readonly');
@@ -188,7 +186,7 @@ describe('Base UI country selector and field', () => {
   test('non-geographic value stays neutral and an existing filtered country is not relabeled', async () => {
     const view = await render(<PhoneInput label="Phone" value="+80012345678" />);
     await expect
-      .element(page.getByLabelText('Select country', { exact: true }))
+      .element(page.getByLabelText(/^Select country/u))
       .toHaveTextContent('+');
     expect(document.querySelector('img')).toBeNull();
     await view.rerender(
@@ -199,9 +197,9 @@ describe('Base UI country selector and field', () => {
       />,
     );
     await expect
-      .element(page.getByLabelText('Select country', { exact: true }))
+      .element(page.getByLabelText(/^Select country/u))
       .toHaveTextContent('GB');
-    await page.getByLabelText('Select country', { exact: true }).click();
+    await page.getByLabelText(/^Select country/u).click();
     await expect.element(page.getByRole('option', { name: /Belarus/ })).toBeVisible();
     await expect
       .element(page.getByRole('option', { name: /United Kingdom/ }))
@@ -235,7 +233,7 @@ describe('Base UI country selector and field', () => {
     await expect.element(page.getByLabelText('Добавочный')).toHaveValue('007');
     await page.getByLabelText('Добавочный').fill('0012');
     expect(changed).toHaveBeenLastCalledWith('0012', expect.any(Object));
-    await page.getByLabelText(ru.messages.selectCountry, { exact: true }).click();
+    await page.getByLabelText(new RegExp(`^${ru.messages.selectCountry}`, 'u')).click();
     await page
       .getByRole('combobox', { name: ru.messages.searchLabel })
       .fill('Беларусь');
@@ -260,7 +258,7 @@ describe('Base UI country selector and field', () => {
       );
     }
     await render(<ScopedField />);
-    await page.getByLabelText('Select country', { exact: true }).click();
+    await page.getByLabelText(/^Select country/u).click();
     await expect
       .poll(() =>
         page
@@ -296,7 +294,7 @@ describe('Base UI country selector and field', () => {
     expect(descriptionId && document.getElementById(descriptionId)?.textContent).toBe(
       'Enter a complete phone number',
     );
-    await page.getByLabelText('Select country', { exact: true }).click();
+    await page.getByLabelText(/^Select country/u).click();
     await expect
       .element(page.getByRole('combobox', { name: 'Search countries' }))
       .toBeVisible();
@@ -393,7 +391,7 @@ test('a pill-sized root radius does not round the portaled popup into a clipped 
         <PhoneInput defaultCountry="BY" label="Phone" />
       </div>,
     );
-    await page.getByLabelText('Select country', { exact: true }).click();
+    await page.getByLabelText(/^Select country/u).click();
     const popupRadius = () => {
       const popup = document.querySelector('[data-slot="phone-country-popup"]');
       return popup ? Number.parseFloat(getComputedStyle(popup).borderRadius) : null;

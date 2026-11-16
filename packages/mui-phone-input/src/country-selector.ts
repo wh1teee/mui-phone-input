@@ -36,7 +36,17 @@ export interface CreatePhoneCountryOptionsParameters {
   metadata?: PhoneMetadata;
   preferredCountries?: readonly CountryCode[];
   resolveCountryName?: PhoneCountryNameResolver;
+  /**
+   * Extra search terms per country, such as kana readings of kanji names
+   * (`/locales/ja` ships them as `searchAliases`). They match like names but
+   * are never displayed.
+   */
+  searchAliases?: PhoneCountrySearchAliases;
 }
+
+export type PhoneCountrySearchAliases = Readonly<
+  Partial<Record<CountryCode, readonly string[]>>
+>;
 
 export interface PhoneCountrySelectionOptions {
   metadata?: PhoneMetadata;
@@ -53,6 +63,7 @@ interface PhoneCountrySearchMetadata {
   countryKey: string;
   // The metadata's main country for a shared calling code, e.g. US for +1.
   mainCountryForCallingCode: boolean;
+  aliasKeys: readonly string[];
   englishNameKey: string;
   locale: string;
   localizedNameKey: string;
@@ -161,11 +172,17 @@ function assertSupportedCountry(
 }
 
 function normalizeNameSearchText(value: string, locale: string): string {
-  return value
-    .trim()
-    .toLocaleLowerCase(locale)
-    .normalize('NFKD')
-    .replace(/\p{Mark}/gu, '');
+  return (
+    value
+      .trim()
+      .toLocaleLowerCase(locale)
+      .normalize('NFKD')
+      .replace(/\p{Mark}/gu, '')
+      // Hiragana matches katakana, so uncommitted IME input already finds names.
+      .replace(/[\u3041-\u3096]/gu, (kana) =>
+        String.fromCharCode(kana.charCodeAt(0) + 0x60),
+      )
+  );
 }
 
 function normalizeCallingCodeSearchQuery(value: string): string | null {
@@ -196,8 +213,10 @@ function createCountrySearchMetadata(
   option: Readonly<PhoneCountryOption>,
   locale: string,
   mainCountryForCallingCode = false,
+  aliases: readonly string[] = [],
 ): Readonly<PhoneCountrySearchMetadata> {
   return Object.freeze({
+    aliasKeys: aliases.map((alias) => normalizeNameSearchText(alias, locale)),
     callingCodeKey: normalizeCallingCodeSearchQuery(option.callingCode) ?? '',
     countryKey: option.country.toLowerCase(),
     mainCountryForCallingCode,
@@ -283,6 +302,7 @@ export function createPhoneCountryOptions(
           option,
           caseLocale,
           metadata.country_calling_codes[option.callingCode]?.[0] === country,
+          parameters.searchAliases?.[country],
         ),
       );
       return option;
@@ -415,6 +435,7 @@ function optionSearchRank(
   }
   if (
     metadata.localizedNameKey.startsWith(localizedQuery) ||
+    metadata.aliasKeys.some((alias) => alias.startsWith(localizedQuery)) ||
     metadata.englishNameKey.startsWith(englishQuery) ||
     metadata.countryKey.startsWith(englishQuery) ||
     (callingCodeQuery !== null && metadata.callingCodeKey.startsWith(callingCodeQuery))
@@ -423,6 +444,7 @@ function optionSearchRank(
   }
   if (
     metadata.localizedNameKey.includes(localizedQuery) ||
+    metadata.aliasKeys.some((alias) => alias.includes(localizedQuery)) ||
     metadata.englishNameKey.includes(englishQuery)
   ) {
     return 3;
