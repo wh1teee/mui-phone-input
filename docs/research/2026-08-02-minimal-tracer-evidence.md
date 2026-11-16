@@ -132,7 +132,7 @@ repeatability evidence is recorded in
 from the exact artifact. The main measurement bundles runtime dependencies but
 externalizes declared peers.
 
-- Main executable closure budget: 33,892 bytes gzip. Paired Rolldown region
+- Main executable closure budget: 34,023 bytes gzip. Paired Rolldown region
   comments are removed before measurement because they contain only pnpm store
   paths and vary between local and Global Virtual Store installations. The
   numerical budget was reduced from 32,768 bytes so the normalized baseline
@@ -146,16 +146,16 @@ externalizes declared peers.
   (displayed-country owner, fixed-calling-code import guard, trigger chevron;
   +256 bytes gzip) with the same headroom. 1.2.1 moved it to 33,506 bytes for selector
   chevron motion and drawn icons (+147 bytes gzip), again with 96 bytes of
-  headroom. 1.3.0 moved it to 33,892 bytes for selector `triggerContent`, the
-  host-label accessible-name prefix and default-country following (+386 bytes
-  gzip), again with 96 bytes of headroom.
+  headroom. 1.3.0 moved it to 34,023 bytes for selector `triggerContent`,
+  default-country following, Japanese search folding and search aliases (+517
+  bytes gzip), again with 96 bytes of headroom.
 - Server entry budget: 10 KB gzip.
 
 Current exact-artifact measurements are:
 
-- main closure: 33,796 bytes gzip;
+- main closure: 33,927 bytes gzip;
 - server entry: 6,261 bytes gzip;
-- packed tarball: 472,923 bytes, including the rewritten package README. The stable artifact adds independently built
+- packed tarball: 479,262 bytes, including the rewritten package README. The stable artifact adds independently built
   max/min headless, MUI, Base UI/shadcn and form entrypoints plus the opt-in
   stylesheet. Min entrypoint source maps and duplicate declarations are omitted;
   all min variants reuse the canonical type surface. The executable MUI main and

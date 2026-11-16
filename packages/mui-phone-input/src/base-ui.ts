@@ -3,6 +3,7 @@
 export {
   PhoneInput,
   type PhoneInputClassNames,
+  type PhoneInputCountrySelectorRenderProps,
   type PhoneInputProps,
 } from './BasePhoneInput/PhoneInput';
 export {

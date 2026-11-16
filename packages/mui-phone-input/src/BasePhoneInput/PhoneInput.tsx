@@ -7,12 +7,30 @@ import {
   type PhoneExtensionInputExternalProps,
   type PhoneInputInputExternalProps,
   type UsePhoneInputParameters,
+  type UsePhoneInputReturn,
   usePhoneInput,
 } from '../usePhoneInput';
+import type {
+  PhoneCountryListProps,
+  PhoneCountryTriggerProps,
+} from './PhoneCountryParts';
 import {
   PhoneInputCountrySelector,
   type PhoneInputCountrySelectorProps,
 } from './PhoneInputCountrySelector';
+
+/** What `renderCountrySelector` receives to build its own country presentation. */
+export interface PhoneInputCountrySelectorRenderProps {
+  /** The built-in anchored popover, e.g. for wide screens. */
+  defaultSelector: ReactNode;
+  /** Props for `PhoneCountryList`, from `countrySelector`. Add your own `onSelect`. */
+  listProps: PhoneCountryListProps;
+  /** Moves focus to the phone input; call it once your container has closed. */
+  onSelect: () => void;
+  phone: UsePhoneInputReturn;
+  /** Props for `PhoneCountryTrigger`; its accessible name carries the selection. */
+  triggerProps: PhoneCountryTriggerProps;
+}
 
 export interface PhoneInputClassNames {
   control?: string;
@@ -39,6 +57,38 @@ export interface PhoneInputProps extends UsePhoneInputParameters {
   name?: string;
   onBlur?: FocusEventHandler<HTMLInputElement>;
   ref?: Ref<HTMLInputElement>;
+  /**
+   * Replaces the country selector's presentation (a host sheet on phones, the
+   * default popover on wide screens) while the field keeps its label,
+   * description, errors and extension.
+   */
+  renderCountrySelector?: (props: PhoneInputCountrySelectorRenderProps) => ReactNode;
+}
+
+function createCountrySelectorRenderProps(
+  phone: UsePhoneInputReturn,
+  selector: Omit<PhoneInputCountrySelectorProps, 'phone'>,
+  defaultSelector: ReactNode,
+): PhoneInputCountrySelectorRenderProps {
+  const { classNames, triggerProps } = selector;
+  return {
+    defaultSelector,
+    // The list ignores the popover-only options (portal, trigger props).
+    listProps: { ...selector, phone } as PhoneCountryListProps,
+    onSelect: phone.actions.focus,
+    phone,
+    triggerProps: {
+      'aria-label': triggerProps?.['aria-label'],
+      className: classNames?.trigger,
+      flagClassName: classNames?.flag,
+      flags: selector.flags,
+      locale: selector.locale,
+      messages: selector.messages,
+      phone,
+      resolveCountryName: selector.resolveCountryName,
+      triggerContent: selector.triggerContent,
+    } as PhoneCountryTriggerProps,
+  };
 }
 
 /** A complete, unstyled Base UI composition. /shadcn.css supplies optional skin. */
@@ -57,6 +107,7 @@ export function PhoneInput({
   name,
   onBlur,
   ref,
+  renderCountrySelector,
   ...parameters
 }: PhoneInputProps): ReactNode {
   const phone = usePhoneInput(parameters);
@@ -67,6 +118,13 @@ export function PhoneInput({
   const resolvedExtensionRef = useMemo(
     () => composeInputRefs(phone.setExtensionInputRef, extensionRef),
     [phone.setExtensionInputRef, extensionRef],
+  );
+  // The selector reads its locale from phone; only the direction is passed on.
+  const selectorOptions =
+    countrySelector !== false &&
+    ({ dir, ...countrySelector } as Omit<PhoneInputCountrySelectorProps, 'phone'>);
+  const defaultSelector = selectorOptions && (
+    <PhoneInputCountrySelector {...selectorOptions} phone={phone} />
   );
   // An application-supplied error (e.g. a server or form error) speaks through
   // helperText; otherwise built-in validation explains what to fix.
@@ -101,14 +159,16 @@ export function PhoneInput({
         </label>
       )}
       <div className={classNames.control} data-slot="phone-input-control">
-        {countrySelector !== false && (
-          <PhoneInputCountrySelector
-            {...(parameters.locale === undefined ? {} : { locale: parameters.locale })}
-            {...(dir === undefined ? {} : { dir })}
-            {...countrySelector}
-            phone={phone}
-          />
-        )}
+        {selectorOptions &&
+          (renderCountrySelector
+            ? renderCountrySelector(
+                createCountrySelectorRenderProps(
+                  phone,
+                  selectorOptions,
+                  defaultSelector,
+                ),
+              )
+            : defaultSelector)}
         <input
           {...phone.getInputProps({
             ...inputProps,

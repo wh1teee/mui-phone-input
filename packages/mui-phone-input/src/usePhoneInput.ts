@@ -13,6 +13,7 @@ import {
 } from 'react';
 
 import type { PhoneCountrySelectionResult } from './country-selector';
+import type { PhoneCountrySelectorMessages } from './country-selector-messages';
 import { usePhoneInputDerivedState } from './internal/phone-input-derived-state';
 import { usePhoneInputOwnership } from './internal/use-phone-input-ownership';
 import { usePhoneInputPropGetters } from './internal/use-phone-input-prop-getters';
@@ -99,7 +100,10 @@ export interface UsePhoneInputParameters {
   extensionRequired?: boolean;
   formatStrategy?: FormatStrategy;
   id?: string;
+  /** Also the default locale of the country parts given this `phone`. */
   locale?: string;
+  /** Country selector messages the parts given this `phone` use by default. */
+  messages?: Partial<PhoneCountrySelectorMessages>;
   metadata?: PhoneMetadata;
   onChange?: (value: PhoneValue, details: PhoneInputChangeDetails) => void;
   onCountryChange?: (
@@ -139,6 +143,8 @@ export interface PhoneInputState {
   extensionRequired: boolean;
   extensionValidationMessageId: string;
   inputId: string;
+  locale: string;
+  messages: Partial<PhoneCountrySelectorMessages> | undefined;
   metadata: PhoneMetadata;
   numberingPlan: PhoneInputNumberingPlanState;
   readOnly: boolean;
@@ -290,6 +296,7 @@ function usePhoneInputInternal(
     formatStrategy,
     id,
     locale = 'en',
+    messages,
     metadata = DEFAULT_PHONE_METADATA,
     onChange,
     onCountryChange,
@@ -407,6 +414,8 @@ function usePhoneInputInternal(
       extensionRequired,
       extensionValidationMessageId,
       inputId,
+      locale,
+      messages,
       metadata,
       numberingPlan: derivedState.numberingPlan,
       readOnly,
@@ -434,6 +443,8 @@ function usePhoneInputInternal(
       extensionRequired,
       extensionValidationMessageId,
       inputId,
+      locale,
+      messages,
       metadata,
       ownership.controlledRef,
       ownership.countryControlledRef,

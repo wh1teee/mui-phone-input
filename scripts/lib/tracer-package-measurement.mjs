@@ -15,10 +15,10 @@ import { normalizeTracerClosure } from './tracer-package-normalization.mjs';
 // Raised from 32,636 to 33,103 in 1.1.0 (shared ranked search and popular
 // countries, +410 B) and to 33,358 in 1.2.0 (review fixes: trigger country
 // owner, fixed-prefix import guard, chevron; +255 B), and to 33,506 in 1.2.1
-// (selector chevron motion and drawn icons; +147 B), and to 33,892 in 1.3.0
-// (triggerContent, host-label prefix, default-country following; +386 B),
-// keeping 96 B headroom.
-const MAIN_GZIP_BUDGET_BYTES = 33_892;
+// (selector chevron motion and drawn icons; +147 B), and to 34,023 in 1.3.0
+// (triggerContent, default-country following, Japanese search folding and
+// search aliases; +517 B), keeping 96 B headroom.
+const MAIN_GZIP_BUDGET_BYTES = 34_023;
 const SERVER_GZIP_BUDGET_BYTES = 10 * 1024;
 
 const MAIN_BUDGET_EXTERNALS = [

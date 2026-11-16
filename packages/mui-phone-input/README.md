@@ -260,7 +260,7 @@ defaulted to 50.
 ```
 
 Other shared options: `locale`, `countryFilter`, `countryOrder`,
-`resolveCountryName`, `messages`, `portalContainer`.
+`resolveCountryName`, `searchAliases`, `messages`, `portalContainer`.
 
 ### Trigger content and accessible name
 
@@ -271,7 +271,7 @@ the chevron (MUI: `slotProps.countrySelector.triggerContent`; Base UI/shadcn:
 | Value | International modes | National mode |
 | --- | --- | --- |
 | `'auto'` (default) | `BY` | `BY +375` |
-| `'calling-code'` | nothing (the input already starts with `+375`) | `+375` |
+| `'calling-code'` | `BY`, as `'auto'` (the input already starts with `+375`) | `+375` |
 | `'country-code'` | `BY` | `BY` |
 | `'both'` | `BY +375` | `BY +375` |
 | `(state) => ReactNode` | your content | your content |
@@ -282,9 +282,11 @@ everything before the chevron. Without a selected country every built-in value
 shows the neutral glyph.
 
 Whatever is drawn, the trigger's accessible name contains the selected
-country's name and calling code. A host `aria-label` becomes its prefix through
-the `triggerLabel` message (`{label}`, `{countryName}`, `{country}`,
-`{callingCode}`); without a selection the name is just the label:
+country's name and calling code, through the `triggerLabel` message
+(`{label}`, `{countryName}`, `{country}`, `{callingCode}`). In Base UI/shadcn a
+host `aria-label` becomes the `{label}` prefix; without a selection the name is
+just the label. In MUI a host `aria-label` stays the whole name, as before
+1.3.0.
 
 ```tsx
 <PhoneInput
@@ -314,6 +316,43 @@ no on-screen keyboard appears until the search is tapped.
 popover is made of. Put them in your own dialog or bottom sheet when it should
 own drag, focus trapping and the back gesture; wide screens can keep
 `PhoneInputCountrySelector`.
+
+With the complete `PhoneInput`, `renderCountrySelector` swaps only the country
+presentation; label, description, errors and extension stay. It receives
+`phone`, `triggerProps` and `listProps` (built from `countrySelector`),
+`defaultSelector` (the built-in popover) and `onSelect` (moves focus to the
+phone input):
+
+```tsx
+<PhoneInput
+  countrySelector={{ triggerContent: 'calling-code' }}
+  displayMode="national"
+  label="Phone"
+  renderCountrySelector={({ defaultSelector, listProps, onSelect, triggerProps }) =>
+    wide ? (
+      defaultSelector
+    ) : (
+      <Dialog.Root open={open} onOpenChange={setOpen}>
+        <Dialog.Trigger render={<PhoneCountryTrigger {...triggerProps} />} />
+        <Dialog.Portal>
+          <Dialog.Popup initialFocus={false} finalFocus={false}>
+            <PhoneCountryList
+              {...listProps}
+              autoFocusSearch="fine-pointer"
+              onSelect={() => {
+                setOpen(false);
+                onSelect();
+              }}
+            />
+          </Dialog.Popup>
+        </Dialog.Portal>
+      </Dialog.Root>
+    )
+  }
+/>
+```
+
+For an application-owned field, compose the parts with `usePhoneInput`:
 
 ```tsx
 'use client';
@@ -375,8 +414,12 @@ export function PhoneWithSheet() {
 `onClick`, `aria-expanded` and `aria-haspopup` yourself or through a dialog
 trigger's `render`.
 
+Both parts use the `locale` and `messages` given to `usePhoneInput` unless their
+own props say otherwise.
+
 `PhoneCountryList` takes `phone`, `locale`, `messages`, `preferredCountries`,
-`countryFilter`, `countryOrder`, `resolveCountryName`, `resultLimit`, `flags`,
+`countryFilter`, `countryOrder`, `resolveCountryName`, `searchAliases`,
+`resultLimit`, `flags`,
 `dir`, `classNames`, `className`, `listProps`, `autoFocusSearch` and
 `onSelect(country)`, which runs after the selection is applied. It never closes
 anything itself; Escape bubbles to your container. It owns the keyboard model:
@@ -385,7 +428,10 @@ arrows and Enter from the search field or from the focused list (which mirrors
 search field. The selected row has `aria-selected="true"` and a check, and is
 scrolled into view on mount. `autoFocusSearch` is `true` (default: the search
 field), `false` (the list itself) or `'fine-pointer'` (the search field only
-when `(pointer: fine)` matches, so touch devices get no keyboard).
+when `(pointer: fine)` matches, so touch devices get no keyboard). The list is
+named by `messages.dialogTitle`. Query, focus and the scroll to the selected
+row are set when the list mounts, so mount it when the container opens (most
+dialogs do; with `keepMounted`, give the list a `key` that changes per opening).
 
 ### Flags
 
@@ -451,6 +497,12 @@ import { be } from '@wh1teee/mui-phone-input/locales/be';
 />
 ```
 
+`/locales/ja` also ships `searchAliases`: kana readings of every country name
+that Japanese writes with kanji (日本 → にほん, 中国 → ちゅうごく). Pass them with
+`searchAliases: ja.searchAliases`. Search folds hiragana to katakana and
+full-width digits and `+` to ASCII, so `べらるーし`, `にほん` and `+８１` match
+before IME conversion.
+
 Each locale is a separate entrypoint. RTL themes mirror the selector UI while
 the telephone input itself remains `dir="ltr"`.
 
@@ -475,8 +527,8 @@ props. `PhoneCountryList` wraps its parts in `phone-country-panel`, a flex
 column that fills the host container.
 
 `shadcn.css` gives option rows `content-visibility: auto` with an intrinsic
-height matching the row, so opening the full list skips layout and paint of
-off-screen rows while keyboard scrolling stays exact. Unstyled consumers with
+height matching a single-line row, so opening the full list skips layout and
+paint of off-screen rows. Rows whose names wrap grow once they render. Unstyled consumers with
 their own row height can do the same.
 
 ### Semantic Country Selector slots (MUI)
@@ -684,6 +736,8 @@ loaded from an API). While the field is untouched — empty, never edited and no
 country picked — the selected country follows a changed `defaultCountry`, and
 `onCountryChange` reports reason `default`. After any edit or pick it never
 changes under the user, and a form reset restores the last followed default.
+A late value that is missing (`undefined` or `null` while refetching), empty or
+not a country of the loaded metadata is ignored and the last country stays.
 Controlled `selectedCountry` is never moved.
 
 ## Formatting modes and Display Masks

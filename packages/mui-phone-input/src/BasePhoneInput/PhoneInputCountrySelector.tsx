@@ -1,7 +1,6 @@
 'use client';
 
 import { Combobox } from '@base-ui/react/combobox';
-import { DirectionProvider } from '@base-ui/react/direction-provider';
 import { type ReactNode, useEffect, useRef, useState } from 'react';
 
 import type {
@@ -17,6 +16,7 @@ import {
   resolveCountryMessages,
   useCountryComboboxModel,
   useCountryTriggerView,
+  withDirection,
 } from './PhoneCountryParts';
 
 export interface PhoneInputCountrySelectorClassNames {
@@ -67,7 +67,7 @@ export function PhoneInputCountrySelector({
   triggerProps,
   ...modelOptions
 }: PhoneInputCountrySelectorProps): ReactNode {
-  const messages = resolveCountryMessages(suppliedMessages);
+  const messages = resolveCountryMessages(phone, suppliedMessages);
   const [open, setOpen] = useState(false);
   const selectedFromPopup = useRef(false);
   const listRef = useRef<HTMLDivElement | null>(null);
@@ -75,7 +75,7 @@ export function PhoneInputCountrySelector({
   const model = useCountryComboboxModel({
     ...modelOptions,
     phone,
-    ...(resultLimit === undefined ? {} : { resultLimit }),
+    resultLimit,
   });
   const { disabled } = model;
   // Same name and content as PhoneCountryTrigger; triggerProps.render stays the host's.
@@ -176,9 +176,5 @@ export function PhoneInputCountrySelector({
       )}
     </Combobox.Root>
   );
-  return dir ? (
-    <DirectionProvider direction={dir}>{content}</DirectionProvider>
-  ) : (
-    content
-  );
+  return withDirection(dir, content);
 }

@@ -1,5 +1,6 @@
 import { Dialog } from '@base-ui/react/dialog';
 import axe from 'axe-core';
+import type { CountryCode } from 'libphonenumber-js/core';
 import { type ReactNode, useRef, useState } from 'react';
 import { afterEach, describe, expect, test, vi } from 'vitest';
 import { page, userEvent } from 'vitest/browser';
@@ -76,9 +77,9 @@ describe('PhoneCountryTrigger content', () => {
     ['auto', 'international', 'BY'],
     ['auto', 'international-fixed-calling-code', 'BY'],
     ['auto', 'national', 'BY+375'],
-    // The input already starts with +375: the trigger must not repeat it.
-    ['calling-code', 'international', ''],
-    ['calling-code', 'international-fixed-calling-code', ''],
+    // The input already starts with +375: no repeat, and no empty button.
+    ['calling-code', 'international', 'BY'],
+    ['calling-code', 'international-fixed-calling-code', 'BY'],
     ['calling-code', 'national', '+375'],
     ['country-code', 'international', 'BY'],
     ['country-code', 'national', 'BY'],
@@ -203,7 +204,7 @@ describe('country trigger accessible name', () => {
     await expect.element(trigger).toHaveTextContent('BY+375');
   });
 
-  test('MUI keeps its default name and appends the selection to a host label', async () => {
+  test('MUI keeps its default name and a host label as the whole name', async () => {
     const view = await render(<MuiPhoneInput defaultCountry="BY" label="Phone" />);
     await expect
       .element(page.getByRole('button', { name: /^Select country/u }))
@@ -219,9 +220,8 @@ describe('country trigger accessible name', () => {
       />,
     );
     const trigger = page.getByRole('button', { name: /^Country/u });
-    await expect
-      .element(trigger)
-      .toHaveAccessibleName(`Country. ${countryName('BY')}, BY, +375`);
+    // As in 1.2.1: the MUI host label is not extended.
+    await expect.element(trigger).toHaveAccessibleName('Country');
     await expect.element(trigger).toHaveTextContent('+375');
     await expect.element(trigger).not.toHaveTextContent('BY');
   });
@@ -526,6 +526,22 @@ describe('defaultCountry follows while the field is untouched', () => {
     await expect.element(page.getByTestId('country')).toHaveTextContent('BY');
   });
 
+  test('a missing, empty, mis-cased or unknown late default is ignored without throwing', async () => {
+    const view = await render(<DefaultCountryHarness defaultCountry="BY" />);
+    await expect.element(page.getByTestId('country')).toHaveTextContent('BY');
+    for (const late of ['by', '', 'XX'] as unknown as CountryCode[]) {
+      await view.rerender(<DefaultCountryHarness defaultCountry={late} />);
+      await new Promise((resolve) => requestAnimationFrame(resolve));
+      await expect.element(page.getByTestId('country')).toHaveTextContent('BY');
+    }
+    // A refetch that clears the default keeps the last applied country.
+    await view.rerender(<DefaultCountryHarness />);
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+    await expect.element(page.getByTestId('country')).toHaveTextContent('BY');
+    await view.rerender(<DefaultCountryHarness defaultCountry="PL" />);
+    await expect.element(page.getByTestId('country')).toHaveTextContent('PL');
+  });
+
   test('after an explicit pick the default no longer moves the country', async () => {
     const view = await render(<DefaultCountryHarness defaultCountry="BY" />);
     await page.getByRole('button', { name: 'Pick Lithuania' }).click();
@@ -533,5 +549,116 @@ describe('defaultCountry follows while the field is untouched', () => {
     await view.rerender(<DefaultCountryHarness defaultCountry="PL" />);
     await new Promise((resolve) => requestAnimationFrame(resolve));
     await expect.element(page.getByTestId('country')).toHaveTextContent('LT');
+  });
+});
+
+describe('the list part has an accessible name', () => {
+  test('the focused listbox is named', async () => {
+    await render(<ListHarness autoFocusSearch={false} />);
+    await expect.poll(() => document.activeElement === listElement()).toBe(true);
+    // axe's aria-input-field-name rule does not apply to this listbox (it
+    // reports no node), so the audit alone cannot catch a missing name.
+    await expect
+      .element(page.getByRole('listbox', { name: 'Select country' }))
+      .toBeInTheDocument();
+    expect(listElement().getAttribute('aria-label')).toBe('Select country');
+  });
+});
+
+function LocalizedPhoneParts() {
+  const phone = usePhoneInput({
+    defaultCountry: 'BY',
+    locale: 'ru',
+    messages: ru.messages,
+  });
+  return (
+    <>
+      <PhoneCountryTrigger data-testid="trigger" phone={phone} />
+      <div style={{ display: 'flex', flexDirection: 'column', height: 200 }}>
+        <PhoneCountryList autoFocusSearch={false} phone={phone} />
+      </div>
+    </>
+  );
+}
+
+test('parts take locale and messages from phone unless their props override them', async () => {
+  await render(<LocalizedPhoneParts />);
+  await expect
+    .element(page.getByTestId('trigger'))
+    .toHaveAccessibleName(
+      `${ru.messages.selectCountry}. ${countryName('BY', 'ru')}, BY, +375`,
+    );
+  await expect
+    .element(page.getByRole('combobox', { name: ru.messages.searchLabel }))
+    .toBeInTheDocument();
+  await expect
+    .element(
+      page.getByRole('option', { name: new RegExp(countryName('BY', 'ru'), 'u') }),
+    )
+    .toBeInTheDocument();
+});
+
+function ResponsivePhone({ wide }: { wide: boolean }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <PhoneInput
+      countrySelector={{ triggerContent: 'calling-code' }}
+      defaultCountry="BY"
+      displayMode="national"
+      helperText="We text the code"
+      label="Phone"
+      renderCountrySelector={({
+        defaultSelector,
+        listProps,
+        onSelect,
+        triggerProps,
+      }) =>
+        wide ? (
+          defaultSelector
+        ) : (
+          <Dialog.Root onOpenChange={setOpen} open={open}>
+            <Dialog.Trigger render={<PhoneCountryTrigger {...triggerProps} />} />
+            <Dialog.Portal>
+              <Dialog.Popup finalFocus={false} initialFocus={false}>
+                <PhoneCountryList
+                  {...listProps}
+                  autoFocusSearch="fine-pointer"
+                  onSelect={() => {
+                    setOpen(false);
+                    onSelect();
+                  }}
+                />
+              </Dialog.Popup>
+            </Dialog.Portal>
+          </Dialog.Root>
+        )
+      }
+    />
+  );
+}
+
+describe('PhoneInput renderCountrySelector', () => {
+  test('a narrow screen puts the parts in a host dialog and keeps the field', async () => {
+    usePointer(false);
+    await render(<ResponsivePhone wide={false} />);
+    await expect.element(page.getByText('We text the code')).toBeVisible();
+    const trigger = page.getByRole('button', {
+      name: `Select country. ${countryName('BY')}, BY, +375`,
+    });
+    await expect.element(trigger).toHaveTextContent('+375');
+    await trigger.click();
+    await expect.element(page.getByRole('dialog')).toBeInTheDocument();
+    await expect.poll(() => document.activeElement === listElement()).toBe(true);
+    await userEvent.keyboard('{ArrowDown}{Enter}');
+    await expect.element(page.getByRole('dialog')).not.toBeInTheDocument();
+    await expect.element(page.getByLabelText('Phone', { exact: true })).toHaveFocus();
+  });
+
+  test('a wide screen keeps the built-in popover', async () => {
+    await render(<ResponsivePhone wide />);
+    await page.getByRole('combobox', { name: /^Select country/u }).click();
+    await expect
+      .element(page.getByRole('combobox', { name: 'Search countries' }))
+      .toHaveFocus();
   });
 });

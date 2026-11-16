@@ -17,6 +17,7 @@ import {
 import {
   type CreatePhoneCountryOptionsParameters,
   createPhoneCountryOptions,
+  type FilterPhoneCountryOptionsParameters,
   filterPhoneCountryOptions,
   type PhoneCountryNameResolver,
   type PhoneCountryOption,
@@ -86,10 +87,12 @@ function groupCountryOptions(
   return groups.filter((group) => group.items.length > 0);
 }
 
+/** English, then the messages given to `usePhoneInput`, then the part's own prop. */
 export function resolveCountryMessages(
+  phone: UsePhoneInputReturn,
   messages: Partial<PhoneCountrySelectorMessages> | undefined,
 ): PhoneCountrySelectorMessages {
-  return { ...en.messages, ...messages };
+  return { ...en.messages, ...phone.state.messages, ...messages };
 }
 
 /** The country the trigger and list show as selected, outside any filter. */
@@ -112,9 +115,9 @@ export function useSelectedCountryOption(
         ? (createPhoneCountryOptions({
             locale,
             metadata: phone.state.metadata,
-            countryFilter: (code) => code === country,
-            ...(resolveCountryName === undefined ? {} : { resolveCountryName }),
-          })[0] ?? null)
+            countryFilter: (code: CountryCode) => code === country,
+            resolveCountryName,
+          } as CreatePhoneCountryOptionsParameters)[0] ?? null)
         : null),
     [country, locale, options, phone.state.metadata, resolveCountryName],
   );
@@ -150,25 +153,30 @@ interface CountryComboboxModel {
 export function useCountryComboboxModel({
   countryFilter,
   countryOrder,
-  locale = 'en',
+  locale: localeProp,
   phone,
   preferredCountries,
   resolveCountryName,
   resultLimit,
+  searchAliases,
 }: CountryComboboxModelParameters): CountryComboboxModel {
+  // The part's own locale wins; otherwise the language given to usePhoneInput.
+  const locale = localeProp ?? phone.state.locale;
   const [query, setQuery] = useState('');
   const searching = query.trim() !== '';
   const disabled = phone.state.disabled || phone.state.readOnly;
   const options = useMemo(
     () =>
+      // Every option reads undefined as "not given".
       createPhoneCountryOptions({
+        countryFilter,
+        countryOrder,
         locale,
         metadata: phone.state.metadata,
-        ...(countryFilter === undefined ? {} : { countryFilter }),
-        ...(countryOrder === undefined ? {} : { countryOrder }),
-        ...(preferredCountries === undefined ? {} : { preferredCountries }),
-        ...(resolveCountryName === undefined ? {} : { resolveCountryName }),
-      }),
+        preferredCountries,
+        resolveCountryName,
+        searchAliases,
+      } as CreatePhoneCountryOptionsParameters),
     [
       countryFilter,
       countryOrder,
@@ -176,6 +184,7 @@ export function useCountryComboboxModel({
       phone.state.metadata,
       preferredCountries,
       resolveCountryName,
+      searchAliases,
     ],
   );
   const selected = useSelectedCountryOption(phone, locale, resolveCountryName, options);
@@ -187,9 +196,9 @@ export function useCountryComboboxModel({
     () =>
       groupCountryOptions(
         filterPhoneCountryOptions(options, query, {
-          ...(resultLimit === undefined ? {} : { limit: resultLimit }),
+          limit: resultLimit,
           selectedCountry,
-        }),
+        } as FilterPhoneCountryOptionsParameters),
         searching,
       ),
     [options, query, resultLimit, searching, selectedCountry],
@@ -215,12 +224,16 @@ export function useCountryComboboxModel({
   };
 }
 
+export function withDirection(
+  dir: 'ltr' | 'rtl' | undefined,
+  node: ReactNode,
+): ReactNode {
+  return dir ? <DirectionProvider direction={dir}>{node}</DirectionProvider> : node;
+}
+
+// Effects only, so window exists.
 function matchesFinePointer(): boolean {
-  return (
-    typeof window !== 'undefined' &&
-    typeof window.matchMedia === 'function' &&
-    window.matchMedia('(pointer: fine)').matches
-  );
+  return window.matchMedia?.('(pointer: fine)').matches ?? false;
 }
 
 /** Read at focus time, never during render, so SSR and hydration agree. */
@@ -234,11 +247,9 @@ function scrollSelectedRowIntoView(list: HTMLElement): void {
     return;
   }
   // Only the list scrolls: scrollIntoView would also move a host sheet or the page.
+  // Centred on mount, so rows above and below it stay in view.
   const listBox = list.getBoundingClientRect();
   const rowBox = row.getBoundingClientRect();
-  if (rowBox.top >= listBox.top && rowBox.bottom <= listBox.bottom) {
-    return;
-  }
   list.scrollTop += rowBox.top - listBox.top - (list.clientHeight - rowBox.height) / 2;
 }
 
@@ -305,6 +316,8 @@ export function CountryListBody({
       </Combobox.Empty>
       <Combobox.List
         {...listProps}
+        // A focused list (touch path) needs its own name.
+        aria-label={listProps?.['aria-label'] ?? messages.dialogTitle}
         className={listProps?.className ?? classNames.list}
         data-slot="phone-country-list"
         ref={listRef}
@@ -400,13 +413,17 @@ export function useCountryTriggerView({
   flagClassName,
   flags,
   hostLabel,
-  locale = 'en',
+  locale,
   messages,
   phone,
   resolveCountryName,
   triggerContent,
 }: CountryTriggerViewParameters): CountryTriggerView {
-  const selected = useSelectedCountryOption(phone, locale, resolveCountryName);
+  const selected = useSelectedCountryOption(
+    phone,
+    locale ?? phone.state.locale,
+    resolveCountryName,
+  );
   const displayMode = phone.state.displayMode;
   let content: ReactNode;
   if (typeof triggerContent === 'function') {
@@ -466,16 +483,13 @@ export function PhoneCountryTrigger({
     flags,
     hostLabel,
     locale,
-    messages: resolveCountryMessages(suppliedMessages),
+    messages: resolveCountryMessages(phone, suppliedMessages),
     phone,
     resolveCountryName,
     triggerContent,
   });
-  const expanded =
-    buttonProps['aria-expanded'] === true || buttonProps['aria-expanded'] === 'true';
   return (
     <button
-      data-popup-open={expanded ? '' : undefined}
       data-slot="phone-country-trigger"
       {...buttonProps}
       aria-label={view.label}
@@ -519,11 +533,11 @@ export function PhoneCountryList({
   resultLimit,
   ...modelOptions
 }: PhoneCountryListProps): ReactNode {
-  const messages = resolveCountryMessages(suppliedMessages);
+  const messages = resolveCountryMessages(phone, suppliedMessages);
   const model = useCountryComboboxModel({
     ...modelOptions,
     phone,
-    ...(resultLimit === undefined ? {} : { resultLimit }),
+    resultLimit,
   });
   const listRef = useRef<HTMLDivElement | null>(null);
   const searchRef = useRef<HTMLInputElement | null>(null);
@@ -539,6 +553,7 @@ export function PhoneCountryList({
     });
     return () => window.cancelAnimationFrame(frame);
   }, [autoFocusSearch]);
+  // Every render: a new query remounts rows in another group with new ids.
   useLayoutEffect(() => {
     // Base UI points aria-activedescendant from the search field only; mirror it
     // on the list so a focused list still announces the highlighted row.
@@ -548,14 +563,16 @@ export function PhoneCountryList({
         : listRef.current?.querySelector<HTMLElement>(
             '[role="option"][data-highlighted]',
           )?.id;
+    // React skips the update when the id is unchanged.
     setActiveDescendant(id || undefined);
-  }, [highlighted]);
+  });
   const handleListKeyDown: NonNullable<Combobox.List.Props['onKeyDown']> = (event) => {
     listProps?.onKeyDown?.(event);
     // Type-to-search: printable keys pressed on the focused list go to the search field.
     if (
       event.target === listRef.current &&
-      event.key.length === 1 &&
+      // 'Process' is an IME keystroke; let the search field receive it too.
+      (event.key.length === 1 || event.key === 'Process') &&
       !event.altKey &&
       !event.ctrlKey &&
       !event.metaKey
@@ -592,9 +609,5 @@ export function PhoneCountryList({
       </Combobox.Root>
     </div>
   );
-  return dir ? (
-    <DirectionProvider direction={dir}>{content}</DirectionProvider>
-  ) : (
-    content
-  );
+  return withDirection(dir, content);
 }
