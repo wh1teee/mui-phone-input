@@ -1,5 +1,6 @@
 import { Dialog } from '@base-ui/react/dialog';
-import { type ReactNode, useState } from 'react';
+import axe from 'axe-core';
+import { type ReactNode, useRef, useState } from 'react';
 import { afterEach, describe, expect, test, vi } from 'vitest';
 import { page, userEvent } from 'vitest/browser';
 import { render } from 'vitest-browser-react';
@@ -181,6 +182,27 @@ describe('country trigger accessible name', () => {
     await expect.element(trigger).not.toHaveTextContent('BY');
   });
 
+  test('a host render element on the popover trigger keeps the library content and name', async () => {
+    await render(
+      <PhoneInput
+        countrySelector={{
+          triggerContent: 'both',
+          triggerProps: {
+            'aria-label': 'Country',
+            render: <button data-host-button="" type="button" />,
+          },
+        }}
+        defaultCountry="BY"
+        label="Phone"
+      />,
+    );
+    const trigger = page.getByRole('combobox', {
+      name: `Country. ${countryName('BY')}, BY, +375`,
+    });
+    await expect.element(trigger).toHaveAttribute('data-host-button');
+    await expect.element(trigger).toHaveTextContent('BY+375');
+  });
+
   test('MUI keeps its default name and appends the selection to a host label', async () => {
     const view = await render(<MuiPhoneInput defaultCountry="BY" label="Phone" />);
     await expect
@@ -315,6 +337,8 @@ describe('PhoneCountryList in a plain container', () => {
     const search = page.getByRole('combobox', { name: 'Search countries' });
     await expect.element(search).toHaveFocus();
     await userEvent.keyboard('apan');
+    // The key that moved focus is not lost.
+    await expect.element(search).toHaveValue('japan');
     await expect.element(page.getByRole('option').first()).toHaveTextContent(/Japan/u);
   });
 
@@ -360,22 +384,33 @@ describe('autoFocusSearch', () => {
 function HostSheet() {
   const phone = usePhoneInput({ defaultCountry: 'BY' });
   const [open, setOpen] = useState(false);
+  const picked = useRef(false);
   return (
     <>
-      <Dialog.Root onOpenChange={setOpen} open={open}>
+      <Dialog.Root
+        onOpenChange={(next) => {
+          if (next) picked.current = false;
+          setOpen(next);
+        }}
+        open={open}
+      >
         <Dialog.Trigger
           render={<PhoneCountryTrigger phone={phone} triggerContent="calling-code" />}
         />
         <Dialog.Portal>
           <Dialog.Popup
             // The list decides focus itself (no keyboard on touch).
+            finalFocus={() => (picked.current ? phone.inputElementRef.current : true)}
             initialFocus={false}
             style={{ display: 'flex', flexDirection: 'column', height: 320 }}
           >
             <Dialog.Title>Country</Dialog.Title>
             <PhoneCountryList
               autoFocusSearch="fine-pointer"
-              onSelect={() => setOpen(false)}
+              onSelect={() => {
+                picked.current = true;
+                setOpen(false);
+              }}
               phone={phone}
             />
           </Dialog.Popup>
@@ -400,9 +435,20 @@ test('host-owned sheet recipe: dialog trigger part, list part, close on select',
   expect(triggerElement.hasAttribute('data-popup-open')).toBe(true);
   // Coarse pointer: focus lands on the list, so no on-screen keyboard opens.
   await expect.poll(() => document.activeElement === listElement()).toBe(true);
+  await Promise.allSettled(
+    document.getAnimations().map((animation) => animation.finished),
+  );
+  const audit = await axe.run(document.body, {
+    runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21aa'] },
+  });
+  expect(audit.violations.map(({ id, description }) => ({ id, description }))).toEqual(
+    [],
+  );
   await userEvent.keyboard('{ArrowDown}{Enter}');
   await expect.element(page.getByRole('dialog')).not.toBeInTheDocument();
   expect(triggerElement.getAttribute('aria-label')).not.toMatch(/Belarus/u);
+  // After a pick the guest continues in the phone input, as in the README recipe.
+  await expect.element(page.getByLabelText('Phone', { exact: true })).toHaveFocus();
 });
 
 describe('opening cost of the full list', () => {

@@ -95,7 +95,7 @@ controller both renderers use. Spread `phone.getInputProps()` onto your own
 | Import | Purpose |
 | --- | --- |
 | `@wh1teee/mui-phone-input` (`/mui`) | `MuiPhoneInput`, primitives, controller and helpers |
-| `/base-ui`, `/shadcn` | Unstyled Base UI `PhoneInput` and country selector |
+| `/base-ui`, `/shadcn` | Unstyled Base UI `PhoneInput`, country selector and its trigger/list parts |
 | `/shadcn.css` | Optional skin using shadcn CSS variables |
 | `/headless` | `usePhoneInput` and helpers without UI peers |
 | `/server` | Parsing, numbering-plan, formatting and validation without React |
@@ -103,7 +103,7 @@ controller both renderers use. Spread `phone.getInputProps()` onto your own
 | `/zod` | Zod schema factories |
 | `/metadata/{max,min,mobile,custom}` | Metadata presets and custom-metadata validation |
 | `/flags`, `/flags.css` | Flag contracts and local SVG flag stylesheet |
-| `/locales/{en,be,ru}` | Selector message packs |
+| `/locales/{en,be,ru,ja}` | Selector message packs |
 
 Every browser renderer also has a `/min` variant with smaller official metadata.
 

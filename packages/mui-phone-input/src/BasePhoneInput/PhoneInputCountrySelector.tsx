@@ -14,9 +14,9 @@ import type { UsePhoneInputReturn } from '../usePhoneInput';
 import {
   CountryListBody,
   type PhoneCountryFlagOptions,
-  PhoneCountryTrigger,
   resolveCountryMessages,
   useCountryComboboxModel,
+  useCountryTriggerView,
 } from './PhoneCountryParts';
 
 export interface PhoneInputCountrySelectorClassNames {
@@ -51,8 +51,8 @@ export interface PhoneInputCountrySelectorProps
 }
 
 /**
- * The built-in anchored popover: `PhoneCountryTrigger` and the list body of
- * `PhoneCountryList` inside one Base UI Combobox. Base UI owns interaction;
+ * The built-in anchored popover: the trigger view of `PhoneCountryTrigger` and
+ * the list body of `PhoneCountryList` inside one Base UI Combobox. Base UI owns interaction;
  * the shared phone controller owns country changes.
  */
 export function PhoneInputCountrySelector({
@@ -78,6 +78,17 @@ export function PhoneInputCountrySelector({
     ...(resultLimit === undefined ? {} : { resultLimit }),
   });
   const { disabled } = model;
+  // Same name and content as PhoneCountryTrigger; triggerProps.render stays the host's.
+  const trigger = useCountryTriggerView({
+    flagClassName: classNames.flag,
+    flags,
+    hostLabel: triggerProps?.['aria-label'],
+    locale: modelOptions.locale,
+    messages,
+    phone,
+    resolveCountryName: modelOptions.resolveCountryName,
+    triggerContent,
+  });
   useEffect(() => {
     if (disabled) setOpen(false);
   }, [disabled]);
@@ -101,29 +112,15 @@ export function PhoneInputCountrySelector({
     >
       <Combobox.Trigger
         {...triggerProps}
+        aria-label={trigger.label}
         className={triggerProps?.className ?? classNames.trigger}
         data-slot="phone-country-trigger"
         dir={dir}
         disabled={disabled}
-        render={
-          <PhoneCountryTrigger
-            {...(flags === undefined ? {} : { flags })}
-            {...(classNames.flag === undefined
-              ? {}
-              : { flagClassName: classNames.flag })}
-            {...(modelOptions.locale === undefined
-              ? {}
-              : { locale: modelOptions.locale })}
-            {...(modelOptions.resolveCountryName === undefined
-              ? {}
-              : { resolveCountryName: modelOptions.resolveCountryName })}
-            messages={messages}
-            phone={phone}
-            triggerContent={triggerContent}
-          />
-        }
         type="button"
-      />
+      >
+        {trigger.children}
+      </Combobox.Trigger>
       {portalContainer !== null && (
         <Combobox.Portal container={portalContainer}>
           <Combobox.Positioner

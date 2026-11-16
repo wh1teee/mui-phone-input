@@ -379,24 +379,35 @@ export interface PhoneCountryTriggerProps
  * A supplied `aria-label` becomes the prefix of the accessible name; the
  * selected country and calling code are always appended.
  */
-export function PhoneCountryTrigger({
-  'aria-label': hostLabel,
-  disabled,
+interface CountryTriggerViewParameters {
+  flagClassName?: string | undefined;
+  flags?: PhoneCountryFlagOptions | undefined;
+  hostLabel?: string | undefined;
+  locale?: string | undefined;
+  messages: PhoneCountrySelectorMessages;
+  phone: UsePhoneInputReturn;
+  resolveCountryName?: PhoneCountryNameResolver | undefined;
+  triggerContent: PhoneCountryTriggerContent;
+}
+
+interface CountryTriggerView {
+  children: ReactNode;
+  label: string;
+}
+
+/** Accessible name and drawn content shared by every country trigger. */
+export function useCountryTriggerView({
   flagClassName,
   flags,
+  hostLabel,
   locale = 'en',
-  messages: suppliedMessages,
+  messages,
   phone,
   resolveCountryName,
-  triggerContent = 'auto',
-  type = 'button',
-  ...buttonProps
-}: PhoneCountryTriggerProps): ReactNode {
-  const messages = resolveCountryMessages(suppliedMessages);
+  triggerContent,
+}: CountryTriggerViewParameters): CountryTriggerView {
   const selected = useSelectedCountryOption(phone, locale, resolveCountryName);
   const displayMode = phone.state.displayMode;
-  const expanded =
-    buttonProps['aria-expanded'] === true || buttonProps['aria-expanded'] === 'true';
   let content: ReactNode;
   if (typeof triggerContent === 'function') {
     content = triggerContent(createPhoneCountryTriggerState(selected, displayMode));
@@ -424,19 +435,54 @@ export function PhoneCountryTrigger({
   } else {
     content = <span aria-hidden="true">+</span>;
   }
+  return {
+    children: (
+      <>
+        {content}
+        <svg aria-hidden="true" width="12" height="12" viewBox="0 0 12 12" fill="none">
+          <path d="m3 4.5 3 3 3-3" stroke="currentColor" strokeWidth="1.5" />
+        </svg>
+      </>
+    ),
+    label: formatPhoneCountryTriggerLabel(messages, selected, hostLabel),
+  };
+}
+
+export function PhoneCountryTrigger({
+  'aria-label': hostLabel,
+  disabled,
+  flagClassName,
+  flags,
+  locale,
+  messages: suppliedMessages,
+  phone,
+  resolveCountryName,
+  triggerContent = 'auto',
+  type = 'button',
+  ...buttonProps
+}: PhoneCountryTriggerProps): ReactNode {
+  const view = useCountryTriggerView({
+    flagClassName,
+    flags,
+    hostLabel,
+    locale,
+    messages: resolveCountryMessages(suppliedMessages),
+    phone,
+    resolveCountryName,
+    triggerContent,
+  });
+  const expanded =
+    buttonProps['aria-expanded'] === true || buttonProps['aria-expanded'] === 'true';
   return (
     <button
       data-popup-open={expanded ? '' : undefined}
       data-slot="phone-country-trigger"
       {...buttonProps}
-      aria-label={formatPhoneCountryTriggerLabel(messages, selected, hostLabel)}
+      aria-label={view.label}
       disabled={disabled || phone.state.disabled || phone.state.readOnly}
       type={type}
     >
-      {content}
-      <svg aria-hidden="true" width="12" height="12" viewBox="0 0 12 12" fill="none">
-        <path d="m3 4.5 3 3 3-3" stroke="currentColor" strokeWidth="1.5" />
-      </svg>
+      {view.children}
     </button>
   );
 }
