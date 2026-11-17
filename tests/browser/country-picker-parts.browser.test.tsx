@@ -8,6 +8,7 @@ import { render } from 'vitest-browser-react';
 
 import { MuiPhoneInput } from '../../packages/mui-phone-input/src';
 import {
+  createPhoneCountryOptions,
   type PhoneCountryAutoFocusSearch,
   type PhoneCountryChangeDetails,
   PhoneCountryList,
@@ -19,6 +20,7 @@ import {
   type UsePhoneInputReturn,
   usePhoneInput,
 } from '../../packages/mui-phone-input/src/base-ui';
+import { en } from '../../packages/mui-phone-input/src/locales/en';
 import { ja } from '../../packages/mui-phone-input/src/locales/ja';
 import { ru } from '../../packages/mui-phone-input/src/locales/ru';
 import '../../packages/mui-phone-input/src/shadcn.css';
@@ -451,24 +453,148 @@ test('host-owned sheet recipe: dialog trigger part, list part, close on select',
   await expect.element(page.getByLabelText('Phone', { exact: true })).toHaveFocus();
 });
 
+function countryRow(country: CountryCode): HTMLElement | null {
+  const code = Array.from(
+    listElement().querySelectorAll('[data-slot="phone-country-code"]'),
+  ).find((element) => element.textContent === country);
+  return code?.closest<HTMLElement>('[role="option"]') ?? null;
+}
+
+async function expectActiveCountry(country: CountryCode, position: number) {
+  await expect
+    .poll(() => {
+      const id = listElement().getAttribute('aria-activedescendant');
+      const row = id ? document.getElementById(id) : null;
+      return row?.querySelector('[data-slot="phone-country-code"]')?.textContent;
+    })
+    .toBe(country);
+  const row = countryRow(country);
+  expect(row?.hasAttribute('data-highlighted')).toBe(true);
+  expect(row?.getAttribute('aria-posinset')).toBe(String(position));
+  await expect.poll(() => isInsideList(countryRow(country))).toBe(true);
+}
+
+function LargeTextCountryList() {
+  const phone = usePhoneInput({ defaultCountry: 'ZW' });
+  return (
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        fontSize: '200%',
+        height: 340,
+        width: 340,
+      }}
+    >
+      <PhoneCountryList
+        autoFocusSearch={false}
+        phone={phone}
+        preferredCountries={['BY', 'PL', 'GB']}
+        resolveCountryName={(country) =>
+          country === 'BY' ? 'Belarus with a longer country name' : undefined
+        }
+      />
+    </div>
+  );
+}
+
 describe('opening cost of the full list', () => {
-  test('option rows skip off-screen rendering and stay reachable by keyboard', async () => {
+  test('virtualized popover keeps every country reachable by scroll, search and keyboard', async () => {
+    const countries = createPhoneCountryOptions();
+    expect(countries.length).toBeGreaterThan(200);
+    const firstCountry = countries[0]?.country;
+    const lastCountry = countries.at(-1)?.country;
+    if (!firstCountry || !lastCountry)
+      throw new Error('The complete country dataset is required.');
     // No selection, so nothing is highlighted when the list opens.
     await render(<PhoneInput label="Phone" />);
     await page.getByRole('combobox', { name: /^Select country/u }).click();
     await expect
-      .poll(() => document.querySelectorAll('[role="option"]').length)
-      .toBeGreaterThan(200);
-    const first = document.querySelector('[data-slot="phone-country-option"]');
-    expect(first && getComputedStyle(first).contentVisibility).toBe('auto');
+      .element(page.getByRole('option').first())
+      .toHaveAttribute('aria-setsize', String(countries.length));
+    expect(document.querySelectorAll('[role="option"]').length).toBeLessThan(48);
     // From the search field ArrowUp wraps to the last, far-away row.
     await userEvent.keyboard('{ArrowUp}');
-    const options = document.querySelectorAll('[role="option"]');
-    const last = options[options.length - 1] ?? null;
-    await expect.poll(() => last?.hasAttribute('data-highlighted')).toBe(true);
-    await expect.poll(() => isInsideList(last)).toBe(true);
+    await expect
+      .poll(() => countryRow(lastCountry)?.hasAttribute('data-highlighted'))
+      .toBe(true);
+    await expect.poll(() => isInsideList(countryRow(lastCountry))).toBe(true);
+    expect(countryRow(lastCountry)?.getAttribute('aria-posinset')).toBe(
+      String(countries.length),
+    );
     await userEvent.keyboard('{ArrowDown}');
-    await expect.poll(() => isInsideList(options[0] ?? null)).toBe(true);
+    await expect.poll(() => isInsideList(countryRow(firstCountry))).toBe(true);
+    // The active row is pinned before the scroll-driven window commits. Observe
+    // the painted first viewport before starting a separate manual traversal.
+    await new Promise((resolve) =>
+      requestAnimationFrame(() => requestAnimationFrame(resolve)),
+    );
+
+    // A small DOM must represent the complete dataset, not a truncated list.
+    const seen = new Set<string>();
+    const list = listElement();
+    for (let step = 0; step < 120; step += 1) {
+      for (const code of list.querySelectorAll('[data-slot="phone-country-code"]')) {
+        if (code.textContent) seen.add(code.textContent);
+      }
+      expect(list.querySelectorAll('[role="option"]').length).toBeLessThan(48);
+      if (list.scrollTop + list.clientHeight >= list.scrollHeight - 1) break;
+      list.scrollTop += list.clientHeight * 0.75;
+      await new Promise((resolve) =>
+        requestAnimationFrame(() => requestAnimationFrame(resolve)),
+      );
+    }
+    expect([...seen].sort()).toEqual(countries.map(({ country }) => country).sort());
+    expect(list.scrollTop).toBeGreaterThan(0);
+    const search = page.getByRole('combobox', { name: 'Search countries' });
+    // Filtering from the deepest scroll must expose the result immediately.
+    await search.fill('New Zealand');
+    await expect.poll(() => isInsideList(countryRow('NZ'))).toBe(true);
+    await expect
+      .element(page.getByRole('option').first())
+      .toHaveAttribute('aria-setsize', '1');
+    await search.fill('+44');
+    await expect
+      .element(page.getByRole('option').first())
+      .toHaveTextContent(/United Kingdom/u);
+  });
+
+  test('virtualized inline list preserves groups, variable heights and mounted active descendants', async () => {
+    const countries = createPhoneCountryOptions({
+      preferredCountries: ['BY', 'PL', 'GB'],
+    });
+    const firstAllCountry = countries[3]?.country;
+    const lastCountry = countries.at(-1)?.country;
+    if (!firstAllCountry || !lastCountry)
+      throw new Error('Both country groups are required.');
+    await render(<LargeTextCountryList />);
+    await expect.poll(() => document.activeElement === listElement()).toBe(true);
+    await expect.poll(() => isInsideList(countryRow('ZW'))).toBe(true);
+    await expect
+      .element(page.getByRole('group', { name: en.messages.preferredCountries }))
+      .toBeInTheDocument();
+    await expect
+      .element(page.getByRole('group', { name: en.messages.allCountries }))
+      .toBeInTheDocument();
+    await userEvent.keyboard('{Home}');
+    await expectActiveCountry('BY', 1);
+    expect(countryRow('BY')?.getBoundingClientRect().height).toBeGreaterThan(44);
+    await userEvent.keyboard('{ArrowDown}{ArrowDown}{ArrowDown}');
+    await expectActiveCountry(firstAllCountry, 4);
+    await userEvent.keyboard('{End}');
+    await expectActiveCountry(lastCountry, countries.length);
+    expect(listElement().querySelectorAll('[role="option"]').length).toBeLessThan(48);
+    const search = page.getByRole('combobox', { name: 'Search countries' });
+    await search.fill('New Zealand');
+    await expect.poll(() => isInsideList(countryRow('NZ'))).toBe(true);
+    await expectActiveCountry('NZ', 1);
+    await search.clear();
+    listElement().focus();
+    await userEvent.keyboard('{Home}');
+    await expectActiveCountry('BY', 1);
+    await expect
+      .element(page.getByRole('group', { name: en.messages.preferredCountries }))
+      .toBeInTheDocument();
   });
 
   test('the selected far-away row is visible when the popover opens', async () => {

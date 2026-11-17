@@ -298,8 +298,11 @@ assert.equal(
   rootPackage.devDependencies['libphonenumber-js'],
   'Root tooling and published package must use the same exact libphonenumber-js authority.',
 );
+// mpi-dyx admits one measured renderer after the full-list consumer exceeded its
+// 100 ms opening budget. Keep every other virtualization runtime excluded.
+assert.equal(packageManifest.dependencies['@tanstack/react-virtual'], '3.14.26');
+assert.equal(packageManifest.peerDependencies['@tanstack/react-virtual'], undefined);
 for (const virtualizationDependency of [
-  '@tanstack/react-virtual',
   'react-virtualized',
   'react-window',
   'virtua',

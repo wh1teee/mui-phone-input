@@ -53,7 +53,7 @@ export interface PhoneCountrySelectionOptions {
 }
 
 export interface FilterPhoneCountryOptionsParameters {
-  /** Maximum rendered options. Omit to keep every match. */
+  /** Maximum matching options. Omit to keep every match. */
   limit?: number;
   selectedCountry?: CountryCode | null;
 }

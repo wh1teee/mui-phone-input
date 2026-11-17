@@ -42,7 +42,7 @@ export interface PhoneInputCountrySelectorProps
   phone: UsePhoneInputReturn;
   /** undefined uses the document body; null defers the popup until a scope mounts. */
   portalContainer?: Combobox.Portal.Props['container'];
-  /** Maximum rendered options, with or without a query. Omit to list every country. */
+  /** Maximum matching options, with or without a query. Omit to list every country. */
   resultLimit?: number;
   /** Default `'auto'`: the ISO code, plus the calling code in national display mode. */
   triggerContent?: PhoneCountryTriggerContent;
@@ -141,9 +141,9 @@ export function PhoneInputCountrySelector({
               <CountryListBody
                 classNames={classNames}
                 flags={flags}
-                hasPreferred={model.hasPreferred}
                 listRef={listRef}
                 messages={messages}
+                model={model}
                 searchRef={searchRef}
                 searchRowEnd={
                   <button

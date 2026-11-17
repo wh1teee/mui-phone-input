@@ -114,9 +114,11 @@ not authority.
 
 The implemented selector derives countries and calling codes from
 `libphonenumber-js`, names from `Intl.DisplayNames` or a typed resolver, and
-shares country/value transactions with `usePhoneInput`. Standard list rendering
-is bounded to 50 results by default; no virtualization dependency is admitted
-before `mpi-oan.23` measurement. `tests/unit/country-selector.test.ts` and
+shares country/value transactions with `usePhoneInput`. The complete list has
+been the default since 2026-10-04. The original `mpi-oan.23` calibration remains
+historical evidence; `mpi-dyx` records a stricter consuming-product opening budget
+and its measured failure before admitting a Base UI windowed renderer.
+`tests/unit/country-selector.test.ts` and
 `tests/browser/country-selector.browser.test.tsx` retain localized/English,
 ISO/calling-code, preferred-order, keyboard, responsive, focus, and portal
 regressions without copying donor source.
@@ -141,6 +143,19 @@ Base UI handles arrows and Enter but not Home/End, and it emits
 The keyboard model stays Base UI's; no second navigation model is written.
 WAI-ARIA APG (pinned above) keeps Home/End for the search caret. Regressions:
 `tests/browser/country-picker-parts.browser.test.tsx`.
+
+#### Measured Base UI country rows (mpi-dyx)
+
+Use `@tanstack/react-virtual@3.14.26` with its exact `virtual-core@3.19.11`
+dependency for row measurement and window extraction. Base UI remains the
+complete filtered keyboard/selection model; no country table or second
+navigation engine is introduced. The MUI adapter is unchanged.
+
+Source inspected from the installed npm package: `useVirtualizerBase`,
+`useVirtualizer`, `measureElement`, `scrollToIndex` and `defaultRangeExtractor`.
+The MIT license is retained by the dependencies and named in
+`packages/mui-phone-input/THIRD_PARTY_NOTICES.md`; no source is copied.
+Evidence and limitations: `docs/research/2026-11-16-country-list-windowing.md`.
 
 ### `cap-mui-contract`
 

@@ -1,10 +1,11 @@
-import { defineConfig } from 'tsdown';
 import { resolve } from 'node:path';
+import { defineConfig } from 'tsdown';
 
 const externalDependencies = [
   '@base-ui/react',
   '@maskito/core',
   '@maskito/react',
+  '@tanstack/react-virtual',
   'libphonenumber-js',
   '@emotion/react',
   '@emotion/styled',
