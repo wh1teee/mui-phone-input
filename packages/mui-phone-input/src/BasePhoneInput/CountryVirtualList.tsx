@@ -7,6 +7,7 @@ import {
   Fragment,
   type ReactNode,
   type RefObject,
+  useCallback,
   useLayoutEffect,
   useMemo,
   useRef,
@@ -152,10 +153,14 @@ export function CountryVirtualList({
   const selectedIndex = selectedCountry
     ? (model.countryRows.get(selectedCountry) ?? -1)
     : -1;
+  const getItemKey = useCallback(
+    (index: number) => rowAt(model.rows, index).key,
+    [model.rows],
+  );
   const virtualizer = useVirtualizer<HTMLDivElement, HTMLDivElement>({
     count: model.rows.length,
     getScrollElement: () => listRef.current,
-    getItemKey: (index) => rowAt(model.rows, index).key,
+    getItemKey,
     // Estimates seed the first window only. No option gets a fixed height.
     estimateSize: (index) => {
       const row = rowAt(model.rows, index);
