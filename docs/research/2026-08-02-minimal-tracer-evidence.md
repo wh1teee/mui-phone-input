@@ -155,12 +155,17 @@ Current exact-artifact measurements are:
 
 - main closure: 33,927 bytes gzip;
 - server entry: 6,261 bytes gzip;
-- packed tarball: 480,367 bytes, including the rewritten package README. The stable artifact adds independently built
+- packed tarball: 486,534 bytes, including the rewritten package README. The stable artifact adds independently built
   max/min headless, MUI, Base UI/shadcn and form entrypoints plus the opt-in
   stylesheet. Min entrypoint source maps and duplicate declarations are omitted;
   all min variants reuse the canonical type surface. The executable MUI main and
   server closures remain inside their frozen budgets, and unused renderers are
   excluded from each consumer closure.
+
+Revalidated on 2026-11-18 for PR66 after country-list windowing changed the
+Base UI package inputs, source maps, README and notices. The canonical producer
+regenerated the whole-package measurement; the MUI main and server closure
+hashes, compressed sizes and frozen budgets remain unchanged.
 
 CI creates one immutable package artifact, reuses that same tarball across the
 package/runtime/tracer/consumer gates, and requires exact byte/hash equality
