@@ -8,7 +8,6 @@ import {
   type ReactNode,
   type RefObject,
   useEffect,
-  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -33,6 +32,7 @@ import {
 import { PhoneCountryFlag, type PhoneCountryFlagProps } from '../flags';
 import { en } from '../locales/en';
 import type { UsePhoneInputReturn } from '../usePhoneInput';
+import { CountryVirtualList } from './CountryVirtualList';
 
 export type PhoneCountryFlagOptions = Pick<
   PhoneCountryFlagProps,
@@ -67,10 +67,15 @@ export interface PhoneCountryPartOptions
 }
 
 // A type alias (not an interface) satisfies Base UI's indexed Group shape.
-type CountryOptionGroup = {
+export type CountryOptionGroup = {
   items: readonly PhoneCountryOption[];
   key: 'all' | 'preferred' | 'results';
 };
+
+export interface CountryHighlight {
+  country: CountryCode | undefined;
+  reason: Combobox.Root.HighlightEventReason;
+}
 
 function groupCountryOptions(
   options: readonly PhoneCountryOption[],
@@ -129,7 +134,9 @@ interface CountryComboboxModelParameters extends PhoneCountryPartOptions {
 
 interface CountryComboboxModel {
   disabled: boolean;
+  filteredGroups: CountryOptionGroup[];
   hasPreferred: boolean;
+  highlighted: CountryHighlight | null;
   resetQuery: () => void;
   rootProps: {
     autoHighlight: true;
@@ -144,7 +151,11 @@ interface CountryComboboxModel {
     itemToStringValue: (item: PhoneCountryOption) => string;
     items: CountryOptionGroup[];
     onInputValueChange: (value: string) => void;
+    onItemHighlighted: NonNullable<
+      Combobox.Root.Props<PhoneCountryOption>['onItemHighlighted']
+    >;
     value: PhoneCountryOption | null;
+    virtualized: true;
   };
   selected: PhoneCountryOption | null;
 }
@@ -163,6 +174,7 @@ export function useCountryComboboxModel({
   // The part's own locale wins; otherwise the language given to usePhoneInput.
   const locale = localeProp ?? phone.state.locale ?? 'en';
   const [query, setQuery] = useState('');
+  const [highlighted, setHighlighted] = useState<CountryHighlight | null>(null);
   const searching = query.trim() !== '';
   const disabled = phone.state.disabled || phone.state.readOnly;
   const options = useMemo(
@@ -205,7 +217,9 @@ export function useCountryComboboxModel({
   );
   return {
     disabled,
+    filteredGroups,
     hasPreferred,
+    highlighted,
     resetQuery: () => setQuery(''),
     rootProps: {
       autoHighlight: true,
@@ -218,7 +232,14 @@ export function useCountryComboboxModel({
       itemToStringValue: (item: PhoneCountryOption) => item.country,
       items: groups,
       onInputValueChange: setQuery,
+      onItemHighlighted: (item, { reason }) =>
+        setHighlighted((current) =>
+          current && current.country === item?.country && current.reason === reason
+            ? current
+            : { country: item?.country, reason },
+        ),
       value: selected,
+      virtualized: true,
     },
     selected,
   };
@@ -241,37 +262,14 @@ export function shouldFocusCountrySearch(mode: PhoneCountryAutoFocusSearch): boo
   return mode === 'fine-pointer' ? matchesFinePointer() : mode;
 }
 
-function scrollSelectedRowIntoView(list: HTMLElement): void {
-  const row = list.querySelector<HTMLElement>('[role="option"][aria-selected="true"]');
-  if (!row) {
-    return;
-  }
-  // Only the list scrolls: scrollIntoView would also move a host sheet or the page.
-  // Centred on mount, so rows above and below it stay in view.
-  const listBox = list.getBoundingClientRect();
-  const rowBox = row.getBoundingClientRect();
-  list.scrollTop += rowBox.top - listBox.top - (list.clientHeight - rowBox.height) / 2;
-}
-
-const CHECK_ICON = (
-  <svg aria-hidden="true" fill="none" height="14" viewBox="0 0 14 14" width="14">
-    <path
-      d="m3 7.5 2.5 2.5L11 4.5"
-      stroke="currentColor"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeWidth="1.5"
-    />
-  </svg>
-);
-
 interface CountryListBodyProps {
   classNames: PhoneCountryListClassNames;
   flags: PhoneCountryFlagOptions | undefined;
-  hasPreferred: boolean;
+  inline?: boolean;
   listProps?: Omit<Combobox.List.Props, 'children'> | undefined;
   listRef: RefObject<HTMLDivElement | null>;
   messages: PhoneCountrySelectorMessages;
+  model: CountryComboboxModel;
   searchRef: RefObject<HTMLInputElement | null>;
   /** Rendered after the search field inside the search row. */
   searchRowEnd?: ReactNode;
@@ -281,22 +279,14 @@ interface CountryListBodyProps {
 export function CountryListBody({
   classNames,
   flags,
-  hasPreferred,
+  inline = false,
   listProps,
   listRef,
   messages,
+  model,
   searchRef,
   searchRowEnd,
 }: CountryListBodyProps): ReactNode {
-  useEffect(() => {
-    // Wait one frame so a portaled or animating container has layout.
-    const frame = window.requestAnimationFrame(() => {
-      if (listRef.current) {
-        scrollSelectedRowIntoView(listRef.current);
-      }
-    });
-    return () => window.cancelAnimationFrame(frame);
-  }, [listRef]);
   return (
     <>
       <div data-slot="phone-country-search-row">
@@ -314,62 +304,19 @@ export function CountryListBody({
       <Combobox.Empty className={classNames.empty} data-slot="phone-country-empty">
         {messages.noOptions}
       </Combobox.Empty>
-      <Combobox.List
-        {...listProps}
-        // A focused list (touch path) needs its own name.
-        aria-label={listProps?.['aria-label'] ?? messages.dialogTitle}
-        className={listProps?.className ?? classNames.list}
-        data-slot="phone-country-list"
-        ref={listRef}
-      >
-        {(group: CountryOptionGroup) => (
-          <Combobox.Group
-            className={classNames.group}
-            data-slot="phone-country-group"
-            items={group.items}
-            key={group.key}
-          >
-            {hasPreferred && group.key !== 'results' && (
-              <Combobox.GroupLabel
-                className={classNames.groupLabel}
-                data-slot="phone-country-group-label"
-              >
-                {group.key === 'preferred'
-                  ? messages.preferredCountries
-                  : messages.allCountries}
-              </Combobox.GroupLabel>
-            )}
-            <Combobox.Collection>
-              {(option: PhoneCountryOption) => (
-                <Combobox.Item
-                  className={classNames.option}
-                  data-preferred={option.preferred || undefined}
-                  data-slot="phone-country-option"
-                  key={option.country}
-                  value={option}
-                >
-                  <PhoneCountryFlag
-                    {...flags}
-                    className={classNames.flag}
-                    country={option.country}
-                    data-slot="phone-country-flag"
-                    mode={flags?.mode ?? 'none'}
-                    placement="option"
-                  />
-                  <span data-slot="phone-country-code">{option.country}</span>
-                  <span data-slot="phone-country-name">{option.localizedName}</span>
-                  <span data-slot="phone-country-calling-code" dir="ltr">
-                    +{option.callingCode}
-                  </span>
-                  <Combobox.ItemIndicator data-slot="phone-country-indicator">
-                    {CHECK_ICON}
-                  </Combobox.ItemIndicator>
-                </Combobox.Item>
-              )}
-            </Combobox.Collection>
-          </Combobox.Group>
-        )}
-      </Combobox.List>
+      <CountryVirtualList
+        classNames={classNames}
+        flags={flags}
+        groups={model.filteredGroups}
+        hasPreferred={model.hasPreferred}
+        highlighted={model.highlighted}
+        inline={inline}
+        listProps={listProps}
+        listRef={listRef}
+        messages={messages}
+        query={model.rootProps.inputValue}
+        selectedCountry={model.selected?.country ?? null}
+      />
     </>
   );
 }
@@ -511,7 +458,7 @@ export interface PhoneCountryListProps extends PhoneCountryPartOptions {
   listProps?: Omit<Combobox.List.Props, 'children'>;
   /** Called after the selection is applied to `phone`. */
   onSelect?: (country: CountryCode) => void;
-  /** Maximum rendered options, with or without a query. Omit to list every country. */
+  /** Maximum matching options, with or without a query. Omit to list every country. */
   resultLimit?: number;
 }
 
@@ -541,8 +488,6 @@ export function PhoneCountryList({
   });
   const listRef = useRef<HTMLDivElement | null>(null);
   const searchRef = useRef<HTMLInputElement | null>(null);
-  const [activeDescendant, setActiveDescendant] = useState<string | undefined>();
-  const [highlighted, setHighlighted] = useState<string | undefined>();
   useEffect(() => {
     // After the host container's own initial focus, so this choice wins.
     const frame = window.requestAnimationFrame(() => {
@@ -553,19 +498,6 @@ export function PhoneCountryList({
     });
     return () => window.cancelAnimationFrame(frame);
   }, [autoFocusSearch]);
-  // Every render: a new query remounts rows in another group with new ids.
-  useLayoutEffect(() => {
-    // Base UI points aria-activedescendant from the search field only; mirror it
-    // on the list so a focused list still announces the highlighted row.
-    const id =
-      highlighted === undefined
-        ? undefined
-        : listRef.current?.querySelector<HTMLElement>(
-            '[role="option"][data-highlighted]',
-          )?.id;
-    // React skips the update when the id is unchanged.
-    setActiveDescendant(id || undefined);
-  });
   const handleListKeyDown: NonNullable<Combobox.List.Props['onKeyDown']> = (event) => {
     listProps?.onKeyDown?.(event);
     // Type-to-search: printable keys pressed on the focused list go to the search field.
@@ -585,7 +517,6 @@ export function PhoneCountryList({
       <Combobox.Root<PhoneCountryOption>
         {...model.rootProps}
         inline
-        onItemHighlighted={(item) => setHighlighted(item?.country)}
         onValueChange={(option) => {
           if (!option || model.disabled) return;
           phone.actions.selectCountry(option.country);
@@ -596,14 +527,14 @@ export function PhoneCountryList({
         <CountryListBody
           classNames={classNames}
           flags={flags}
-          hasPreferred={model.hasPreferred}
+          inline
           listProps={{
             ...listProps,
-            'aria-activedescendant': activeDescendant,
             onKeyDown: handleListKeyDown,
           }}
           listRef={listRef}
           messages={messages}
+          model={model}
           searchRef={searchRef}
         />
       </Combobox.Root>

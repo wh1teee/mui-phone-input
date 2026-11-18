@@ -53,7 +53,7 @@ export interface PhoneCountrySelectionOptions {
 }
 
 export interface FilterPhoneCountryOptionsParameters {
-  /** Maximum rendered options. Omit to keep every match. */
+  /** Maximum matching options. Omit to keep every match. */
   limit?: number;
   selectedCountry?: CountryCode | null;
 }
@@ -98,7 +98,7 @@ const authorityCallingCodesByMetadata = new WeakMap<PhoneMetadata, readonly stri
 const DEFAULT_INTL_LOCALE = 'en';
 const COUNTRY_SEARCH_METADATA = new WeakMap<
   Readonly<PhoneCountryOption>,
-  Readonly<PhoneCountrySearchMetadata>
+  Readonly<PhoneCountrySearchMetadata> | (() => Readonly<PhoneCountrySearchMetadata>)
 >();
 
 function isPartialInternationalCallingCode(
@@ -229,10 +229,13 @@ function createCountrySearchMetadata(
 function getCountrySearchMetadata(
   option: Readonly<PhoneCountryOption>,
 ): Readonly<PhoneCountrySearchMetadata> {
-  return (
-    COUNTRY_SEARCH_METADATA.get(option) ??
-    createCountrySearchMetadata(option, DEFAULT_INTL_LOCALE)
-  );
+  const cached = COUNTRY_SEARCH_METADATA.get(option);
+  if (typeof cached === 'function') {
+    const metadata = cached();
+    COUNTRY_SEARCH_METADATA.set(option, metadata);
+    return metadata;
+  }
+  return cached ?? createCountrySearchMetadata(option, DEFAULT_INTL_LOCALE);
 }
 
 function createDefaultCountryOrder(
@@ -296,13 +299,15 @@ export function createPhoneCountryOptions(
         localizedName,
         preferred: preferredSet.has(country),
       });
-      COUNTRY_SEARCH_METADATA.set(
-        option,
+      const mainCountryForCallingCode =
+        metadata.country_calling_codes[option.callingCode]?.[0] === country;
+      const aliases = parameters.searchAliases?.[country]?.slice();
+      COUNTRY_SEARCH_METADATA.set(option, () =>
         createCountrySearchMetadata(
           option,
           caseLocale,
-          metadata.country_calling_codes[option.callingCode]?.[0] === country,
-          parameters.searchAliases?.[country],
+          mainCountryForCallingCode,
+          aliases,
         ),
       );
       return option;

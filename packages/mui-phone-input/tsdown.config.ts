@@ -1,5 +1,5 @@
-import { defineConfig } from 'tsdown';
 import { resolve } from 'node:path';
+import { defineConfig } from 'tsdown';
 
 const externalDependencies = [
   '@base-ui/react',

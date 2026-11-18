@@ -176,6 +176,7 @@
 
 [data-slot="phone-country-list"] {
   min-height: 0;
+  overflow-anchor: none;
   overflow-y: auto;
   overscroll-behavior: contain;
   padding: 0.25rem;
@@ -193,11 +194,6 @@
   );
   box-sizing: border-box;
   cursor: default;
-  /* Off-screen rows of the ~240-country list skip layout and paint. The
-     intrinsic size is the single-line row height, so scroll positions are
-     close; rows whose names wrap are taller once rendered. */
-  content-visibility: auto;
-  contain-intrinsic-block-size: auto 2.5rem;
 }
 
 [data-slot="phone-country-option"][data-highlighted] {
@@ -286,9 +282,6 @@
   [data-slot="phone-country-close"],
   [data-slot="phone-country-option"] {
     min-height: 2.75rem;
-  }
-  [data-slot="phone-country-option"] {
-    contain-intrinsic-block-size: auto 2.75rem;
   }
 }
 

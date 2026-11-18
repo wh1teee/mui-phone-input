@@ -362,16 +362,18 @@ for (const adapter of ['base', 'mui'] as const) {
       await expect.element(page.getByLabelText('Phone', { exact: true })).toHaveFocus();
     });
 
-    test('lists every country and prefers the main country of a shared code', async () => {
+    test('prefers the main country of a shared code', async () => {
       await render(<RankedSearch adapter={adapter} />);
       await openSelector().click();
-      await expect
-        .poll(() => document.querySelectorAll('[role="option"]').length)
-        .toBeGreaterThan(200);
+      await expect.element(page.getByRole('option').first()).toBeVisible();
       await userEvent.keyboard('+7');
       await expect
         .element(page.getByRole('option').first())
         .toHaveTextContent(/Russia/u);
+      await userEvent.keyboard('{Enter}');
+      await expect.element(page.getByTestId('ranked-value')).toHaveTextContent('+7');
+      await expect.element(openSelector()).toHaveAccessibleName(/Russia/u);
+      await expect.element(page.getByLabelText('Phone', { exact: true })).toHaveFocus();
     });
   });
 }

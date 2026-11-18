@@ -456,6 +456,23 @@ named by `messages.dialogTitle`. Query, focus and the scroll to the selected
 row are set when the list mounts, so mount it when the container opens (most
 dialogs do; with `keepMounted`, give the list a `key` that changes per opening).
 
+The inline list and built-in Base UI popover share a virtualized renderer. Only
+the visible window, a few adjacent rows, the selection and the active keyboard
+target mount;
+search and Home/End/arrow navigation still use every matching country. Preferred
+and all-country groups keep their labels, and each option reports its position
+and the total result count to assistive technology. Rows are measured at their
+natural height, so wrapped names and enlarged text do not need a fixed-height
+skin. Changing the query resets a previous deep scroll to the new results.
+
+Give a host-owned list a bounded height (for example, a flex column with
+`height: 20rem`); the opt-in skin makes the list its scrolling child. Unstyled
+hosts must give `data-slot="phone-country-list"` their own scrollable height or
+max-height. Group borders, padding and labels remain in normal flow. The
+presentation-only `phone-country-spacer` elements reserve unmounted space and
+should not receive row decoration. `resultLimit` limits matching countries;
+leave it unset to keep the complete country model available.
+
 ### Flags
 
 The defaults differ by renderer:

@@ -298,8 +298,11 @@ assert.equal(
   rootPackage.devDependencies['libphonenumber-js'],
   'Root tooling and published package must use the same exact libphonenumber-js authority.',
 );
+// The country renderer owns its private measured window; no additional runtime
+// or renderer peer is needed for virtualization.
 for (const virtualizationDependency of [
   '@tanstack/react-virtual',
+  '@tanstack/virtual-core',
   'react-virtualized',
   'react-window',
   'virtua',
