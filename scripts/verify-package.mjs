@@ -141,6 +141,7 @@ assert.deepEqual(
   {
     '@maskito/core': '5.4.0',
     '@maskito/react': '5.4.0',
+    '@tanstack/react-virtual': '3.14.26',
     'libphonenumber-js': '1.13.13',
     tabbable: '6.5.0',
   },
