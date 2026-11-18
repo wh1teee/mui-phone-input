@@ -153,19 +153,22 @@ externalizes declared peers.
 
 Current exact-artifact measurements are:
 
-- main closure: 33,927 bytes gzip;
+- main closure: 33,972 bytes gzip;
 - server entry: 6,261 bytes gzip;
-- packed tarball: 486,534 bytes, including the rewritten package README. The stable artifact adds independently built
-  max/min headless, MUI, Base UI/shadcn and form entrypoints plus the opt-in
-  stylesheet. Min entrypoint source maps and duplicate declarations are omitted;
-  all min variants reuse the canonical type surface. The executable MUI main and
-  server closures remain inside their frozen budgets, and unused renderers are
-  excluded from each consumer closure.
+- packed tarball: 496,833 bytes, including the package README,
+  source maps and notices. Max/min headless, MUI, Base UI/shadcn and form
+  entrypoints plus the opt-in stylesheet are included. Min entrypoint source
+  maps and duplicate declarations are omitted; min variants reuse the
+  canonical type surface. Unused renderers remain excluded from each closure.
 
-Revalidated on 2026-11-18 for PR66 after country-list windowing changed the
-Base UI package inputs, source maps, README and notices. The canonical producer
-regenerated the whole-package measurement; the MUI main and server closure
-hashes, compressed sizes and frozen budgets remain unchanged.
+Revalidated on 2026-11-18 for PR66 after the private measured country window
+and lazy search metadata replaced the TanStack candidate. The existing native
+measurement owner consumed the retained artifact
+`67bd0ba1207cbba86e14769631228945a3eaa5edac4c94ce3d4f556b9a8619a0`.
+Its exact returned main/server measurements and packed bytes generated the
+JSON report. The 34,023-byte main and 10,240-byte server gzip limits and
+normalization methodology remain unchanged. This is package evidence, not a
+consumer country-opening latency or release qualification.
 
 CI creates one immutable package artifact, reuses that same tarball across the
 package/runtime/tracer/consumer gates, and requires exact byte/hash equality

@@ -79,20 +79,6 @@ the MIT licence. Source inspected for the focus-navigation contract:
 
 No tabbable source code is copied into this package.
 
-## TanStack Virtual
-
-The package uses the exact `@tanstack/react-virtual` version pinned in its package
-manifest to measure and window country-list rows. Country matching, selection and
-keyboard navigation remain owned by the existing phone model and Base UI.
-
-TanStack Virtual is Copyright (c) 2021-present Tanner Linsley and is distributed
-under the MIT License. The dependency and its virtual-core package retain their
-own license files in their npm distributions.
-
-- <https://github.com/TanStack/virtual>
-
-No TanStack Virtual source code is copied into this package.
-
 ## input-format and react-phone-number-input
 
 `input-format@0.3.14` and `react-phone-number-input@3.4.17` were inspected and

@@ -1,7 +1,6 @@
 'use client';
 
 import { Combobox } from '@base-ui/react/combobox';
-import { defaultRangeExtractor, useVirtualizer } from '@tanstack/react-virtual';
 import type { CountryCode } from 'libphonenumber-js/core';
 import {
   Fragment,
@@ -13,8 +12,8 @@ import {
   useRef,
   useState,
 } from 'react';
+import { flushSync } from 'react-dom';
 
-import type { PhoneCountryOption } from '../country-selector';
 import type { PhoneCountrySelectorMessages } from '../country-selector-messages';
 import { PhoneCountryFlag } from '../flags';
 import type {
@@ -24,20 +23,17 @@ import type {
   PhoneCountryListClassNames,
 } from './PhoneCountryParts';
 
-type CountryRow =
-  | { group: CountryOptionGroup; key: string; kind: 'start' | 'end' }
-  | { key: string; kind: 'option'; option: PhoneCountryOption; optionIndex: number };
+interface CountryWindowModel {
+  keys: readonly string[];
+  indices: ReadonlyMap<string, number>;
+  estimates: ReadonlyMap<string, number>;
+}
 
 interface VirtualGroup {
+  optionOffset: number;
   end: number;
   group: CountryOptionGroup;
   start: number;
-}
-
-function rowAt(rows: readonly CountryRow[], index: number): CountryRow {
-  const row = rows[index];
-  if (!row) throw new RangeError('Country row is outside the complete model.');
-  return row;
 }
 
 interface CountryVirtualListProps {
@@ -74,22 +70,266 @@ function spacing(style: CSSStyleDeclaration, edge: 'Top' | 'Bottom'): number {
   );
 }
 
-/** Group borders, padding and labels stay in normal flow, including custom skins. */
-function measureRow(
-  element: HTMLDivElement,
-  entry: ResizeObserverEntry | undefined,
-): number {
-  // ResizeObserver keeps fractional sizes without including an animating
-  // container's transform. offsetHeight seeds the first synchronous measure.
-  let size = entry?.borderBoxSize[0]?.blockSize ?? element.offsetHeight;
-  const edge = element.dataset.countryGroupEdge;
-  if (edge && element.parentElement) {
-    size += spacing(
-      getComputedStyle(element.parentElement),
-      edge === 'start' ? 'Top' : 'Bottom',
-    );
-  }
-  return size;
+interface CountryGeometry {
+  sizes: ReadonlyMap<string, number>;
+  offset: number;
+  height: number;
+  padding: number;
+}
+type CountryPosition =
+  | { key: string; align: 'auto' | 'center'; model: CountryWindowModel }
+  | { key: string; align: 'anchor'; offset: number; scroll: number };
+
+function windowRange(offsets: readonly number[], offset: number, height: number) {
+  const last = offsets.length - 2;
+  let start = 0;
+  while (start < last && (offsets[start + 1] ?? 0) <= offset) start += 1;
+  let end = start;
+  while (end < last && (offsets[end] ?? 0) < offset + height) end += 1;
+  return [Math.max(0, start - 4), Math.min(last, end + 4)] as const;
+}
+
+/** One measured prefix/window; Base UI retains the complete item model. */
+function useCountryWindow(
+  model: CountryWindowModel,
+  listRef: RefObject<HTMLDivElement | null>,
+) {
+  const [geometry, setGeometry] = useState<CountryGeometry>(() => ({
+    sizes: new Map(),
+    offset: 0,
+    height: 320,
+    padding: 0,
+  }));
+  const observer = useRef<ResizeObserver | null>(null);
+  const position = useRef<CountryPosition | null>(null);
+  const ownOffset = useRef<number | null>(null);
+  const scrolling = useRef(false);
+  const layout = useMemo(() => {
+    const offsets = [geometry.padding];
+    for (const key of model.keys) {
+      const size =
+        (geometry.sizes.get(key) ?? model.estimates.get(key) ?? 44) +
+        (geometry.sizes.get(key + ':spacing') ?? 0);
+      offsets.push((offsets.at(-1) ?? 0) + size);
+    }
+    return {
+      model,
+      offsets,
+      geometry,
+      range: windowRange(offsets, geometry.offset, geometry.height),
+    };
+  }, [geometry, model]);
+  const committed = useRef(layout);
+  const publishOffset = useCallback((offset: number, sync: boolean) => {
+    const current = committed.current;
+    const range = windowRange(current.offsets, offset, current.geometry.height);
+    if (range[0] === current.range[0] && range[1] === current.range[1]) return;
+    const update = () => setGeometry((value) => ({ ...value, offset }));
+    if (sync) flushSync(update);
+    else update();
+  }, []);
+  const writeOffset = useCallback(
+    (offset: number) => {
+      const node = listRef.current;
+      if (!node) return;
+      const next = Math.max(0, Math.min(offset, node.scrollHeight - node.clientHeight));
+      if (Math.abs(node.scrollTop - next) > 0.5) {
+        ownOffset.current = next;
+        node.scrollTop = next;
+      }
+      publishOffset(node.scrollTop, false);
+    },
+    [listRef, publishOffset],
+  );
+  const alignTarget = useCallback(() => {
+    const node = listRef.current;
+    const pending = position.current;
+    if (!node?.clientHeight || !pending) return;
+    const current = committed.current;
+    const index = current.model.indices.get(pending.key);
+    if (index === undefined) {
+      position.current = null;
+      return;
+    }
+    const start = current.offsets[index] ?? 0;
+    const end = current.offsets[index + 1] ?? start;
+    const offset = node.scrollTop;
+    if (pending.align === 'anchor') {
+      if (scrolling.current) return;
+      position.current = null;
+      if (Math.abs(offset - pending.scroll) < 1) writeOffset(start + pending.offset);
+    } else {
+      writeOffset(
+        pending.align === 'center'
+          ? (start + end - node.clientHeight) / 2
+          : start < offset
+            ? start
+            : end > offset + node.clientHeight
+              ? end - node.clientHeight
+              : offset,
+      );
+    }
+  }, [listRef, writeOffset]);
+  const measureElement = useCallback((node: HTMLDivElement | null) => {
+    if (!node) return;
+    const key = node.dataset.countryRow;
+    if (!key) throw new Error('A measured country row must have its stable key.');
+    observer.current?.observe(node, { box: 'border-box' });
+    return () => {
+      observer.current?.unobserve(node);
+    };
+  }, []);
+  const setListElement = useCallback(
+    (list: HTMLDivElement | null) => {
+      listRef.current = list;
+      if (!list) return;
+      let live = true;
+      let idle = 0;
+      const resize = new ResizeObserver((entries) => {
+        if (!live || !list.isConnected) return;
+        const current = committed.current;
+        const deltas = new Map<string, number>();
+        for (const entry of entries) {
+          const node = entry.target as HTMLDivElement;
+          const key = node.dataset.countryRow;
+          if (key && current.model.indices.has(key) && list.contains(node)) {
+            const size = entry.borderBoxSize[0]?.blockSize ?? node.offsetHeight;
+            if (size > 0 || node.dataset.countryGroupEdge) deltas.set(key, size);
+          }
+        }
+        // Group spacing can change without resizing either zero-height edge.
+        // Snapshot it with each delivery; only these few boundaries need a scan.
+        const styles = new Map<Element, CSSStyleDeclaration>();
+        for (const node of list.querySelectorAll<HTMLDivElement>(
+          '[data-country-group-edge]',
+        )) {
+          const key = node.dataset.countryRow;
+          const parent = node.parentElement;
+          if (!key || !parent || !current.model.indices.has(key)) continue;
+          let style = styles.get(parent);
+          if (!style) {
+            style = getComputedStyle(parent);
+            styles.set(parent, style);
+          }
+          deltas.set(
+            key + ':spacing',
+            spacing(
+              style,
+              node.dataset.countryGroupEdge === 'start' ? 'Top' : 'Bottom',
+            ),
+          );
+        }
+        const padding = Number.parseFloat(getComputedStyle(list).paddingTop) || 0;
+        const height = list.clientHeight || 320;
+        const offset = list.scrollTop;
+        if (
+          padding !== current.geometry.padding ||
+          [...deltas].some(([key, size]) => current.geometry.sizes.get(key) !== size)
+        ) {
+          const index =
+            current.offsets.findIndex((end, index) => index > 0 && end > offset) - 1;
+          const key = current.model.keys[index];
+          if (!position.current && key && offset > 0) {
+            position.current = {
+              key,
+              align: 'anchor',
+              offset: offset - (current.offsets[index] ?? 0),
+              scroll: offset,
+            };
+          }
+        }
+        // Merge queued deliveries in order, including those preceding a commit.
+        // The updater consumes snapshots only: no DOM reads or ref mutations.
+        setGeometry((previous) => {
+          let sizes: Map<string, number> | undefined;
+          for (const [key, size] of deltas) {
+            if (previous.sizes.get(key) !== size) {
+              sizes ??= new Map(previous.sizes);
+              sizes.set(key, size);
+            }
+          }
+          return sizes ||
+            padding !== previous.padding ||
+            height !== previous.height ||
+            offset !== previous.offset
+            ? { sizes: sizes ?? previous.sizes, padding, height, offset }
+            : previous;
+        });
+      });
+      observer.current = resize;
+      resize.observe(list);
+      for (const node of list.querySelectorAll('[data-country-row]'))
+        resize.observe(node, { box: 'border-box' });
+      const onScroll = () => {
+        const offset = list.scrollTop;
+        const own =
+          ownOffset.current !== null && Math.abs(offset - ownOffset.current) < 1;
+        if (!own) {
+          ownOffset.current = null;
+          position.current = null;
+          scrolling.current = true;
+          clearTimeout(idle);
+          idle = window.setTimeout(() => {
+            scrolling.current = false;
+            alignTarget();
+          }, 150);
+        }
+        publishOffset(offset, !own);
+      };
+      list.addEventListener('scroll', onScroll, { passive: true });
+      return () => {
+        live = false;
+        resize.disconnect();
+        if (observer.current === resize) {
+          observer.current = null;
+          scrolling.current = false;
+        }
+        if (listRef.current === list) listRef.current = null;
+        list.removeEventListener('scroll', onScroll);
+        clearTimeout(idle);
+      };
+    },
+    [alignTarget, listRef, publishOffset],
+  );
+  useLayoutEffect(() => {
+    if (
+      position.current?.align === 'center' &&
+      position.current.model !== layout.model
+    ) {
+      position.current = null;
+    }
+    committed.current = layout;
+    if (layout.model.keys.length > 0 && layout.geometry.height > 0) alignTarget();
+  }, [alignTarget, layout]);
+  const cancelAlignment = useCallback(() => {
+    position.current = null;
+  }, []);
+  const scrollToOffset = useCallback(
+    (offset: number) => {
+      cancelAlignment();
+      writeOffset(offset);
+    },
+    [cancelAlignment, writeOffset],
+  );
+  const scrollToIndex = useCallback(
+    (index: number, align: 'auto' | 'center') => {
+      const current = committed.current;
+      const key = current.model.keys[index];
+      if (!key) return;
+      position.current = { key, align, model: current.model };
+      alignTarget();
+    },
+    [alignTarget],
+  );
+  return {
+    offsets: layout.offsets,
+    range: layout.range,
+    measureElement,
+    cancelAlignment,
+    scrollToIndex,
+    scrollToOffset,
+    setListElement,
+  };
 }
 
 function Spacer({ size }: { size: number }): ReactNode {
@@ -118,113 +358,80 @@ export function CountryVirtualList({
   selectedCountry,
 }: CountryVirtualListProps): ReactNode {
   const [initialCountry] = useState(selectedCountry);
-  const [centered, setCentered] = useState(false);
+  const centered = useRef(false);
   const [activeDescendant, setActiveDescendant] = useState<string | undefined>();
-  const [padding, setPadding] = useState({ start: 0, end: 0 });
   const previousQuery = useRef(query);
   const model = useMemo(() => {
-    const rows: CountryRow[] = [];
+    const keys: string[] = [];
+    const indices = new Map<string, number>();
+    const estimates = new Map<string, number>();
     const virtualGroups: VirtualGroup[] = [];
-    const countryRows = new Map<CountryCode, number>();
-    const edges: number[] = [];
-    let optionIndex = 0;
+    const add = (key: string, estimate?: number) => {
+      indices.set(key, keys.length);
+      keys.push(key);
+      if (estimate !== undefined) estimates.set(key, estimate);
+    };
+    let optionCount = 0;
     for (const group of groups) {
-      const start = rows.length;
-      rows.push({ group, key: `${group.key}:start`, kind: 'start' });
-      edges.push(start);
-      for (const option of group.items) {
-        countryRows.set(option.country, rows.length);
-        rows.push({ key: option.country, kind: 'option', option, optionIndex });
-        optionIndex += 1;
-      }
-      const end = rows.length;
-      rows.push({ group, key: `${group.key}:end`, kind: 'end' });
-      edges.push(end);
-      virtualGroups.push({ end, group, start });
+      const start = keys.length;
+      add(group.key + ':start', hasPreferred && group.key !== 'results' ? 28 : 0);
+      for (const option of group.items) add(option.country);
+      const end = keys.length;
+      add(group.key + ':end', 0);
+      virtualGroups.push({ start, end, group, optionOffset: optionCount });
+      optionCount += group.items.length;
     }
-    return { countryRows, edges, optionCount: optionIndex, rows, virtualGroups };
-  }, [groups]);
+    return { keys, indices, estimates, optionCount, virtualGroups };
+  }, [groups, hasPreferred]);
   const highlightedIndex = highlighted?.country
-    ? (model.countryRows.get(highlighted.country) ?? -1)
+    ? (model.indices.get(highlighted.country) ?? -1)
     : -1;
-  const initialIndex = initialCountry
-    ? (model.countryRows.get(initialCountry) ?? -1)
-    : -1;
+  const initialIndex = initialCountry ? (model.indices.get(initialCountry) ?? -1) : -1;
   const selectedIndex = selectedCountry
-    ? (model.countryRows.get(selectedCountry) ?? -1)
+    ? (model.indices.get(selectedCountry) ?? -1)
     : -1;
-  const getItemKey = useCallback(
-    (index: number) => rowAt(model.rows, index).key,
-    [model.rows],
-  );
-  const virtualizer = useVirtualizer<HTMLDivElement, HTMLDivElement>({
-    count: model.rows.length,
-    getScrollElement: () => listRef.current,
-    getItemKey,
-    // Estimates seed the first window only. No option gets a fixed height.
-    estimateSize: (index) => {
-      const row = rowAt(model.rows, index);
-      if (row.kind === 'option') return 44;
-      return row.kind === 'start' && hasPreferred && row.group.key !== 'results'
-        ? 28
-        : 0;
-    },
-    initialRect: { height: 320, width: 0 },
-    measureElement: measureRow,
-    overscan: 4,
-    paddingStart: padding.start,
-    paddingEnd: padding.end,
-    rangeExtractor: (range) => {
-      const indexes = new Set([...defaultRangeExtractor(range), ...model.edges]);
-      // Keyboard navigation uses the complete Base UI model. Keep its active
-      // descendant mounted even when Home/End crosses the current window.
-      if (highlightedIndex >= 0) indexes.add(highlightedIndex);
-      if (selectedIndex >= 0) indexes.add(selectedIndex);
-      return [...indexes].sort((a, b) => a - b);
-    },
-  });
-  const virtualRows = virtualizer.getVirtualItems();
-  const virtualRowsByIndex = new Map(virtualRows.map((row) => [row.index, row]));
-
-  useLayoutEffect(() => {
-    const list = listRef.current;
-    if (!list) return;
-    const style = getComputedStyle(list);
-    const start = Number.parseFloat(style.paddingTop) || 0;
-    const end = Number.parseFloat(style.paddingBottom) || 0;
-    setPadding((current) =>
-      current.start === start && current.end === end ? current : { start, end },
-    );
-  });
+  const {
+    cancelAlignment,
+    offsets,
+    range,
+    measureElement,
+    scrollToIndex,
+    scrollToOffset,
+    setListElement,
+  } = useCountryWindow(model, listRef);
 
   useLayoutEffect(() => {
     if (previousQuery.current === query) return;
     previousQuery.current = query;
     // A short result set must not inherit a deep scroll offset from all countries.
-    virtualizer.scrollToOffset(0);
-    setCentered(true);
-  }, [query, virtualizer]);
+    scrollToOffset(0);
+    centered.current = true;
+  }, [query, scrollToOffset]);
 
   useLayoutEffect(() => {
-    if (centered || !listRef.current?.clientHeight) return;
+    if (centered.current || !listRef.current?.clientHeight) return;
     const frame = window.requestAnimationFrame(() => {
       if (initialIndex >= 0) {
-        virtualizer.scrollToIndex(initialIndex, { align: 'center' });
+        scrollToIndex(initialIndex, 'center');
       }
-      setCentered(true);
+      centered.current = true;
     });
     return () => window.cancelAnimationFrame(frame);
   });
 
   useLayoutEffect(() => {
-    if (!highlighted || highlighted.reason === 'pointer' || highlightedIndex < 0) {
+    if (highlighted?.reason === 'pointer') {
+      cancelAlignment();
+      return;
+    }
+    if (!highlighted || highlightedIndex < 0) {
       return;
     }
     const frame = window.requestAnimationFrame(() => {
-      virtualizer.scrollToIndex(highlightedIndex, { align: 'auto' });
+      scrollToIndex(highlightedIndex, 'auto');
     });
     return () => window.cancelAnimationFrame(frame);
-  }, [highlighted, highlightedIndex, virtualizer]);
+  }, [cancelAlignment, highlighted, highlightedIndex, scrollToIndex]);
 
   // Base UI owns the search input's active descendant. A host-focused inline
   // list needs the same mounted row id, including virtualizer-only renders.
@@ -245,94 +452,93 @@ export function CountryVirtualList({
       aria-label={listProps?.['aria-label'] ?? messages.dialogTitle}
       className={listProps?.className ?? classNames.list}
       data-slot="phone-country-list"
-      ref={listRef}
+      ref={setListElement}
     >
-      {virtualRows.length === 0 ? (
-        <Spacer size={virtualizer.getTotalSize() - padding.start - padding.end} />
-      ) : (
-        model.virtualGroups.map(({ end, group, start }) => {
-          const header = virtualRowsByIndex.get(start);
-          const footer = virtualRowsByIndex.get(end);
-          if (!header || !footer)
-            throw new Error('Country group boundaries must stay mounted.');
-          let previousEnd = header.end;
-          return (
-            <Combobox.Group
-              className={classNames.group}
-              data-slot="phone-country-group"
-              items={group.items}
-              key={group.key}
-            >
-              <div
-                data-country-group-edge="start"
-                data-index={start}
-                ref={virtualizer.measureElement}
+      {model.virtualGroups.map(({ end, group, optionOffset, start }) => {
+        const children: ReactNode[] = [];
+        let previousEnd = offsets[start + 1] ?? 0;
+        for (let item = 0; item < group.items.length; item += 1) {
+          const index = start + item + 1;
+          if (
+            (index < range[0] || index > range[1]) &&
+            index !== highlightedIndex &&
+            index !== selectedIndex
+          )
+            continue;
+          const option = group.items[item];
+          if (!option) continue;
+          const gap = (offsets[index] ?? 0) - previousEnd;
+          previousEnd = offsets[index + 1] ?? 0;
+          children.push(
+            <Fragment key={option.country}>
+              <Spacer size={gap} />
+              <Combobox.Item
+                aria-posinset={optionOffset + item + 1}
+                aria-setsize={model.optionCount}
+                className={classNames.option}
+                data-index={index}
+                data-country-row={option.country}
+                data-preferred={option.preferred || undefined}
+                data-slot="phone-country-option"
+                index={optionOffset + item}
+                ref={measureElement}
+                value={option}
               >
-                {hasPreferred && group.key !== 'results' && (
-                  <Combobox.GroupLabel
-                    className={classNames.groupLabel}
-                    data-slot="phone-country-group-label"
-                  >
-                    {group.key === 'preferred'
-                      ? messages.preferredCountries
-                      : messages.allCountries}
-                  </Combobox.GroupLabel>
-                )}
-              </div>
-              {virtualRows
-                .filter((row) => row.index > start && row.index < end)
-                .map((virtualRow) => {
-                  const row = model.rows[virtualRow.index];
-                  if (row?.kind !== 'option') return null;
-                  const gap = virtualRow.start - previousEnd;
-                  previousEnd = virtualRow.end;
-                  const { option } = row;
-                  return (
-                    <Fragment key={option.country}>
-                      <Spacer size={gap} />
-                      <Combobox.Item
-                        aria-posinset={row.optionIndex + 1}
-                        aria-setsize={model.optionCount}
-                        className={classNames.option}
-                        data-index={virtualRow.index}
-                        data-preferred={option.preferred || undefined}
-                        data-slot="phone-country-option"
-                        index={row.optionIndex}
-                        ref={virtualizer.measureElement}
-                        value={option}
-                      >
-                        <PhoneCountryFlag
-                          {...flags}
-                          className={classNames.flag}
-                          country={option.country}
-                          data-slot="phone-country-flag"
-                          mode={flags?.mode ?? 'none'}
-                          placement="option"
-                        />
-                        <span data-slot="phone-country-code">{option.country}</span>
-                        <span data-slot="phone-country-name">
-                          {option.localizedName}
-                        </span>
-                        <span data-slot="phone-country-calling-code" dir="ltr">
-                          +{option.callingCode}
-                        </span>
-                        <Combobox.ItemIndicator data-slot="phone-country-indicator">
-                          {CHECK_ICON}
-                        </Combobox.ItemIndicator>
-                      </Combobox.Item>
-                    </Fragment>
-                  );
-                })}
-              <Spacer size={footer.start - previousEnd} />
-              <div
-                data-country-group-edge="end"
-                data-index={end}
-                ref={virtualizer.measureElement}
-              />
-            </Combobox.Group>
+                <PhoneCountryFlag
+                  {...flags}
+                  className={classNames.flag}
+                  country={option.country}
+                  data-slot="phone-country-flag"
+                  mode={flags?.mode ?? 'none'}
+                  placement="option"
+                />
+                <span data-slot="phone-country-code">{option.country}</span>
+                <span data-slot="phone-country-name">{option.localizedName}</span>
+                <span data-slot="phone-country-calling-code" dir="ltr">
+                  +{option.callingCode}
+                </span>
+                <Combobox.ItemIndicator data-slot="phone-country-indicator">
+                  {CHECK_ICON}
+                </Combobox.ItemIndicator>
+              </Combobox.Item>
+            </Fragment>,
           );
-        })
-      )}
+        }
+        return (
+          <Combobox.Group
+            className={classNames.group}
+            data-slot="phone-country-group"
+            items={group.items}
+            key={group.key}
+          >
+            <div
+              data-country-group-edge="start"
+              data-country-row={group.key + ':start'}
+              data-index={start}
+              ref={measureElement}
+            >
+              {hasPreferred && group.key !== 'results' && (
+                <Combobox.GroupLabel
+                  className={classNames.groupLabel}
+                  data-slot="phone-country-group-label"
+                >
+                  {group.key === 'preferred'
+                    ? messages.preferredCountries
+                    : messages.allCountries}
+                </Combobox.GroupLabel>
+              )}
+            </div>
+            {children}
+            <Spacer size={(offsets[end] ?? 0) - previousEnd} />
+            <div
+              data-country-group-edge="end"
+              data-country-row={group.key + ':end'}
+              data-index={end}
+              ref={measureElement}
+            />
+          </Combobox.Group>
+        );
+      })}
     </Combobox.List>
   );
 }

@@ -584,6 +584,78 @@ describe('opening cost of the full list', () => {
     await userEvent.keyboard('{End}');
     await expectActiveCountry(lastCountry, countries.length);
     expect(listElement().querySelectorAll('[role="option"]').length).toBeLessThan(48);
+    // The mounted owner must remeasure a later text/layout change, including
+    // group spacing above this far-away active row, without losing its target.
+    const lastHeight = countryRow(lastCountry)?.getBoundingClientRect().height ?? 0;
+    listElement().style.fontSize = '48px';
+    await expect
+      .poll(() => countryRow(lastCountry)?.getBoundingClientRect().height ?? 0)
+      .toBeGreaterThan(lastHeight);
+    await expectActiveCountry(lastCountry, countries.length);
+    // Manual scrolling owns the viewport after keyboard navigation. Two separate
+    // natural resize deliveries above it must preserve the visible country and
+    // its intra-row offset, including while the native scroll is settling.
+    const list = listElement();
+    list.scrollTop = list.scrollHeight / 2;
+    await new Promise((resolve) =>
+      requestAnimationFrame(() => requestAnimationFrame(resolve)),
+    );
+    const visibleCountry = () => {
+      const bounds = list.getBoundingClientRect();
+      const row = Array.from(
+        list.querySelectorAll<HTMLElement>('[role="option"]'),
+      ).find((option) => {
+        const box = option.getBoundingClientRect();
+        return box.bottom > bounds.top + 1 && box.top < bounds.bottom;
+      });
+      const country = row?.querySelector(
+        '[data-slot="phone-country-code"]',
+      )?.textContent;
+      if (!row || !country) throw new Error('A visible country row is required.');
+      return { country, offset: row.getBoundingClientRect().top - bounds.top };
+    };
+    const label = page
+      .getByRole('group', { name: en.messages.allCountries })
+      .element()
+      .querySelector<HTMLElement>('[data-slot="phone-country-group-label"]');
+    if (!label) throw new Error('The group label above the viewport is required.');
+    const firstHeight = label.offsetHeight + 16;
+    const secondHeight = firstHeight + 16;
+    let deliveries = 0;
+    let frame = 0;
+    let retained: ReturnType<typeof visibleCountry> | undefined;
+    const resize = new ResizeObserver((entries) => {
+      const entry = entries[0];
+      const height = entry?.borderBoxSize[0]?.blockSize ?? label.offsetHeight;
+      if (deliveries === 0 && height >= firstHeight) {
+        deliveries = 1;
+        frame = requestAnimationFrame(() => {
+          label.style.height = `${secondHeight}px`;
+        });
+      } else if (deliveries === 1 && height >= secondHeight) {
+        deliveries = 2;
+      }
+    });
+    const beginResize = () => {
+      retained = visibleCountry();
+      label.style.height = `${firstHeight}px`;
+    };
+    try {
+      resize.observe(label, { box: 'border-box' });
+      list.addEventListener('scroll', beginResize, { once: true });
+      list.scrollTop += 7;
+      await expect.poll(() => deliveries).toBe(2);
+      if (!retained) throw new Error('The manual scroll must precede both resizes.');
+      const before = retained;
+      await expect.poll(() => visibleCountry().country).toBe(before.country);
+      await expect
+        .poll(() => Math.abs(visibleCountry().offset - before.offset))
+        .toBeLessThan(1);
+    } finally {
+      resize.disconnect();
+      cancelAnimationFrame(frame);
+      list.removeEventListener('scroll', beginResize);
+    }
     const search = page.getByRole('combobox', { name: 'Search countries' });
     await search.fill('New Zealand');
     await expect.poll(() => isInsideList(countryRow('NZ'))).toBe(true);

@@ -140,6 +140,7 @@ function assertRendererClosure(profile, external) {
 await prepareArtifact();
 try {
   const measurements = [];
+  const budgetFailures = [];
   for (const [entryName, profile] of Object.entries(budget.profiles)) {
     const entry = join(packageRoot, 'dist', `${entryName}.js`);
     const externalSpecifiers = await collectExternalSpecifiers(entry);
@@ -181,18 +182,23 @@ try {
       brotliBytes: brotliCompressSync(code).byteLength,
       sha256: createHash('sha256').update(code).digest('hex'),
     };
-    assert(
-      measurement.gzipBytes <= profile.gzipLimit,
-      `${entryName} gzip ${measurement.gzipBytes} exceeds ${profile.gzipLimit}`,
-    );
-    assert(
-      measurement.brotliBytes <= profile.brotliLimit,
-      `${entryName} brotli ${measurement.brotliBytes} exceeds ${profile.brotliLimit}`,
-    );
+    if (!(measurement.gzipBytes <= profile.gzipLimit)) {
+      budgetFailures.push(
+        `${entryName} gzip ${measurement.gzipBytes} exceeds ${profile.gzipLimit}`,
+      );
+    }
+    if (!(measurement.brotliBytes <= profile.brotliLimit)) {
+      budgetFailures.push(
+        `${entryName} brotli ${measurement.brotliBytes} exceeds ${profile.brotliLimit}`,
+      );
+    }
     measurements.push(measurement);
   }
 
-  console.log(JSON.stringify({ verified: true, measurements }, null, 2));
+  console.log(
+    JSON.stringify({ verified: budgetFailures.length === 0, measurements }, null, 2),
+  );
+  assert(budgetFailures.length === 0, budgetFailures.join('\n'));
 } finally {
   if (temporaryRoot) await rm(temporaryRoot, { force: true, recursive: true });
 }

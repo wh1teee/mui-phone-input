@@ -5,7 +5,6 @@ const externalDependencies = [
   '@base-ui/react',
   '@maskito/core',
   '@maskito/react',
-  '@tanstack/react-virtual',
   'libphonenumber-js',
   '@emotion/react',
   '@emotion/styled',

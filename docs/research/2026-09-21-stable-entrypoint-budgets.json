@@ -31,14 +31,14 @@
     "base-ui": {
       "metadata": "max",
       "renderer": "base-ui",
-      "gzipLimit": 88000,
-      "brotliLimit": 74500
+      "gzipLimit": 90000,
+      "brotliLimit": 76000
     },
     "shadcn": {
       "metadata": "max",
       "renderer": "base-ui",
-      "gzipLimit": 88000,
-      "brotliLimit": 74500
+      "gzipLimit": 90000,
+      "brotliLimit": 76000
     },
     "react-hook-form": {
       "metadata": "max",
@@ -49,8 +49,8 @@
     "base-ui/react-hook-form": {
       "metadata": "max",
       "renderer": "base-ui-rhf",
-      "gzipLimit": 88000,
-      "brotliLimit": 74500
+      "gzipLimit": 90000,
+      "brotliLimit": 76000
     },
     "mui/min": {
       "metadata": "min",
@@ -67,16 +67,16 @@
     "base-ui/min": {
       "metadata": "min",
       "renderer": "base-ui",
-      "gzipLimit": 66141,
-      "brotliLimit": 55500,
-      "note": "Raised from 66,000 to 66,141 gzip in 1.3.0: measured 66,045 bytes with the host-owned country parts, renderCountrySelector and Japanese search folding, plus 96 bytes of headroom."
+      "gzipLimit": 69000,
+      "brotliLimit": 58000,
+      "note": "1.3.0 used a 66,141-byte gzip limit for a 66,045-byte baseline. PR66 calibrates this profile to 69,000 gzip / 58,000 Brotli for private measured country-list windowing and lazy search metadata; see 2026-11-16-country-list-windowing.md. This does not change the separate 100 ms consuming-product requirement."
     },
     "shadcn/min": {
       "metadata": "min",
       "renderer": "base-ui",
-      "gzipLimit": 66141,
-      "brotliLimit": 55500,
-      "note": "Raised from 66,000 to 66,141 gzip in 1.3.0: measured 66,045 bytes with the host-owned country parts, renderCountrySelector and Japanese search folding, plus 96 bytes of headroom."
+      "gzipLimit": 69000,
+      "brotliLimit": 58000,
+      "note": "1.3.0 used a 66,141-byte gzip limit for a 66,045-byte baseline. PR66 calibrates this profile to 69,000 gzip / 58,000 Brotli for private measured country-list windowing and lazy search metadata; see 2026-11-16-country-list-windowing.md. This does not change the separate 100 ms consuming-product requirement."
     },
     "mui/min/react-hook-form": {
       "metadata": "min",
@@ -87,8 +87,8 @@
     "base-ui/min/react-hook-form": {
       "metadata": "min",
       "renderer": "base-ui-rhf",
-      "gzipLimit": 66500,
-      "brotliLimit": 56000
+      "gzipLimit": 69000,
+      "brotliLimit": 58000
     }
   }
 }
