@@ -268,7 +268,11 @@ function isInsideList(row: Element | null): boolean {
   if (!row) return false;
   const listBox = listElement().getBoundingClientRect();
   const rowBox = row.getBoundingClientRect();
-  return rowBox.top >= listBox.top - 1 && rowBox.bottom <= listBox.bottom + 1;
+  // A wrapped option can exceed the host viewport at large text sizes. Require
+  // its whole row or the whole available viewport, whichever can fit.
+  const visibleHeight =
+    Math.min(rowBox.bottom, listBox.bottom) - Math.max(rowBox.top, listBox.top);
+  return visibleHeight >= Math.min(rowBox.height, listBox.height) - 1;
 }
 
 describe('PhoneCountryList in a plain container', () => {
@@ -596,6 +600,8 @@ describe('opening cost of the full list', () => {
     // natural resize deliveries above it must preserve the visible country and
     // its intra-row offset, including while the native scroll is settling.
     const list = listElement();
+    // The saved viewport offset must remain in layout units under a host transform.
+    list.style.transform = 'scale(0.8)';
     list.scrollTop = list.scrollHeight / 2;
     await new Promise((resolve) =>
       requestAnimationFrame(() => requestAnimationFrame(resolve)),
@@ -655,6 +661,7 @@ describe('opening cost of the full list', () => {
       resize.disconnect();
       cancelAnimationFrame(frame);
       list.removeEventListener('scroll', beginResize);
+      list.style.transform = '';
     }
     const search = page.getByRole('combobox', { name: 'Search countries' });
     await search.fill('New Zealand');
@@ -664,6 +671,29 @@ describe('opening cost of the full list', () => {
     listElement().focus();
     await userEvent.keyboard('{Home}');
     await expectActiveCountry('BY', 1);
+    // Firefox's wrapped label can be taller than this host. Its remaining text
+    // must stay reachable by manual scroll without changing the active country.
+    const wrappedRow = countryRow('BY');
+    if (!wrappedRow) throw new Error('The active first country must remain mounted.');
+    if (wrappedRow.offsetHeight > listElement().clientHeight) {
+      await expect
+        .poll(() =>
+          Math.abs(
+            wrappedRow.getBoundingClientRect().top -
+              listElement().getBoundingClientRect().top,
+          ),
+        )
+        .toBeLessThan(1);
+      listElement().scrollTop += wrappedRow.offsetHeight - listElement().clientHeight;
+      await expect
+        .poll(
+          () =>
+            wrappedRow.getBoundingClientRect().bottom <=
+            listElement().getBoundingClientRect().bottom + 1,
+        )
+        .toBe(true);
+      await expectActiveCountry('BY', 1);
+    }
     await expect
       .element(page.getByRole('group', { name: en.messages.preferredCountries }))
       .toBeInTheDocument();

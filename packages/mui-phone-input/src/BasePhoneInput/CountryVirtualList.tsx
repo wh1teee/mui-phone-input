@@ -162,7 +162,7 @@ function useCountryWindow(
       writeOffset(
         pending.align === 'center'
           ? (start + end - node.clientHeight) / 2
-          : start < offset
+          : end - start > node.clientHeight || start < offset
             ? start
             : end > offset + node.clientHeight
               ? end - node.clientHeight
@@ -275,6 +275,26 @@ function useCountryWindow(
           }, 150);
         }
         publishOffset(offset, !own);
+        if (!own) {
+          // Newly mounted rows can already differ from the cached estimates.
+          // Capture the actual viewport before a later resize delivery changes it.
+          const bounds = list.getBoundingClientRect();
+          const scale = bounds.height / list.offsetHeight || 1;
+          const top = bounds.top + list.clientTop * scale;
+          for (const row of list.querySelectorAll<HTMLElement>('[role="option"]')) {
+            const box = row.getBoundingClientRect();
+            const key = row.dataset.countryRow;
+            if (key && box.bottom > top && box.top < top + list.clientHeight * scale) {
+              position.current = {
+                key,
+                align: 'anchor',
+                offset: (top - box.top) / scale,
+                scroll: list.scrollTop,
+              };
+              break;
+            }
+          }
+        }
       };
       list.addEventListener('scroll', onScroll, { passive: true });
       return () => {

@@ -155,20 +155,19 @@ Current exact-artifact measurements are:
 
 - main closure: 33,972 bytes gzip;
 - server entry: 6,261 bytes gzip;
-- packed tarball: 496,833 bytes, including the package README,
+- packed tarball: 497,142 bytes, including the package README,
   source maps and notices. Max/min headless, MUI, Base UI/shadcn and form
   entrypoints plus the opt-in stylesheet are included. Min entrypoint source
   maps and duplicate declarations are omitted; min variants reuse the
   canonical type surface. Unused renderers remain excluded from each closure.
 
-Revalidated on 2026-11-18 for PR66 after the private measured country window
-and lazy search metadata replaced the TanStack candidate. The existing native
-measurement owner consumed the retained artifact
-`67bd0ba1207cbba86e14769631228945a3eaa5edac4c94ce3d4f556b9a8619a0`.
-Its exact returned main/server measurements and packed bytes generated the
-JSON report. The 34,023-byte main and 10,240-byte server gzip limits and
-normalization methodology remain unchanged. This is package evidence, not a
-consumer country-opening latency or release qualification.
+Revalidated on 2026-11-18 for mpi-dyx after the manual-scroll anchor repair.
+The native measurement owner consumed the retained artifact
+`a2750eb7c9a1a2aff879c83e037eb02c49903b253ad25a0c3f8221f31c0ce799`.
+Its returned main/server measurements and packed bytes generated the JSON
+report. The 34,023-byte main and 10,240-byte server gzip limits and existing
+entrypoint budgets remain unchanged. This is package evidence, not consumer
+country-opening latency or release qualification.
 
 CI creates one immutable package artifact, reuses that same tarball across the
 package/runtime/tracer/consumer gates, and requires exact byte/hash equality

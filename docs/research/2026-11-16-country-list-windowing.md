@@ -153,3 +153,45 @@ for released 1.3.0, a live stand, physical Safari or VoiceOver.
 No dependency, phone-validation, public API or motion policy changes are part
 of this calibration. Package publication and tags require separate authorization; product adoption
 awaits an authorized released version. The 100 ms mobile requirement remains unmet in WebKit.
+
+## Firefox aftercare and manual-scroll correction
+
+The actual PR66 aftercare at 04:35 UTC on 18 November observed a failed
+Firefox country-window case on merged commit `4c329de0`. Main Node 24,
+packed consumers, Chromium and WebKit passed; the browser matrix was not green.
+The original failure and local diagnostic results are retained.
+
+The existing large-text case exposed two distinct boundaries. Firefox laid
+out the long Belarus option at 298 px in a 290 px viewport, so complete-row
+containment was impossible. The assertion now requires the whole row when it
+fits, or the whole available viewport for an oversized row. Keyboard alignment
+places an oversized target at its beginning, and the same case verifies that
+manual scrolling reaches its end while retaining its active descendant.
+
+The two-resize/manual-scroll portion also reproduced a real anchor failure:
+the first visible country changed from Latvia to Lebanon. Capturing that anchor
+from estimated prefix positions could disagree with newly mounted natural row
+heights. Manual scroll now captures the actual visible country's key and offset
+before the next ResizeObserver delivery. It converts viewport geometry back to
+layout units, including host scale and the list border inset. Existing measured
+prefix updates, idle handling and ownership of keyboard/manual scrolling remain.
+No extra observer, cache, timer, public option or stylesheet was introduced.
+
+The final existing case passed once in each of Firefox, Chromium and WebKit at
+04:57:10–04:57:19 UTC. Its manual-resize portion exercises a scale(0.8) host;
+the initial keyboard and final oversized-row portions remain unscaled. Each
+engine ran one selected case with 39 unselected cases and zero retries. Scoped
+library/test types, changed-file Biome and diff checks passed. The original
+containment and anchor failures are not replaced by these later results.
+
+One native build produced a 497,142-byte tarball,
+`a2750eb7c9a1a2aff879c83e037eb02c49903b253ad25a0c3f8221f31c0ce799`.
+All twelve existing packed-entrypoint budgets and the native tracer verifier
+passed without changing limits: Base UI max 89,843 bytes gzip, min 68,672;
+main tracer 33,972 and server 6,261. Evidence is under
+`~/.cache/payattable/profile-redesign-20261116/results/10/a41f/library-firefox-repair-1/`:
+`normalized-anchor-three-engines/receipt.json` (SHA256
+`17cb01e487be6775ac3c6785ceca7942ee3f0f1b13c4c7814c3c3c808bf1d072`)
+and `package-1/receipt.json` (SHA256
+`d6cbca3df4e1187c219e67bf10a55eb3888b128d3418f1468e53e089953f629b`).
+This follow-up has no new consuming-drawer timing or release qualification.
